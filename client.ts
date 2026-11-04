@@ -2119,7 +2119,7 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       const toDiscover = () => {
         ((o.user = ""),
           (o.o.h = !1),
-          (o.o.dv = !1),
+          (o.o.dv = !0),
           (o.rows = o.rows.filter((p) => !/^(d\.\d\.|r\.)/.test(p.id))),
           (o.step = 2),
           (o.tab = "cat"),
