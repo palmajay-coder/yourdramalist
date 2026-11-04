@@ -468,11 +468,11 @@ export function $e(t, e, n) {
       '<button class="tg" id="dark" title="Dark mode">' +
       t.sun +
       "</button></span>" +
-      '<div style="position:absolute;left:299px;top:154px;display:flex;align-items:center;gap:10px;z-index:2"><span style="font-size:66px;font-weight:900;line-height:1;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5)">' +
+      '<div style="position:absolute;left:50%;top:154px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:2"><span style="font-size:66px;font-weight:900;line-height:1;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5)">' +
       t.heading +
       '</span><span style="display:inline-block;font-size:13px;font-weight:800;padding:3px 8px;border-radius:5px;background:#e0393e;color:#fff">v' +
       n +
-      '</span></div><div style="position:absolute;left:299px;top:232px;width:500px;font-size:24px;font-weight:700;line-height:1.3;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5);z-index:2">' +
+      '</span></div><div style="position:absolute;left:50%;top:232px;width:500px;transform:translateX(-50%);font-size:24px;font-weight:700;line-height:1.3;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5);z-index:2">' +
       t.intro.replace(/\bNuvio\b/g, "<u>Nuvio</u>") +
       "</div>"
     );
@@ -480,7 +480,7 @@ export function $e(t, e, n) {
   // --- onboarding step 1a: Get Started landing (button only, under the tagline) ---
   function landingCard() {
     return (
-      '<button style="position:absolute;left:299px;top:300px;border:0;border-radius:10px;padding:20px 52px;font-weight:700;font-size:19px;cursor:pointer;background:#24508f;color:#fff;font-family:inherit;z-index:2" id="getstarted">' +
+      '<button style="position:absolute;left:50%;top:300px;transform:translateX(-50%);border:0;border-radius:10px;padding:20px 52px;font-weight:700;font-size:19px;cursor:pointer;background:#24508f;color:#fff;font-family:inherit;z-index:2" id="getstarted">' +
       t.getStartedButton +
       "</button>"
     );
@@ -505,7 +505,7 @@ export function $e(t, e, n) {
       t.linkText +
       "</a></div>";
     return (
-      '<div style="position:absolute;left:299px;top:320px;width:345px;background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
+      '<div style="position:absolute;left:50%;top:320px;width:345px;transform:translateX(-50%);background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
       t.setupTitle +
       '</h2><div style="font-size:12px;font-weight:700;color:#6b7380;text-transform:uppercase;letter-spacing:.03em">' +
       t.keysTitle +
@@ -530,7 +530,7 @@ export function $e(t, e, n) {
   // --- onboarding step 1c: Connect your MyDramaList (username only / full access) ---
   function connectCard() {
     return (
-      '<div style="position:absolute;left:230px;top:300px;width:500px;background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
+      '<div style="position:absolute;left:50%;top:300px;width:500px;transform:translateX(-50%);background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
       t.connectHeading +
       '</h2><div style="display:flex;gap:14px;margin-bottom:16px">' +
       '<div style="flex:1;border:2px solid #24508f;border-radius:10px;padding:14px">' +
