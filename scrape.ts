@@ -1010,6 +1010,7 @@ export const ut = (t) => {
     discoverLoading: "",
     discoverEnterUser: "",
     discoverNoResults: "",
+    discoverStagedHint: "",
     discoverNoLists: "",
     discoverListsCountSuffix: "",
     discoverAddAllBtn: "",

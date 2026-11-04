@@ -1444,7 +1444,7 @@ async function V3search(t) {
   if (!t || t.length < 2) return { dramas: [], people: [], lists: [] };
   const [p, lists] = await Promise.all([
     V3searchPeople(t).catch(() => []),
-    V3listSearch(t).catch(() => []),
+    V3listSearch(t, 15).catch(() => []),
   ]);
   // When the query clearly names one person (every query word matches
   // their name), show their real filmography instead of a generic title

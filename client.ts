@@ -144,7 +144,8 @@ export function $e(t, e, n) {
     STm = 0;
   // --- discover step (search lists / browse users, shown once after Get Started) ---
   let disLastQ = "",
-    disLastUser = "";
+    disLastUser = "",
+    disStaged = new Map();
   // --- contributor leaderboard, fetched once and filtered client-side ---
   let CONTRIB_CACHE = null,
     CONTRIB_FETCHING = null;
@@ -279,7 +280,9 @@ export function $e(t, e, n) {
   function discoverView() {
     return setupFrame(
       3,
-      '<div id="disbody"></div><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:4px"><a href="#" id="disskip" class="muted" style="text-decoration:underline;cursor:pointer">' +
+      '<div id="disbody"></div><div style="color:#6b7380;font-size:12px;margin:10px 0 4px">' +
+        a(t.discoverStagedHint) +
+        '</div><div style="display:flex;align-items:center;justify-content:space-between;gap:16px"><a href="#" id="disskip" class="muted" style="text-decoration:underline;cursor:pointer">' +
         a(t.skipText) +
         '</a><button class="btn primary" id="discontinue" style="width:auto;padding:13px 22px">' +
         a(t.continueButton) +
@@ -303,12 +306,23 @@ export function $e(t, e, n) {
   }
   const DSEARCH =
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
+  function disUpdateCount() {
+    const n = disStaged.size,
+      btn = s("discontinue");
+    if (btn) {
+      btn.textContent = n
+        ? t.continueButton + " (" + n + ")"
+        : t.continueButton;
+    }
+  }
   function disListRowsHTML(items, emptyMsg) {
     if (!items || !items.length) return '<div class="umsg">' + a(emptyMsg || t.discoverNoResults) + "</div>";
     return items
       .map(
         (d) =>
-          '<div class="urow" data-id="' +
+          '<div class="urow' +
+          (disStaged.has(d.id) ? " added" : "") +
+          '" data-id="' +
           a(d.id) +
           '" data-title="' +
           a(d.title) +
@@ -381,21 +395,18 @@ export function $e(t, e, n) {
       const addAll = s("disresults").querySelector("[data-addall]");
       if (addAll) {
         addAll.onclick = () => {
-          const items = lists.map((l) => ({
-            id: l.id,
-            name: nameList(l.title, u),
-            kind: "Community list",
-            types: ["series", "movie"],
-          }));
-          const y = et(items);
+          for (const l of lists) {
+            disStaged.set(l.id, {
+              id: l.id,
+              name: nameList(l.title, u),
+              kind: "Community list",
+              types: ["series", "movie"],
+            });
+          }
           for (const row of s("disresults").querySelectorAll(".urow[data-id]")) {
             row.classList.add("added");
           }
-          S(
-            "ast",
-            y ? y + " list" + (y === 1 ? "" : "s") + " added." : "Those are already in your catalogs.",
-            !y,
-          );
+          disUpdateCount();
         };
       }
     };
@@ -409,9 +420,15 @@ export function $e(t, e, n) {
     for (const row of box.querySelectorAll(".urow[data-id]")) {
       row.onclick = () => {
         if (row.dataset.busy) return;
+        const id = row.dataset.id;
+        if (disStaged.has(id)) {
+          disStaged.delete(id);
+          row.classList.remove("added");
+          disUpdateCount();
+          return;
+        }
         row.dataset.busy = "1";
-        const id = row.dataset.id,
-          title = row.dataset.title,
+        const title = row.dataset.title,
           author = row.dataset.author;
         (async () => {
           let nm = title;
@@ -425,10 +442,10 @@ export function $e(t, e, n) {
           } else {
             nm = nameList(title, author);
           }
-          const y = et([{ id, name: nm, kind: "Community list", types: ["series", "movie"] }]);
           delete row.dataset.busy;
-          if (y) row.classList.add("added");
-          S("ast", y ? "Added." : "That one is already in your catalogs.", !y);
+          disStaged.set(id, { id, name: nm, kind: "Community list", types: ["series", "movie"] });
+          row.classList.add("added");
+          disUpdateCount();
         })();
       };
     }
@@ -443,13 +460,19 @@ export function $e(t, e, n) {
     };
     s("disskip").onclick = (e) => {
       e.preventDefault();
+      disStaged.clear();
       o.o.dv = !0;
       C();
     };
     s("discontinue").onclick = () => {
+      if (disStaged.size) {
+        et([...disStaged.values()]);
+        disStaged.clear();
+      }
       o.o.dv = !0;
       C();
     };
+    disUpdateCount();
     disRenderBody();
   }
 
