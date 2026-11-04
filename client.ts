@@ -43,7 +43,7 @@ export function $e(t, e, n) {
       u || {},
     );
   (o.user === "undefined" || typeof o.user !== "string") && (o.user = "");
-  ((o.step = o.step >= 2 ? 2 : 1),
+  ((o.step = 1),
     (o.s1 = "landing"),
     (o.tab = "cat"),
     e &&
