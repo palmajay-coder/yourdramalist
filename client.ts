@@ -277,20 +277,13 @@ export function $e(t, e, n) {
   // Lets you browse community lists or a contributor's own lists and add
   // any of them as catalogs, the same way the search bar does.
   function discoverView() {
-    const name = t.heading || "YourDramaList";
-    return (
-      '<div class="discover" style="background-image:url(\'' +
-      t.step1HeroImage +
-      '\')"><div class="dcard"><div class="dischead"><div class="disbrand">' +
-      a(name) +
-      '</div><button class="tg" id="dark" title="Dark mode">' +
-      t.sun +
-      '</button></div><div class="disbody" id="disbody"></div>' +
-      '<div class="disfoot"><a href="#" id="disskip" class="muted">' +
-      a(t.skipText) +
-      '</a><button class="btn primary" id="discontinue">' +
-      a(t.continueButton) +
-      "</button></div></div></div>"
+    return setupFrame(
+      3,
+      '<div id="disbody"></div><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:4px"><a href="#" id="disskip" class="muted" style="text-decoration:underline;cursor:pointer">' +
+        a(t.skipText) +
+        '</a><button class="btn primary" id="discontinue" style="width:auto;padding:13px 22px">' +
+        a(t.continueButton) +
+        "</button></div>",
     );
   }
   function disChipsHTML(contribs) {
@@ -477,6 +470,64 @@ export function $e(t, e, n) {
       "</div>"
     );
   }
+  // --- shared plain-grey page frame for every onboarding step after the
+  // landing screen (keys, connect, discover): a slim top bar plus a single
+  // centered column, so none of them sit on the hero wallpaper anymore. ---
+  function stepDots(cur) {
+    const dot = (n) => {
+      const done = n < cur,
+        active = n === cur;
+      return (
+        '<div style="width:26px;height:26px;border-radius:50%;background:' +
+        (done ? "#4cae4c" : active ? "#24508f" : "#d5d9e0") +
+        ";color:" +
+        (done || active ? "#fff" : "#6b7380") +
+        ';font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none">' +
+        (done ? "&#10003;" : n) +
+        "</div>"
+      );
+    };
+    const line = (n) =>
+      '<div style="width:28px;height:2px;flex:none;background:' +
+      (n < cur ? "#24508f" : "#d5d9e0") +
+      '"></div>';
+    return (
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:22px">' +
+      dot(1) +
+      line(1) +
+      dot(2) +
+      line(2) +
+      dot(3) +
+      '<span style="color:#6b7380;font-size:12px;margin-left:8px">Step ' +
+      cur +
+      " of 3</span></div>"
+    );
+  }
+  function setupBar() {
+    return (
+      '<div style="display:flex;align-items:center;gap:10px;padding:18px 32px;border-bottom:1px solid var(--line);background:var(--card)"><span style="font-size:20px;font-weight:900;color:#24508f">' +
+      a(t.heading || "YourDramaList") +
+      '</span><span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:5px;background:#e0393e;color:#fff">v' +
+      n +
+      '</span><span style="margin-left:auto;display:flex;align-items:center">' +
+      '<button class="tg" id="dark" title="Dark mode" style="background:rgba(0,0,0,.35)">' +
+      t.sun +
+      "</button></span></div>"
+    );
+  }
+  function setupFrame(stepNum, bodyHtml) {
+    return (
+      '<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--bg)">' +
+      setupBar() +
+      '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px"><div style="width:440px;max-width:100%">' +
+      stepDots(stepNum) +
+      bodyHtml +
+      '</div></div><div class="foot">' +
+      t.footer +
+      "</div></div>"
+    );
+  }
+
   // --- onboarding step 1a: Get Started landing (button only, under the tagline) ---
   function landingCard() {
     return (
@@ -505,9 +556,9 @@ export function $e(t, e, n) {
       t.linkText +
       "</a></div>";
     return (
-      '<div style="position:absolute;left:50%;top:320px;width:345px;transform:translateX(-50%);background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
+      '<h2 style="margin:0 0 18px;font-size:28px;font-weight:900;color:#24508f">' +
       t.setupTitle +
-      '</h2><div style="font-size:12px;font-weight:700;color:#6b7380;text-transform:uppercase;letter-spacing:.03em">' +
+      '</h2><div style="font-size:12px;font-weight:700;color:#6b7380;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">' +
       t.keysTitle +
       ' <span style="text-transform:none;font-weight:400">' +
       t.keysNote +
@@ -519,20 +570,20 @@ export function $e(t, e, n) {
           t.privacyNote +
           "</div>"
         : "") +
-      '<button style="display:flex;width:100%;justify-content:center;border:0;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;cursor:pointer;background:#24508f;color:#fff;margin-top:16px;font-family:inherit" id="cont">' +
+      '<button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="cont">' +
       t.continueButton +
-      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:9px;color:#6b7380;font-size:12px"><a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
+      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:12px;color:#6b7380;font-size:12px"><a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
       t.keysSkipText +
-      "</a></div></div>"
+      "</a></div>"
     );
   }
 
   // --- onboarding step 1c: Connect your MyDramaList (username only / full access) ---
   function connectCard() {
     return (
-      '<div style="position:absolute;left:50%;top:300px;width:500px;transform:translateX(-50%);background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
+      '<h2 style="margin:0 0 18px;font-size:28px;font-weight:900;color:#24508f">' +
       t.connectHeading +
-      '</h2><div style="display:flex;gap:14px;margin-bottom:16px">' +
+      '</h2><div style="display:flex;gap:14px;margin-bottom:18px">' +
       '<div style="flex:1;border:2px solid #24508f;border-radius:10px;padding:14px">' +
       '<div style="font-weight:800;font-size:14px">' +
       t.usernameCardTitle +
@@ -553,9 +604,9 @@ export function $e(t, e, n) {
       t.usernamePlaceholder +
       '" value="' +
       a(o.user) +
-      '"><button style="display:flex;width:100%;justify-content:center;border:0;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;cursor:pointer;background:#24508f;color:#fff;margin-top:16px;font-family:inherit" id="cont">' +
+      '"><button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="cont">' +
       t.continueButton +
-      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div></div>'
+      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div>'
     );
   }
   // --- step 1: api keys + username ---
@@ -920,17 +971,21 @@ export function $e(t, e, n) {
   function C() {
     const root = s("app");
     if (o.step === 1) {
-      const s1body = o.s1 === "keys"
-        ? keysCard()
-        : o.s1 === "connect"
-        ? connectCard()
-        : landingCard();
+      if (o.s1 !== "landing") {
+        root.innerHTML = CSS +
+          setupFrame(
+            o.s1 === "keys" ? 1 : 2,
+            o.s1 === "keys" ? keysCard() : connectCard(),
+          );
+        ee();
+        return;
+      }
       root.innerHTML = CSS +
         '<div class="step1" style="background-image:url(\'' +
         t.step1HeroImage +
         '\')">' +
         step1Head() +
-        s1body +
+        landingCard() +
         '<div class="s1foot">' +
         t.footer +
         "</div></div>";
