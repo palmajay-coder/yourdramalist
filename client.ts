@@ -145,7 +145,8 @@ export function $e(t, e, n) {
   // --- discover step (search lists / browse users, shown once after Get Started) ---
   let disLastQ = "",
     disLastUser = "",
-    disStaged = new Map();
+    disStaged = new Map(),
+    connectSel = !1;
   // --- contributor leaderboard, fetched once and filtered client-side ---
   let CONTRIB_CACHE = null,
     CONTRIB_FETCHING = null;
@@ -217,7 +218,8 @@ export function $e(t, e, n) {
         "</button>",
       tabs = ["Connect", "Setup", "Results"]
         .map((lbl) =>
-          '<span' + (lbl === "Setup" ? ' class="on"' : "") + ">" + lbl +
+          '<span data-nav="' + lbl + '"' +
+          (lbl === "Setup" ? ' class="on"' : "") + ">" + lbl +
           "</span>"
         )
         .join(""),
@@ -282,9 +284,10 @@ export function $e(t, e, n) {
       3,
       '<div id="disbody"></div><div style="color:#6b7380;font-size:12px;margin:10px 0 4px">' +
         a(t.discoverStagedHint) +
-        '</div><div style="display:flex;align-items:center;justify-content:space-between;gap:16px"><a href="#" id="disskip" class="muted" style="text-decoration:underline;cursor:pointer">' +
-        a(t.skipText) +
-        '</a><button class="btn primary" id="discontinue" style="width:auto;padding:13px 22px">' +
+        '</div><div style="display:flex;justify-content:flex-end">' +
+        '<button class="btn primary" id="disskip" style="width:auto;padding:13px 22px">' +
+        a(t.discoverSkipButton) +
+        '</button><button class="btn primary" id="discontinue" style="width:auto;padding:13px 22px;display:none">' +
         a(t.continueButton) +
         "</button></div>",
     );
@@ -308,12 +311,15 @@ export function $e(t, e, n) {
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
   function disUpdateCount() {
     const n = disStaged.size,
-      btn = s("discontinue");
+      btn = s("discontinue"),
+      skipBtn = s("disskip");
     if (btn) {
       btn.textContent = n
         ? t.continueButton + " (" + n + ")"
         : t.continueButton;
+      btn.style.display = n ? "" : "none";
     }
+    if (skipBtn) skipBtn.style.display = n ? "none" : "";
   }
   function disListRowsHTML(items, emptyMsg) {
     if (!items || !items.length) return '<div class="umsg">' + a(emptyMsg || t.discoverNoResults) + "</div>";
@@ -476,21 +482,14 @@ export function $e(t, e, n) {
     disRenderBody();
   }
 
-  // --- step 1 (design-exact): hero headline block ---
+  // --- step 1 (design-exact): dark-mode toggle, pinned top right ---
   function step1Head() {
     return (
       '<span style="position:absolute;top:16px;right:20px;z-index:3">' +
       WB() +
       '<button class="tg" id="dark" title="Dark mode">' +
       t.sun +
-      "</button></span>" +
-      '<div style="position:absolute;left:50%;top:154px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:2"><span style="font-size:66px;font-weight:900;line-height:1;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5)">' +
-      t.heading +
-      '</span><span style="display:inline-block;font-size:13px;font-weight:800;padding:3px 8px;border-radius:5px;background:#e0393e;color:#fff">v' +
-      n +
-      '</span></div><div style="position:absolute;left:50%;top:232px;width:500px;transform:translateX(-50%);font-size:24px;font-weight:700;line-height:1.3;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5);z-index:2">' +
-      t.intro.replace(/\bNuvio\b/g, "<u>Nuvio</u>") +
-      "</div>"
+      "</button></span>"
     );
   }
   // --- shared plain-grey page frame for every onboarding step after the
@@ -527,12 +526,17 @@ export function $e(t, e, n) {
     );
   }
   function setupBar() {
+    const back = o.rows.length || o.user
+      ? '<a href="#" id="backSetup" style="margin-left:16px;font-size:13px;color:#1675b6;text-decoration:underline;cursor:pointer">Back to Setup</a>'
+      : "";
     return (
-      '<div style="display:flex;align-items:center;gap:10px;padding:18px 32px;border-bottom:1px solid var(--line);background:var(--card)"><span style="font-size:20px;font-weight:900;color:#24508f">' +
+      '<div style="display:flex;align-items:center;gap:10px;padding:28px 40px;border-bottom:1px solid var(--line);background:var(--card);width:100%;box-sizing:border-box"><span style="font-size:26px;font-weight:900;color:#24508f">' +
       a(t.heading || "YourDramaList") +
       '</span><span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:5px;background:#e0393e;color:#fff">v' +
       n +
-      '</span><span style="margin-left:auto;display:flex;align-items:center">' +
+      "</span>" +
+      back +
+      '<span style="margin-left:auto;display:flex;align-items:center">' +
       '<button class="tg" id="dark" title="Dark mode" style="background:rgba(0,0,0,.35)">' +
       t.sun +
       "</button></span></div>"
@@ -540,7 +544,7 @@ export function $e(t, e, n) {
   }
   function setupFrame(stepNum, bodyHtml) {
     return (
-      '<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--bg)">' +
+      '<div class="setupwrap" style="min-height:100vh;width:100%;display:flex;flex-direction:column;background:var(--bg)">' +
       setupBar() +
       '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px"><div style="width:440px;max-width:100%">' +
       stepDots(stepNum) +
@@ -551,12 +555,20 @@ export function $e(t, e, n) {
     );
   }
 
-  // --- onboarding step 1a: Get Started landing (button only, under the tagline) ---
+  // --- onboarding step 1a: Get Started landing (heading + tagline + button,
+  // centered in the middle of the hero rather than pinned near the top) ---
   function landingCard() {
     return (
-      '<button style="position:absolute;left:50%;top:300px;transform:translateX(-50%);border:0;border-radius:10px;padding:20px 52px;font-weight:700;font-size:19px;cursor:pointer;background:#24508f;color:#fff;font-family:inherit;z-index:2" id="getstarted">' +
+      '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;text-align:center;width:560px;max-width:92vw">' +
+      '<div style="display:flex;align-items:center;justify-content:center;gap:10px"><span style="font-size:72px;font-weight:900;line-height:1;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5)">' +
+      t.heading +
+      '</span><span style="display:inline-block;font-size:13px;font-weight:800;padding:3px 8px;border-radius:5px;background:#e0393e;color:#fff">v' +
+      n +
+      '</span></div><div style="margin-top:14px;font-size:24px;font-weight:700;line-height:1.3;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5)">' +
+      t.intro.replace(/\bNuvio\b/g, "<u>Nuvio</u>") +
+      '</div><button style="margin-top:26px;border:0;border-radius:10px;padding:20px 52px;font-weight:700;font-size:19px;cursor:pointer;background:#24508f;color:#fff;font-family:inherit" id="getstarted">' +
       t.getStartedButton +
-      "</button>"
+      "</button></div>"
     );
   }
 
@@ -603,7 +615,9 @@ export function $e(t, e, n) {
       '<h2 style="margin:0 0 18px;font-size:28px;font-weight:900;color:#24508f">' +
       t.connectHeading +
       '</h2><div style="display:flex;gap:14px;margin-bottom:18px">' +
-      '<div style="flex:1;border:2px solid #24508f;border-radius:10px;padding:14px">' +
+      '<div id="cardUser" style="flex:1;border:2px solid ' +
+      (connectSel ? "#24508f" : "#d5d9e0") +
+      ';border-radius:10px;padding:14px;cursor:pointer">' +
       '<div style="font-weight:800;font-size:14px">' +
       t.usernameCardTitle +
       '</div><div style="color:#6b7380;font-size:12px;margin-top:6px">' +
@@ -617,17 +631,19 @@ export function $e(t, e, n) {
       '</div><div style="position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;background:#9aa5b1;color:#fff;padding:2px 6px;border-radius:5px">' +
       t.fullAccessUnavailable +
       "</div></div></div>" +
-      '<label style="display:block;font-weight:700;margin:4px 0 6px;font-size:13px" for="un">' +
-      t.usernameLabel +
-      '</label><input class="s1in" id="un" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' +
-      t.usernamePlaceholder +
-      '" value="' +
-      a(o.user) +
-      '"><button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="cont">' +
-      t.continueButton +
-      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:12px;color:#6b7380;font-size:12px"><a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
-      t.keysSkipText +
-      "</a></div>"
+      (connectSel
+        ? '<label style="display:block;font-weight:700;margin:4px 0 6px;font-size:13px" for="un">' +
+          t.usernameLabel +
+          '</label><input class="s1in" id="un" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' +
+          t.usernamePlaceholder +
+          '" value="' +
+          a(o.user) +
+          '"><button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="cont">' +
+          t.continueButton +
+          '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div>'
+        : '<button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="noacct">' +
+          t.noAccountButton +
+          "</button>")
     );
   }
   // --- step 1: api keys + username ---
@@ -837,6 +853,21 @@ export function $e(t, e, n) {
   }
 
   // --- display options panel ---
+  function posterPreviewHTML(c) {
+    const active = (c.ratings || "").split(",").filter(Boolean),
+      badge = (key, label, score) =>
+        active.includes(key)
+          ? '<div class="pvbadge">' + label + " " + score + "</div>"
+          : "";
+    return (
+      '<div class="pvwrap"><div class="pvposter"><div class="pvtitle">Sample Drama</div>' +
+      '<div class="pvbadges">' +
+      badge("letterboxd", "LB", "4.2") +
+      badge("tomatoes", "RT", "92%") +
+      badge("imdb", "IMDb", "8.1") +
+      '</div></div><div class="pvcap">Poster preview</div></div>'
+    );
+  }
   function displayPanel() {
     const c = o.o,
       m = d
@@ -863,7 +894,9 @@ export function $e(t, e, n) {
       (c.pon ? "" : " hidden") +
       '><div class="seg">' +
       m +
-      "</div></div>" +
+      "</div>" +
+      posterPreviewHTML(c) +
+      "</div>" +
       L("ou", t.unreleasedTitle, t.unreleasedText, c.u) +
       (o.user ? L("oh", t.hideTitle, t.hideText, c.h) : "")
     );
@@ -878,10 +911,7 @@ export function $e(t, e, n) {
       "</div>" +
       '<div class="gobar"><button class="btn primary" id="go">' +
       t.generateButton +
-      '</button><div class="status" id="gst"></div></div>' +
-      '<a href="#" class="link" id="chu">' +
-      (t.editLink || "Edit API keys") +
-      "</a></div>"
+      '</button><div class="status" id="gst"></div></div></div>'
     );
   }
 
@@ -1372,12 +1402,44 @@ body.haswp .foot{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.85)}
 body.dark .done h2{color:#fff}
 body.dark .done .cs,body.dark .dlk a{color:#b9bfca}
 body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+
+/* error toast: always light, regardless of dark mode */
+.errtoast{position:fixed;top:20px;right:20px;z-index:9999;background:#fff;border-left:4px solid #e0393e;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.22);padding:14px 16px;min-width:260px;max-width:340px}
+.errtoast .et-top{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.04em;color:#e0393e;text-transform:uppercase}
+.errtoast .et-x{cursor:pointer;font-size:16px;color:#9aa5b1;line-height:1}
+.errtoast .et-msg{margin-top:6px;font-size:14px;color:#2b2f36}
+
+/* catalog display panel: poster + badge preview */
+.pvwrap{margin-top:14px}
+.pvposter{position:relative;width:120px;height:170px;border-radius:10px;background:linear-gradient(145deg,#3a4a66,#1c2433);overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.pvtitle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5)}
+.pvbadges{position:absolute;left:6px;bottom:6px;display:flex;flex-direction:column;gap:4px}
+.pvbadge{font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.72);color:#fff;width:max-content}
+.pvcap{margin-top:6px;font-size:11px;color:var(--muted)}
+
+/* top nav tabs (Connect / Setup / Results) now clickable */
+.htabs span[data-nav]{cursor:pointer}
 </style>`;
 
   // --- data helpers ---
   function S(c, m, p) {
     const f = s(c);
     f && ((f.textContent = m), (f.className = "status" + (p ? " bad" : "")));
+  }
+  function errorToast(msg) {
+    const old = document.getElementById("errtoast");
+    old && old.remove();
+    const d = document.createElement("div");
+    d.id = "errtoast";
+    d.className = "errtoast";
+    d.innerHTML =
+      '<div class="et-top"><b>ERROR</b><span class="et-x">&times;</span></div><div class="et-msg"></div>';
+    d.querySelector(".et-msg").textContent = msg;
+    d.querySelector(".et-x").onclick = () => d.remove();
+    document.body.appendChild(d);
+    setTimeout(() => {
+      d.parentNode && d.remove();
+    }, 6000);
   }
   async function yt(c) {
     return (await fetch(c)).json();
@@ -2131,8 +2193,17 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       document.body.classList.toggle("dark", g);
     };
     if (o.step === 1) {
+      const backBtn = s("backSetup");
+      if (backBtn) {
+        backBtn.onclick = (ev) => {
+          ev.preventDefault();
+          o.step = 2;
+          C();
+        };
+      }
       if (o.s1 === "landing") {
         s("getstarted").onclick = () => {
+          connectSel = !1;
           o.s1 = "connect";
           o.o.dv = !1;
           C();
@@ -2191,42 +2262,51 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
         return;
       }
       // o.s1 === "connect"
-      const c = async () => {
-        const m = s("un").value.trim();
-        if (!m) {
-          o.s1 = "keys";
+      const cardUser = s("cardUser");
+      if (cardUser) {
+        cardUser.onclick = () => {
+          connectSel = !connectSel;
           C();
-          return;
-        }
-        S("cst", "Looking up " + m + "…");
-        try {
-          const p = await yt("/api/user?u=" + encodeURIComponent(m));
-          if (p.error) return S("cst", p.error, !0);
-          ((o.user = p.user),
-            (o.rows = o.rows.filter((A) => !/^(d\.\d\.|r\.)/.test(A.id))));
-          const f = p.items.filter((A) => A.kind !== "Your list"),
-            y = p.items.filter((A) => A.kind === "Your list"),
-            k = o.rows;
-          ((o.rows = []),
-            et(f),
-            (o.rows = o.rows.concat(k)),
-            et(y));
-          o.s1 = "keys";
-          C();
-        } catch {
-          S("cst", "Could not reach MyDramaList. Try again.", !0);
-        }
-      };
-      s("cont").onclick = c;
-      s("un").onkeydown = (z) => {
-        z.key === "Enter" && c();
-      };
-      const s1skip = s("s1skip");
-      if (s1skip) {
-        s1skip.onclick = (ev) => {
-          ev.preventDefault();
-          toDiscover();
         };
+      }
+      if (connectSel) {
+        const c = async () => {
+          const m = s("un").value.trim();
+          if (!m) {
+            errorToast(t.errNoUsernameMsg);
+            return;
+          }
+          S("cst", "Looking up " + m + "…");
+          try {
+            const p = await yt("/api/user?u=" + encodeURIComponent(m));
+            if (p.error) return S("cst", p.error, !0);
+            ((o.user = p.user),
+              (o.rows = o.rows.filter((A) => !/^(d\.\d\.|r\.)/.test(A.id))));
+            const f = p.items.filter((A) => A.kind !== "Your list"),
+              y = p.items.filter((A) => A.kind === "Your list"),
+              k = o.rows;
+            ((o.rows = []),
+              et(f),
+              (o.rows = o.rows.concat(k)),
+              et(y));
+            o.s1 = "keys";
+            C();
+          } catch {
+            S("cst", "Could not reach MyDramaList. Try again.", !0);
+          }
+        };
+        s("cont").onclick = c;
+        s("un").onkeydown = (z) => {
+          z.key === "Enter" && c();
+        };
+      } else {
+        const noacct = s("noacct");
+        if (noacct) {
+          noacct.onclick = () => {
+            o.s1 = "keys";
+            C();
+          };
+        }
       }
       return;
     }
@@ -2239,6 +2319,20 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       c.onclick = () => {
         o.tab = c.dataset.tab;
         C();
+      };
+    }
+    for (const c of document.querySelectorAll("[data-nav]")) {
+      c.onclick = () => {
+        const nav = c.dataset.nav;
+        if (nav === "Connect") {
+          connectSel = !!o.user;
+          o.step = 1;
+          o.s1 = "connect";
+          C();
+        } else if (nav === "Results") {
+          const goBtn = s("go");
+          goBtn && goBtn.click();
+        }
       };
     }
     bindUnifiedSearch();
@@ -2343,26 +2437,14 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
   }
 
   function bindGenerate() {
-    const goBtn = s("go"),
-      chuBtn = s("chu");
-    if (chuBtn) {
-      chuBtn.onclick = (ev) => {
-        ev.preventDefault();
-        o.step = 1;
-        C();
-      };
-    }
+    const goBtn = s("go");
     if (!goBtn) return;
     goBtn.onclick = () => {
       const c = o.o,
         m = o.rows.filter((w) => w.on);
       if (!m.length) return S("gst", "Add at least one catalog first.", !0);
       if (c.pon && !c.kt) {
-        return S(
-          "gst",
-          "Add your API keys first (" + (t.editLink || "Edit API keys") + ").",
-          !0,
-        );
+        return S("gst", "Add your API keys first.", !0);
       }
       if (c.pon && !c.ratings) {
         return S(
