@@ -96,6 +96,7 @@ export const TEXT = {
   directors: "Directors",
   search: "Search",
   selectionTitle: "Your Selection",
+  clearSelection: "Clear selection",
   emptySelection: "No lists added yet.",
   continue: "Continue →",
   footer:

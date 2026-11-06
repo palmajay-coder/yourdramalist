@@ -10,8 +10,8 @@ export function installPeopleUI(){
    const list=data.list;
    if(!data.sectionFound||!data.items.length){$('results').textContent=mode==='director'?'No Screenwriter & Director credits were shown for this person.':'No Drama or Movie acting credits were shown for this person.';backButton();return;}
    // Refresh metadata for an existing selection without adding or removing it.
-   state.basket=state.basket.map(l=>l.url===list.url?{...l,...list}:l);try{localStorage.setItem(basketKey,JSON.stringify(state.basket))}catch{}
-   renderBasket();renderLists([list]);$('results').textContent=data.status==='stale'?'Showing saved MyDramaList data.':'';backButton();
+   state.selection=state.selection.map(l=>l.url===list.url?{...l,...list}:l);try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}
+   renderSelection();renderLists([list]);$('results').textContent=data.status==='stale'?'Showing saved MyDramaList data.':'';backButton();
   }catch(e){if(requestId!==listRequest)return;$('results').textContent='Unable to load filmography: '+(['TimeoutError','AbortError'].includes(e.name)?'This request took too long. Please try again.':e.message);backButton();}
  }
  function renderMatches(data){

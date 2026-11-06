@@ -63,7 +63,7 @@ await test("preview limits concurrent upstream requests", async () => {
 
 const {document, window} = parseHTML('<html><body><section id="preferences"></section><section id="confirm"></section></body></html>');
 Object.assign(globalThis, {document, localStorage: {getItem: () => null, setItem: () => {}}});
-let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, basket: () => [{name: "Sample user's list"}], user: () => user});
+let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const change = (input: HTMLInputElement, checked: boolean) => {input.checked = checked; input.dispatchEvent(new window.Event("change"));};
 await test("review preview follows its switch", () => {

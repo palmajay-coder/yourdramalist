@@ -5,7 +5,7 @@ import type {RatingSource} from "./preferences.ts";
 /** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
 export function installPreferencesUI(api: {
   navigate: (page: string) => void;
-  basket: () => {name: string; [key: string]: unknown}[];
+  selection: () => {name: string; [key: string]: unknown}[];
   user: () => string;
 }) {
   const root = document.getElementById("preferences")!;
@@ -142,8 +142,8 @@ export function installPreferencesUI(api: {
     confirm.replaceChildren(node("h1", "", copy.confirmTitle), paragraph(copy.confirmDescription));
     const s = node("div", "preferencesStack"); confirm.append(s);
     const listCard = node("section", "panel prefPanel"), listHeading = node("div", "prefConfirmHeading"), editLists = button(copy.editLists);
-    listHeading.append(node("h2", "", copy.confirmCatalogs + " (" + api.basket().length + ")"), editLists); editLists.onclick = () => api.navigate("selection");
-    const list = node("ol", "prefConfirmList"); for(const item of api.basket()) list.append(node("li", "", item.name)); listCard.append(listHeading, list); s.append(listCard);
+    listHeading.append(node("h2", "", copy.confirmCatalogs + " (" + api.selection().length + ")"), editLists); editLists.onclick = () => api.navigate("selection");
+    const list = node("ol", "prefConfirmList"); for(const item of api.selection()) list.append(node("li", "", item.name)); listCard.append(listHeading, list); s.append(listCard);
     const pCard = node("section", "panel prefPanel"), pHeading = node("div", "prefConfirmHeading"), editPrefs = button(copy.editPreferences);
     pHeading.append(node("h2", "", copy.confirmPreferences), editPrefs); editPrefs.onclick = () => api.navigate("preferences"); pCard.append(pHeading);
     for(const [label, value] of [[copy.reviewsTitle, prefs.reviews], [copy.posterRatingsTitle, prefs.posters], [copy.hideUnreleased, prefs.hideUnreleased], [copy.hideCompleted, !!api.user() && prefs.hideCompleted]] as const) {
@@ -157,7 +157,7 @@ export function installPreferencesUI(api: {
     const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
     if(prefs.posters)manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));confirm.append(manifest);
-    const data={catalogs:api.basket().map(({name,url,kind,category,country,mode,personUrl})=>({name,url,kind,category,country,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),hideCompleted:!!api.user()&&prefs.hideCompleted},keys:prefs.posters?keys():{tmdb:"",mdblist:""}};
+    const data={catalogs:api.selection().map(({name,url,kind,category,country,mode,personUrl})=>({name,url,kind,category,country,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),hideCompleted:!!api.user()&&prefs.hideCompleted},keys:prefs.posters?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");}
     async function prepare(){retry.hidden=true;status.textContent="";try{

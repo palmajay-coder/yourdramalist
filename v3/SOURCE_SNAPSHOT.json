@@ -1,5 +1,5 @@
 {
-  "source": "Niwa710/YDL-V3",
+  "source": "Niwa710/YourDramaList",
   "recorded": "2026-11-06",
   "appVersion": "3.0.0-dev",
   "manifestVersion": "3.0.0",
@@ -50,8 +50,8 @@
     },
     {
       "path": "app.ts",
-      "sha256": "890fb92693e442e11704570248fcdf99eb777aa8a541e8b3a3df573b9315071a",
-      "version": 349,
+      "sha256": "b4c1b021033af868598f95312907c860e002481f64708d49310abfe6e6124728",
+      "version": 362,
       "type": "http",
       "publicationAdaptation": "deployment source"
     },
@@ -120,8 +120,8 @@
     },
     {
       "path": "exploreClient.ts",
-      "sha256": "185e10566c848bfc43dce1a92ddc959a417861937740d961f52d76ad12dbd307",
-      "version": 261,
+      "sha256": "d969a65f87c6b5bb02f172fcf5ff652fd6029280da04af86683c83a0d474a000",
+      "version": 360,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -190,8 +190,8 @@
     },
     {
       "path": "peopleClient.ts",
-      "sha256": "9452c292a8bd5e8571f2a1ce438978b63118ee66294a3e03a672c0c15a6132d2",
-      "version": 254,
+      "sha256": "594b3b043992dcddc208750a727c88570f04b984c6c9e2a774465463b2ea445c",
+      "version": 366,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -260,8 +260,8 @@
     },
     {
       "path": "preferences.test.ts",
-      "sha256": "318b9f5eef29edec555529dd7f42b110d2c5b55e59c291a28aac659fc55a66d1",
-      "version": 334,
+      "sha256": "cf5a657f25df9d298d16992e4d23702553a683f097030aa304ba2ad28991ac8a",
+      "version": 358,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -274,8 +274,8 @@
     },
     {
       "path": "preferencesClient.ts",
-      "sha256": "1ce2763204433b30ae4ad3ca8b24a925a4c14be18ab22f43d30cf4a9f2697368",
-      "version": 343,
+      "sha256": "fe6313b96ee106534a1eb2e7cb2c66776862adc6d9202e89fd7f908c66f0aa19",
+      "version": 357,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -294,9 +294,16 @@
       "publicationAdaptation": "deployment source"
     },
     {
+      "path": "selection.test.ts",
+      "sha256": "258f58871afc7f354c920ab7eee5f37e741eacd2f735f4dedcdfcb45fa070afa",
+      "version": 364,
+      "type": "script",
+      "publicationAdaptation": "deployment source"
+    },
+    {
       "path": "text.ts",
-      "sha256": "7106b51e2fcbdc5f9b08479b6c0fae04be2ee315cfba50cd3314cb9365abc299",
-      "version": 341,
+      "sha256": "91aa49443ca3c1f559ac67f7316eff1c2a148109c4d5fcf1b340c656471ff2c1",
+      "version": 352,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },

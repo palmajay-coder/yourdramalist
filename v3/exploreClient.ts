@@ -26,7 +26,7 @@ export function installExploreUI(){
    if(data.warning){const p=document.createElement('p');p.textContent=data.warning;$('results').append(p)}
    c.posters=data.items.map(x=>x.poster).filter(Boolean).slice(0,5);
    renderLists([c]);
-   const selected=state.basket.find(x=>x.url===c.url);if(selected){selected.posters=c.posters;try{localStorage.setItem(basketKey,JSON.stringify(state.basket))}catch{}renderBasket()}
+   const selected=state.selection.find(x=>x.url===c.url);if(selected){selected.posters=c.posters;try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}renderSelection()}
    renderDramaMatches({dramas:data.items,page:1,hasNextPage:false},{append:true,relatedLists:false});
    if(!data.items.length){const p=document.createElement('p');p.textContent='No titles were returned for this catalog.';$('listItems').append(p)}
    const nav=document.createElement('nav');nav.className='searchPages';
