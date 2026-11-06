@@ -41,13 +41,15 @@ export const MDL_TEXT = {
   // connect step (new onboarding flow)
   connectHeading: "Connect your MyDramaList.",
   usernameCardTitle: "Username only",
-  usernameCardDesc: "Watchlists, completed lists and ratings. No password.",
+  usernameCardDesc: "Import your watchlists, custom lists and more. No password needed.",
   fullAccessCardTitle: "Full access",
-  fullAccessCardDesc: "Adds diary, friends activity and actions.",
+  fullAccessCardDesc: "Stay tuned for API release.",
   fullAccessUnavailable: "Not Available",
+  noAccountButton: "Continue without an account",
+  errNoUsernameMsg: "Please enter your MyDramaList username",
   // connect keys step (new onboarding flow)
   connectKeysHeading: "Connect TMDB & MDBList",
-  connectKeysSubtitle: "Optional — required for custom posters.",
+  connectKeysSubtitle: "Optional, only required for poster ratings in the Nuvio app.",
   // discover step
   discoverListsTab: "Search Lists",
   discoverUsersTab: "Browse Users",
@@ -56,7 +58,8 @@ export const MDL_TEXT = {
   discoverUsersHint: "",
   discoverUsernamePlaceholder: "Enter a username...",
   discoverRecommendedUsers: "Top Contributors",
-  discoverTypeToSearch: "Type to search.",
+  discoverTypeToSearch: "",
+  discoverSkipButton: "Skip this section",
   discoverSearching: "Searching...",
   discoverLoading: "Loading…",
   discoverEnterUser: "",

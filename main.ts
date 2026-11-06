@@ -113,7 +113,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Lato,system-u
 body.dark{--bg:#16181d}body.dark .foot{color:#8a919c}body.dark .bars i:not(.on){background:#3a3f48}
 button,input{font-family:inherit;font-size:inherit}
 main{max-width:1100px;margin:0 auto;padding:0 16px 30px}
-main:has(.step1),main:has(.discover){max-width:none;margin:0;padding:0}
+main:has(.step1),main:has(.discover),main:has(.setupwrap){max-width:none;margin:0;padding:0}
 .head{position:relative;margin:20px 0 12px;border-radius:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8),0 0 14px rgba(0,0,0,.55);box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .head.big{max-width:520px;margin:20px auto 12px;text-align:center;padding:150px 18px 22px;background-color:var(--brand);background-position:center top;background-size:cover}
 .logo{font-size:40px;font-weight:900;line-height:1.1}
