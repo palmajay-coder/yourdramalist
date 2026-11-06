@@ -50,3 +50,9 @@ The production target is Val Town's Deno runtime. `app.ts` is the HTTP entry poi
 Public tests use synthetic MDL-shaped fixtures in place of full saved browser pages. No fixture is used to fill live results. See [TESTING.md](TESTING.md), [CHANGELOG.md](CHANGELOG.md) and the source snapshot inventory.
 
 For bugs or feature suggestions, open an issue with the V3 version and a minimal reproduction. Remove keys, private URLs and personal data first. This is a solo-maintained hobby project; discuss substantial contributions in an issue before investing in a pull request.
+
+## Credits
+
+Created and maintained by [Jay (palmajay-coder)](https://github.com/palmajay-coder).
+
+Development assistance from **OpenAI Codex**.

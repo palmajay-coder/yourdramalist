@@ -79,3 +79,9 @@ Built and hosted on [Val Town](https://val.town), scraping MyDramaList (with a K
 Found a bug, or have a feature you'd like to see? Open an [issue](../../issues) describing what happened and, if you can, the catalog or search query that triggered it.
 
 This repository exists mainly for transparency (so anyone handing over API keys can see exactly what the code does with them) and as a backup of the project's history. It's maintained solo, so please don't open pull requests; use Issues for bug reports and feature requests instead.
+
+## Credits
+
+Created and maintained by [Jay (palmajay-coder)](https://github.com/palmajay-coder).
+
+Development assistance from **OpenAI Codex**.
