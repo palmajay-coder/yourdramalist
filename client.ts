@@ -570,9 +570,7 @@ export function $e(t, e, n) {
         : "") +
       '<button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="cont">' +
       t.continueButton +
-      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:12px;color:#6b7380;font-size:12px"><a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
-      t.keysSkipText +
-      "</a></div>"
+      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div>'
     );
   }
 
@@ -604,7 +602,9 @@ export function $e(t, e, n) {
       a(o.user) +
       '"><button style="display:block;width:100%;border:0;border-radius:8px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;background:#24508f;color:#fff;margin-top:22px;font-family:inherit" id="cont">' +
       t.continueButton +
-      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div>'
+      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:12px;color:#6b7380;font-size:12px"><a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
+      t.keysSkipText +
+      "</a></div>"
     );
   }
   // --- step 1: api keys + username ---
@@ -2111,6 +2111,7 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       if (o.s1 === "landing") {
         s("getstarted").onclick = () => {
           o.s1 = "connect";
+          o.o.dv = !1;
           C();
         };
         return;
@@ -2118,6 +2119,7 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       const toDiscover = () => {
         ((o.user = ""),
           (o.o.h = !1),
+          (o.o.dv = !1),
           (o.rows = o.rows.filter((p) => !/^(d\.\d\.|r\.)/.test(p.id))),
           (o.step = 2),
           (o.tab = "cat"),
@@ -2152,6 +2154,7 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
               (o.o.mk = K2),
               (o.o.kt = r.k));
           }
+          o.o.dv = !1;
           o.step = 2;
           o.tab = "cat";
           C();
@@ -2160,13 +2163,6 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
         for (const q of ["k1", "k2"]) {
           s(q).onkeydown = (z) => {
             z.key === "Enter" && c();
-          };
-        }
-        const s1skip = s("s1skip");
-        if (s1skip) {
-          s1skip.onclick = (ev) => {
-            ev.preventDefault();
-            toDiscover();
           };
         }
         return;
@@ -2202,6 +2198,13 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       s("un").onkeydown = (z) => {
         z.key === "Enter" && c();
       };
+      const s1skip = s("s1skip");
+      if (s1skip) {
+        s1skip.onclick = (ev) => {
+          ev.preventDefault();
+          toDiscover();
+        };
+      }
       return;
     }
     if (o.step === 3) {
