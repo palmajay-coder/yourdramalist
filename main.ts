@@ -1927,8 +1927,64 @@ async function Qt(t, e) {
       return (
         (e.statusCode = 200),
         e.setHeader("Content-Type", "image/png"),
-        e.setHeader("Cache-Control", "public, max-age=604800, immutable"),
+        e.setHeader("Cache-Control", "public, max-age=300"),
         e.end(b)
+      );
+    }
+    if (s.length === 2 && s[0] === "api" && s[1] === "wallpaper" && t.method === "POST") {
+      let b = {};
+      try {
+        b = await t.raw.json();
+      } catch {}
+      if (!U.WP_ADMIN_KEY || String(b.key || "") !== U.WP_ADMIN_KEY) {
+        return v(e, 403, { error: "Not authorized." });
+      }
+      const m = /^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/.exec(String(b.dataUrl || ""));
+      if (!m) return v(e, 400, { error: "No image provided." });
+      const bytes = Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0));
+      await blob.set("19769276.png", bytes);
+      return v(e, 200, { ok: !0 });
+    }
+    if (s.length === 1 && s[0] === "wpadmin") {
+      const key = n.searchParams.get("key") || "";
+      if (!U.WP_ADMIN_KEY || key !== U.WP_ADMIN_KEY) {
+        return v(e, 403, "Not authorized.", "text/plain");
+      }
+      return v(
+        e,
+        200,
+        `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Wallpaper</title></head><body style="font:16px sans-serif;max-width:480px;margin:60px auto;padding:0 16px">
+<h2>Change landing page wallpaper</h2>
+<p style="color:#666">Pick an image. It replaces what everyone sees on the landing page (may take up to 5 minutes to show for visitors who already loaded it).</p>
+<input type="file" id="f" accept="image/*">
+<p id="msg" style="color:#666"></p>
+<script>
+document.getElementById('f').onchange = async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const msg = document.getElementById('msg');
+  msg.textContent = 'Uploading…';
+  const dataUrl = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  try {
+    const resp = await fetch('/api/wallpaper', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ key: ${JSON.stringify(key)}, dataUrl })
+    });
+    const r2 = await resp.json().catch(() => ({}));
+    msg.textContent = resp.ok ? 'Done. Wallpaper updated.' : (r2.error || 'Failed.');
+  } catch {
+    msg.textContent = 'Failed. Check your connection and try again.';
+  }
+};
+<\/script>
+</body></html>`,
+        "text/html",
       );
     }
     if (!$e && (s.length === 0 || s[s.length - 1] === "configure"))
