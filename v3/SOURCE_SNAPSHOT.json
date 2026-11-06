@@ -148,7 +148,7 @@
     },
     {
       "path": "goblinFixture.ts",
-      "sha256": "7f16347b4099c262b39155c1da9a74cb294f116d9ff1c46204c0826979a2bb2f",
+      "sha256": "c431a3d7a5933831bba9dd504f8a0732c239f72da358176fcbe010ffa8514d38",
       "version": 79,
       "type": "script",
       "publicationAdaptation": "synthetic public fixture or matching test expectation"
