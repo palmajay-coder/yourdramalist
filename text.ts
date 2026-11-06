@@ -61,6 +61,7 @@ export const MDL_TEXT = {
   discoverLoading: "Loading…",
   discoverEnterUser: "",
   discoverNoResults: "No results yet. Try a different search.",
+  discoverStagedHint: "Lists you pick are saved to your catalog once you hit Continue, even if you keep searching.",
   discoverNoLists: "No public lists found for this user.",
   discoverListsCountSuffix: "lists",
   discoverAddAllBtn: "Add all",
