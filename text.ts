@@ -45,6 +45,9 @@ export const MDL_TEXT = {
   fullAccessCardTitle: "Full access",
   fullAccessCardDesc: "Adds diary, friends activity and actions.",
   fullAccessUnavailable: "Not Available",
+  // connect keys step (new onboarding flow)
+  connectKeysHeading: "Connect TMDB & MDBList",
+  connectKeysSubtitle: "Optional — required for custom posters.",
   // discover step
   discoverListsTab: "Search Lists",
   discoverUsersTab: "Browse Users",

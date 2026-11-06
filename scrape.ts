@@ -996,6 +996,8 @@ export const ut = (t) => {
     fullAccessCardTitle: "",
     fullAccessCardDesc: "",
     fullAccessUnavailable: "",
+    connectKeysHeading: "",
+    connectKeysSubtitle: "",
     discoverListsTab: "",
     discoverUsersTab: "",
     discoverListsHint: "",

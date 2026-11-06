@@ -556,13 +556,11 @@ export function $e(t, e, n) {
       t.linkText +
       "</a></div>";
     return (
-      '<h2 style="margin:0 0 18px;font-size:28px;font-weight:900;color:#24508f">' +
-      t.setupTitle +
-      '</h2><div style="font-size:12px;font-weight:700;color:#6b7380;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">' +
-      t.keysTitle +
-      ' <span style="text-transform:none;font-weight:400">' +
-      t.keysNote +
-      "</span></div>" +
+      '<h2 style="margin:0 0 6px;font-size:28px;font-weight:900;color:#24508f">' +
+      t.connectKeysHeading +
+      '</h2><div style="color:#6b7380;font-size:13px;margin:0 0 18px">' +
+      t.connectKeysSubtitle +
+      "</div>" +
       D("k1", t.tmdbLabel, o.o.tk, "https://www.themoviedb.org/settings/api") +
       D("k2", t.mdblistLabel, o.o.mk, "https://mdblist.com/preferences/") +
       (t.privacyNote
@@ -974,8 +972,8 @@ export function $e(t, e, n) {
       if (o.s1 !== "landing") {
         root.innerHTML = CSS +
           setupFrame(
-            o.s1 === "keys" ? 1 : 2,
-            o.s1 === "keys" ? keysCard() : connectCard(),
+            o.s1 === "connect" ? 1 : 2,
+            o.s1 === "connect" ? connectCard() : keysCard(),
           );
         ee();
         return;
@@ -2112,7 +2110,7 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
     if (o.step === 1) {
       if (o.s1 === "landing") {
         s("getstarted").onclick = () => {
-          o.s1 = "keys";
+          o.s1 = "connect";
           C();
         };
         return;
@@ -2154,7 +2152,8 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
               (o.o.mk = K2),
               (o.o.kt = r.k));
           }
-          o.s1 = "connect";
+          o.step = 2;
+          o.tab = "cat";
           C();
         };
         s("cont").onclick = c;
@@ -2176,7 +2175,8 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       const c = async () => {
         const m = s("un").value.trim();
         if (!m) {
-          toDiscover();
+          o.s1 = "keys";
+          C();
           return;
         }
         S("cst", "Looking up " + m + "…");
@@ -2191,10 +2191,9 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
           ((o.rows = []),
             et(f),
             (o.rows = o.rows.concat(k)),
-            et(y),
-            (o.step = 2),
-            (o.tab = "cat"),
-            C());
+            et(y));
+          o.s1 = "keys";
+          C();
         } catch {
           S("cst", "Could not reach MyDramaList. Try again.", !0);
         }
