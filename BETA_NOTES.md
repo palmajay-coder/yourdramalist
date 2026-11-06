@@ -1,4 +1,4 @@
-# V3 beta notes
+# YourDramaList beta notes
 
 - Manifest/catalog endpoints and a live Goblin review stream were verified. Actual installation and playback inside Nuvio have not been verified in this release review.
 - Live ERDB output with a valid user TMDB/MDBList pair remains unverified. The Preferences page labels its credential-free poster sample **Illustrative preview**; those sample scores are not asserted as current Parasite ratings.

@@ -1,10 +1,10 @@
 {
   "source": "Niwa710/YourDramaList",
   "recorded": "2026-11-06",
-  "appVersion": "3.0.0-dev",
-  "manifestVersion": "3.0.0",
-  "release": "3.0.0-beta.1",
-  "note": "Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Test captures are replaced with synthetic fixtures. Environment secrets and cached/user data are excluded. The snapshot is not a promise of byte-identical future deployments.",
+  "appVersion": "1.0.0-beta.1",
+  "manifestVersion": "1.0.0-beta.1",
+  "release": "1.0.0-beta.1",
+  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded.",
   "files": [
     {
       "path": "addon.test.ts",
@@ -50,8 +50,8 @@
     },
     {
       "path": "app.ts",
-      "sha256": "b4c1b021033af868598f95312907c860e002481f64708d49310abfe6e6124728",
-      "version": 362,
+      "sha256": "51b67cc4c8d065948556b1117acec03908a5ec91775cca5a3790f1935c4f61f4",
+      "version": 372,
       "type": "http",
       "publicationAdaptation": "deployment source"
     },
@@ -302,8 +302,8 @@
     },
     {
       "path": "text.ts",
-      "sha256": "91aa49443ca3c1f559ac67f7316eff1c2a148109c4d5fcf1b340c656471ff2c1",
-      "version": 352,
+      "sha256": "53501dbb80d969a416d37423923f6d59406fbc7cf385a3bbcf4a282b9706f1ca",
+      "version": 367,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -342,5 +342,6 @@
       "type": "script",
       "publicationAdaptation": "deployment source"
     }
-  ]
+  ],
+  "displayVersion": "V.1.0.0 BETA"
 }

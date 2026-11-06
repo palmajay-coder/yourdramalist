@@ -2,39 +2,40 @@
 
 ![YourDramaList landing page](docs/images/landing-page.png)
 
-Your MyDramaList favorites, brought to Nuvio. A free, unofficial add-on for Asian dramas and movies.
+**V.1.0.0 BETA** · Your MyDramaList favorites, brought to Nuvio.
 
-**[Open V3 beta](https://niwa710--b3275342d95911f1bbef1607ee4eb77e.web.val.run/)** · [V3 source](v3/) · [Privacy](v3/PRIVACY.md) · [Self-hosting](v3/DEPLOYMENT.md)
+A free, unofficial add-on for Asian dramas and movies.
 
-## What you can do
+**[Get started](https://niwa710--b3275342d95911f1bbef1607ee4eb77e.web.val.run/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md)
 
-- Add public MDL lists or paste a list link.
-- Discover dramas, actors and directors.
-- Build filmographies and browse country catalogs.
-- Show MDL ratings, viewer verdicts and community reviews.
-- Add optional IMDb, Rotten Tomatoes and Letterboxd poster badges.
+## Features
 
-## Get started
+- Public MDL lists and direct list links.
+- Drama, actor and director discovery.
+- Filmographies and country catalogs.
+- MDL ratings, viewer verdicts and community reviews.
+- Optional IMDb, Rotten Tomatoes and Letterboxd poster badges.
 
-1. Open V3 and choose **Get Started**.
-2. Enter your MDL username, or continue without an account.
-3. Choose lists and preferences.
-4. Copy your generated **Manifest URL** into Nuvio.
+## Set up
+
+1. Enter your MDL username, or continue without an account.
+2. Choose lists and display preferences.
+3. Copy your generated **Manifest URL** into Nuvio.
 
 TMDB and MDBList keys are **optional**, needed only for poster ratings. No MDL password is requested.
 
 ## Privacy & beta status
 
-Poster-rating keys are encrypted into your install URL and used with ERDB. Keep that URL private. Read the [privacy details](v3/PRIVACY.md).
+Poster-rating keys are encrypted into your install URL and used with ERDB. Keep that URL private. Read the [privacy details](PRIVACY.md).
 
-V3 is a public beta. Nuvio playback and live ERDB output remain unverified; external services and title matching can limit results. See [beta notes](v3/BETA_NOTES.md).
+Nuvio playback and live ERDB output remain unverified. External services and title matching can limit results. See [beta notes](BETA_NOTES.md).
 
 ## Project
 
-[V3 documentation](v3/README.md) · [Testing](v3/TESTING.md) · [Report a bug](https://github.com/palmajay-coder/yourdramalist/issues) · [Security](SECURITY.md) · [V3 MIT license](v3/LICENSE)
+[Testing](TESTING.md) · [Changelog](CHANGELOG.md) · [Report a bug](https://github.com/palmajay-coder/yourdramalist/issues) · [Security](SECURITY.md) · [MIT license](LICENSE)
 
-The root application files are the original version. Its [documentation](docs/LEGACY_README.md) and [live site](https://yourdramalist.val.run) remain separate from V3.
+The current app lives at the repository root. The original version is preserved in [legacy/](legacy/) with [historical documentation](docs/LEGACY_README.md).
 
 Created and maintained by [Jay](https://github.com/palmajay-coder), with development assistance from **OpenAI Codex**.
 
-Not affiliated with MyDramaList, Nuvio or the data providers. Third-party content is excluded from the software license.
+Not affiliated with MyDramaList, Nuvio or the data providers. [Third-party content](THIRD_PARTY_NOTICES.md) is excluded from the software license.

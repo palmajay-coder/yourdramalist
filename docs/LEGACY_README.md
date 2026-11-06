@@ -1,6 +1,6 @@
-> **YourDramaList V3 public beta:** [Source, setup and limitations](../v3/README.md) · [Privacy](../v3/PRIVACY.md) · [Security reporting](../SECURITY.md) · [V3 MIT license](../v3/LICENSE)
->
-> The files at the repository root below belong to the original app. V3 is published separately in `v3/`; the privacy and feature descriptions below apply to the original version, not the V3 beta.
+# Original app (historical)
+
+This document describes the older application preserved in `legacy/`. For the current beta, see the [main README](../README.md).
 
 # YourDramaList (YDL)
 

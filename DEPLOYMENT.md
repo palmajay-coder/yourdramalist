@@ -1,10 +1,10 @@
-# Run your own V3 instance
+# Run your own YourDramaList instance
 
-V3 targets **Val Town / Deno**. The source is not currently a platform-independent one-click package. Do not publish real credentials in GitHub, `.env` files, code, screenshots or issue reports.
+YourDramaList targets **Val Town / Deno**. The source is not currently a platform-independent one-click package. Do not publish real credentials in GitHub, `.env` files, code, screenshots or issue reports.
 
 ## Val Town
 
-1. Create a Val in your account and put the files from this `v3/` directory at that Val's root, preserving relative names. Do not copy the older repository-root app over them.
+1. Create a Val in your account and put the application .ts and .css files from this repository root at that Val's root, preserving relative names. The historical files in `legacy/` belong to the original app.
 2. Set `app.ts` as the HTTP file. Helpers and test `.ts` files are script modules; `preferences.css` is a static file.
 3. Configure secrets privately using the Val's environment-variable editor:
 
@@ -22,7 +22,7 @@ V3 targets **Val Town / Deno**. The source is not currently a platform-independe
 7. Confirm Val-scoped blob storage and admin OAuth behave correctly in your deployment. Metadata caches and wallpaper settings use blob storage. User install configurations/keys are not written there by the configuration handler.
 8. Test normal and restricted upstream responses, then check the returned manifest, catalog resources and actual Nuvio installation on your target devices before recommending your deployment to others.
 
-`KURYANA_URL` and `ERDB_URL` appear in inherited helpers. Changing a provider requires checking every relevant path: V3's poster proxy currently targets the original ERDB host explicitly rather than automatically following `ERDB_URL`.
+`KURYANA_URL` and `ERDB_URL` appear in inherited helpers. Changing a provider requires checking every relevant path: YourDramaList's poster proxy currently targets the original ERDB host explicitly rather than automatically following `ERDB_URL`.
 
 ## Development tests
 
@@ -30,6 +30,6 @@ See [TESTING.md](TESTING.md). The portable offline harness supplies test-only Va
 
 ## Updating production
 
-Publication to GitHub does not deploy Val Town automatically. Review the GitHub diff, run checks, deploy the selected `v3/` files to your Val, and record the source commit. Environment secrets must be set independently and must never be included in a source synchronization. There is no automatic GitHub-to-production deployment in this beta.
+Publication to GitHub does not deploy Val Town automatically. Review the GitHub diff, run checks, deploy the selected application files to your Val, and record the source commit. Environment secrets must be set independently and must never be included in a source synchronization. There is no automatic GitHub-to-production deployment in this beta.
 
 See [PRIVACY.md](PRIVACY.md) before collecting user credentials. The app can decrypt the configuration links it serves; do not describe the link encryption as zero-knowledge or end-to-end encryption.

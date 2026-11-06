@@ -1,6 +1,6 @@
 # Attribution and license scope
 
-The [MIT license](LICENSE) covers the original V3 software and documentation in this directory. It does not grant rights in third-party services, trademarks, title artwork, screenshots, biographies, synopses or reviews. The older app at the repository root is not relicensed by this directory's license.
+The [MIT license](LICENSE) covers the original YourDramaList software and documentation in this directory. It does not grant rights in third-party services, trademarks, title artwork, screenshots, biographies, synopses or reviews. The older app in `legacy/` is not relicensed by the current app's license.
 
 - **MyDramaList** supplies public title/person/list metadata and original editorial/user text. The app preserves source text rather than AI rewriting it. MyDramaList is not a sponsor or affiliate.
 - **TMDB** supplies poster-wall artwork and supports metadata matching. This product uses the TMDB API but is not endorsed or certified by TMDB. Artwork belongs to its respective rights holders. The production UI includes a TMDB credit.

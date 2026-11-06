@@ -1,10 +1,10 @@
-# Testing V3
+# Testing YourDramaList
 
 The production environment is Val Town's Deno runtime. Existing `*.test.ts` files are executable assertion suites, not `Deno.test()` registrations.
 
 ## Offline public suite
 
-Install Deno 2 from its official distribution, then run from `v3/`:
+Install Deno 2 from its official distribution, then run from the repository root:
 
 ```sh
 deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts
@@ -14,7 +14,7 @@ Module dependencies are downloaded by Deno. Test execution does not receive gene
 
 The suite checks parser behavior, source restrictions, caching, concurrency limits, preferences/credential whitelists, encrypted configuration round trips, catalog order/filtering, original review payloads, and browser-script syntax. Public fixtures are synthetic and inert. Never add a full browser Save Page capture or a real install link to a fixture.
 
-GitHub Actions runs the same command for V3 changes. Runtime tests use `--no-check` because the inherited JavaScript-style modules are not all strictly type-checked; a green check is not a claim of full TypeScript or security verification.
+GitHub Actions runs the same command for YourDramaList changes. Runtime tests use `--no-check` because the inherited JavaScript-style modules are not all strictly type-checked; a green check is not a claim of full TypeScript or security verification.
 
 ## Live verification already performed during development
 
