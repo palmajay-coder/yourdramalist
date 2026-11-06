@@ -34,6 +34,17 @@ export const MDL_TEXT = {
   noAccountText: "Don't have API keys or a MyDramaList account?",
   skipSetupText: "Skip for now",
   skipText: "Skip for now",
+  // get started landing (new onboarding flow)
+  getStartedButton: "Get Started",
+  // keys step (new onboarding flow)
+  keysSkipText: "Skip, browse without an account",
+  // connect step (new onboarding flow)
+  connectHeading: "Connect your MyDramaList.",
+  usernameCardTitle: "Username only",
+  usernameCardDesc: "Watchlists, completed lists and ratings. No password.",
+  fullAccessCardTitle: "Full access",
+  fullAccessCardDesc: "Adds diary, friends activity and actions.",
+  fullAccessUnavailable: "Not Available",
   // discover step
   discoverListsTab: "Search Lists",
   discoverUsersTab: "Browse Users",

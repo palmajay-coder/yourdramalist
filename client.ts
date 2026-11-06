@@ -25,6 +25,7 @@ export function $e(t, e, n) {
     o = Object.assign(
       {
         step: 1,
+        s1: "landing",
         user: "",
         rows: [],
         tab: "cat",
@@ -43,6 +44,7 @@ export function $e(t, e, n) {
     );
   (o.user === "undefined" || typeof o.user !== "string") && (o.user = "");
   ((o.step = o.step >= 2 ? 2 : 1),
+    (o.s1 = "landing"),
     (o.tab = "cat"),
     e &&
     ((o.step = 2),
@@ -475,8 +477,17 @@ export function $e(t, e, n) {
       "</div>"
     );
   }
-  // --- step 1 (design-exact): the floating glass card ---
-  function step1Card() {
+  // --- onboarding step 1a: Get Started landing (button only, under the tagline) ---
+  function landingCard() {
+    return (
+      '<button style="position:absolute;left:299px;top:300px;border:0;border-radius:10px;padding:20px 52px;font-weight:700;font-size:19px;cursor:pointer;background:#24508f;color:#fff;font-family:inherit;z-index:2" id="getstarted">' +
+      t.getStartedButton +
+      "</button>"
+    );
+  }
+
+  // --- onboarding step 1b: API keys only ---
+  function keysCard() {
     const D = (id, lb, v, u) =>
       '<label style="display:block;font-weight:700;margin:13px 0 6px;font-size:13px" for="' +
       id +
@@ -508,19 +519,43 @@ export function $e(t, e, n) {
           t.privacyNote +
           "</div>"
         : "") +
-      '<div style="font-weight:700;margin-top:18px;padding-top:13px;border-top:1px solid #d5d9e0;font-size:13px">' +
-      t.accountTitle +
-      '</div><input class="s1in" style="margin-top:10px" id="un" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' +
+      '<button style="display:flex;width:100%;justify-content:center;border:0;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;cursor:pointer;background:#24508f;color:#fff;margin-top:16px;font-family:inherit" id="cont">' +
+      t.continueButton +
+      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:9px;color:#6b7380;font-size:12px"><a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
+      t.keysSkipText +
+      "</a></div></div>"
+    );
+  }
+
+  // --- onboarding step 1c: Connect your MyDramaList (username only / full access) ---
+  function connectCard() {
+    return (
+      '<div style="position:absolute;left:230px;top:300px;width:500px;background:rgba(255,255,255,.98);border-radius:14px;padding:24px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);color:#2b2f36;z-index:2"><h2 style="margin:0 0 16px;font-size:19px;font-weight:900;color:#24508f">' +
+      t.connectHeading +
+      '</h2><div style="display:flex;gap:14px;margin-bottom:16px">' +
+      '<div style="flex:1;border:2px solid #24508f;border-radius:10px;padding:14px">' +
+      '<div style="font-weight:800;font-size:14px">' +
+      t.usernameCardTitle +
+      '</div><div style="color:#6b7380;font-size:12px;margin-top:6px">' +
+      t.usernameCardDesc +
+      "</div></div>" +
+      '<div style="flex:1;border:2px solid #d5d9e0;border-radius:10px;padding:14px;opacity:.55;position:relative">' +
+      '<div style="font-weight:800;font-size:14px">' +
+      t.fullAccessCardTitle +
+      '</div><div style="color:#6b7380;font-size:12px;margin-top:6px">' +
+      t.fullAccessCardDesc +
+      '</div><div style="position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;background:#9aa5b1;color:#fff;padding:2px 6px;border-radius:5px">' +
+      t.fullAccessUnavailable +
+      "</div></div></div>" +
+      '<label style="display:block;font-weight:700;margin:4px 0 6px;font-size:13px" for="un">' +
+      t.usernameLabel +
+      '</label><input class="s1in" id="un" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' +
       t.usernamePlaceholder +
       '" value="' +
       a(o.user) +
       '"><button style="display:flex;width:100%;justify-content:center;border:0;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;cursor:pointer;background:#24508f;color:#fff;margin-top:16px;font-family:inherit" id="cont">' +
       t.continueButton +
-      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div><div style="text-align:center;margin-top:9px;color:#6b7380;font-size:12px">' +
-      t.noAccountText +
-      ' <a href="#" id="s1skip" style="color:#1675b6;text-decoration:underline;cursor:pointer">' +
-      t.skipSetupText +
-      "</a></div></div>"
+      '</button><div style="font-size:12px;margin-top:8px;color:#6b7380" id="cst"></div></div>'
     );
   }
   // --- step 1: api keys + username ---
@@ -885,12 +920,17 @@ export function $e(t, e, n) {
   function C() {
     const root = s("app");
     if (o.step === 1) {
+      const s1body = o.s1 === "keys"
+        ? keysCard()
+        : o.s1 === "connect"
+        ? connectCard()
+        : landingCard();
       root.innerHTML = CSS +
         '<div class="step1" style="background-image:url(\'' +
         t.step1HeroImage +
         '\')">' +
         step1Head() +
-        step1Card() +
+        s1body +
         '<div class="s1foot">' +
         t.footer +
         "</div></div>";
@@ -2015,42 +2055,73 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
       document.body.classList.toggle("dark", g);
     };
     if (o.step === 1) {
-      const c = async () => {
-        const K1 = s("k1").value.trim(),
-          K2 = s("k2").value.trim(),
-          m = s("un").value.trim();
-        if ((K1 || K2) && (!K1 || !K2)) {
-          return S("cst", "Both API keys are required.", !0);
-        }
-        if (K1 && K2) {
-          S("cst", "Checking your keys…");
-          let r;
-          try {
-            r = await fetch("/api/keys", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ t: K1, m: K2 }),
-            }).then((z) => z.json());
-          } catch {
-            return S(
-              "cst",
-              "Could not check your keys right now. Try again.",
-              !0,
-            );
+      if (o.s1 === "landing") {
+        s("getstarted").onclick = () => {
+          o.s1 = "keys";
+          C();
+        };
+        return;
+      }
+      const toDiscover = () => {
+        ((o.user = ""),
+          (o.o.h = !1),
+          (o.rows = o.rows.filter((p) => !/^(d\.\d\.|r\.)/.test(p.id))),
+          (o.step = 2),
+          (o.tab = "cat"),
+          C());
+      };
+      if (o.s1 === "keys") {
+        const c = async () => {
+          const K1 = s("k1").value.trim(),
+            K2 = s("k2").value.trim();
+          if ((K1 || K2) && (!K1 || !K2)) {
+            return S("cst", "Both API keys are required.", !0);
           }
-          if (r.error) return S("cst", r.error, !0);
-          (o.o.tk !== K1 && ((VData = null), (VSlug = "")),
-            (o.o.tk = K1),
-            (o.o.mk = K2),
-            (o.o.kt = r.k));
+          if (K1 && K2) {
+            S("cst", "Checking your keys…");
+            let r;
+            try {
+              r = await fetch("/api/keys", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ t: K1, m: K2 }),
+              }).then((z) => z.json());
+            } catch {
+              return S(
+                "cst",
+                "Could not check your keys right now. Try again.",
+                !0,
+              );
+            }
+            if (r.error) return S("cst", r.error, !0);
+            (o.o.tk !== K1 && ((VData = null), (VSlug = "")),
+              (o.o.tk = K1),
+              (o.o.mk = K2),
+              (o.o.kt = r.k));
+          }
+          o.s1 = "connect";
+          C();
+        };
+        s("cont").onclick = c;
+        for (const q of ["k1", "k2"]) {
+          s(q).onkeydown = (z) => {
+            z.key === "Enter" && c();
+          };
         }
+        const s1skip = s("s1skip");
+        if (s1skip) {
+          s1skip.onclick = (ev) => {
+            ev.preventDefault();
+            toDiscover();
+          };
+        }
+        return;
+      }
+      // o.s1 === "connect"
+      const c = async () => {
+        const m = s("un").value.trim();
         if (!m) {
-          ((o.user = ""),
-            (o.o.h = !1),
-            (o.rows = o.rows.filter((p) => !/^(d\.\d\.|r\.)/.test(p.id))),
-            (o.step = 2),
-            (o.tab = "cat"),
-            C());
+          toDiscover();
           return;
         }
         S("cst", "Looking up " + m + "…");
@@ -2074,23 +2145,9 @@ body.haswp .foot,body.haswp .done h2,body.haswp .done .cs,body.haswp .dlk a{colo
         }
       };
       s("cont").onclick = c;
-      for (const q of ["k1", "k2", "un"]) {
-        s(q).onkeydown = (z) => {
-          z.key === "Enter" && c();
-        };
-      }
-      const s1skip = s("s1skip");
-      if (s1skip) {
-        s1skip.onclick = (ev) => {
-          ev.preventDefault();
-          ((o.user = ""),
-            (o.o.h = !1),
-            (o.rows = o.rows.filter((p) => !/^(d\.\d\.|r\.)/.test(p.id))),
-            (o.step = 2),
-            (o.tab = "cat"),
-            C());
-        };
-      }
+      s("un").onkeydown = (z) => {
+        z.key === "Enter" && c();
+      };
       return;
     }
     if (o.step === 3) {
