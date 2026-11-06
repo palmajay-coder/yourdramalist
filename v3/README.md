@@ -1,58 +1,39 @@
 # YourDramaList V3 — public beta
 
-An unofficial, free MyDramaList catalog add-on for Nuvio. This directory contains the V3 application source, tests and documentation. The original app remains at the repository root and has a different setup flow.
+![YourDramaList landing page](../docs/images/landing-page.png)
 
-**[Open the V3 beta](https://niwa710--b3275342d95911f1bbef1607ee4eb77e.web.val.run/)** · **[Privacy](PRIVACY.md)** · **[Self-hosting](DEPLOYMENT.md)** · **[Security reports](../SECURITY.md)** · **[MIT license](LICENSE)**
+A free MyDramaList catalog add-on for Nuvio.
 
-YourDramaList is not affiliated with or endorsed by MyDramaList, Nuvio, Stremio, TMDB, MDBList or ERDB. Open source makes the implementation inspectable; it is not a security certification.
+**[Open V3](https://niwa710--b3275342d95911f1bbef1607ee4eb77e.web.val.run/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md) · [MIT license](LICENSE)
 
-## Use the beta
+## Set up
 
-1. Open the V3 beta and choose Get Started.
-2. Enter a MyDramaList username, or continue without an account. No MDL password is requested.
-3. Select public lists, discover titles/people, or choose a country catalog.
-4. Choose Preferences. TMDB and MDBList keys are **optional** and required only for poster ratings.
-5. Confirm your choices. The Manifest URL is generated automatically. Copy it into Nuvio, or use Install in Nuvio on a device that supports the original `stremio://` handoff.
+1. Choose **Get Started**, then enter your MDL username or skip.
+2. Select public lists, filmographies or country catalogs.
+3. Set your preferences. TMDB and MDBList keys are optional for poster ratings.
+4. Copy the generated **Manifest URL** into Nuvio, or use **Install in Nuvio** on a compatible device.
 
-Do not share personal install links or paste keys into GitHub issues. With poster ratings enabled, provider keys are encrypted into the install URL, and the server uses them with ERDB. The full data flow and storage details are in [PRIVACY.md](PRIVACY.md).
+No MDL password is requested. Poster-rating keys are encrypted into your install URL and used with ERDB. Keep your link private; see [Privacy](PRIVACY.md).
 
-## Included
+## Features
 
-- Drama discovery with original MDL synopsis excerpts, score out of 10 and popularity when available. Missing values are not invented.
-- Public profile lists and direct public-list URLs, plus creator details in the shared selection sidebar.
-- Actor names with native script and combined drama/movie filmographies, newest year first.
-- Director filmographies using the exact **Screenwriter & Director** sections; separate Screenwriter-only and Director-only sections are excluded.
-- Country catalogs for Top/Popular/Newest/Upcoming shows and movies, Top Airing and Variety Shows.
-- Centered Preferences with review examples, optional key inputs, independent Letterboxd/Rotten Tomatoes/IMDb badge toggles and title filters.
-- Automatically generated encrypted manifest URLs, Copy and full-width Install in Nuvio action.
-- Original MDL-lists rating card, viewer verdict and up to five helpful reviews, including the original spoiler handling. No AI review rewriting.
-- Light/dark themes, shared selections, featured-list heading banner and optional TMDB poster-wall background.
-- Owner-only wallpaper administration; see the deployment-specific owner restriction before self-hosting.
+- Drama search with original MDL synopsis excerpts, ratings and popularity.
+- Public profiles, direct list links and shared selections.
+- Actor/director filmographies, newest first.
+- Country catalogs for shows and movies.
+- MDL reviews, viewer verdicts and optional poster-rating badges.
+- Light/dark themes, a poster-wall background and owner-only wallpaper settings.
 
-## Beta limitations
+## Beta notes
 
-- Manifest/catalog endpoints and a live Goblin review stream were verified. Actual installation and playback inside Nuvio have not been verified in this release review.
-- Live ERDB output with a valid user TMDB/MDBList pair remains unverified. The Preferences page labels its credential-free poster sample **Illustrative preview**; those sample scores are not asserted as current Parasite ratings.
-- The inherited mapper omits MDL titles without a reliable IMDb match or usable poster. Some source filmographies/catalogs therefore return fewer titles.
-- Hide unreleased currently filters by **year**, not exact date. Future releases within the current year may remain visible. Completed/dropped filtering depends on MDL watchlist availability.
-- MDL/Kuryana restrictions, service changes or rate limits may interrupt metadata/reviews. Caches and retryable failures are implemented; missing live data is not replaced by fixture content.
-- Profile/avatar lookups currently depend on the original owner's read-only profile service. A fully standalone replacement remains future work.
-- Setup selections, username, theme and non-secret preferences are saved in the browser. Provider keys must be re-entered after a full reload.
-- Public titles/biographies are sourced from MDL, artwork from the providers credited in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This software license does not license third-party content.
-- Recommendations and video backgrounds are not part of this beta.
+Nuvio playback and live ERDB output remain unverified. Some titles may be omitted by matching or missing posters; MDL access restrictions can interrupt results. See the full [beta notes](BETA_NOTES.md).
 
 ## Development
 
-The production target is Val Town's Deno runtime. `app.ts` is the HTTP entry point; publish this directory's files at a Val's root. [DEPLOYMENT.md](DEPLOYMENT.md) explains required secrets, ownership and source references that must be adapted for a fork.
+Hosted on Val Town. Start with [deployment instructions](DEPLOYMENT.md), [tests](TESTING.md) and the [changelog](CHANGELOG.md). Edit page wording in `text.ts`; `app.ts` is the HTTP entry point.
 
-`text.ts` contains the editable V3 page copy. `addon.ts` serves encrypted configurations and add-on resources. The original rating/verdict/review helpers were ported to `addonCore.ts` and `addonScrape.ts`. V3's people parser remains authoritative for actor/director section selection.
+[Report bugs](https://github.com/palmajay-coder/yourdramalist/issues) without keys or private URLs. Use the [security policy](../SECURITY.md) for sensitive reports. Discuss substantial contributions first.
 
-Public tests use synthetic MDL-shaped fixtures in place of full saved browser pages. No fixture is used to fill live results. See [TESTING.md](TESTING.md), [CHANGELOG.md](CHANGELOG.md) and the source snapshot inventory.
+Created and maintained by [Jay](https://github.com/palmajay-coder), with development assistance from **OpenAI Codex**.
 
-For bugs or feature suggestions, open an issue with the V3 version and a minimal reproduction. Remove keys, private URLs and personal data first. This is a solo-maintained hobby project; discuss substantial contributions in an issue before investing in a pull request.
-
-## Credits
-
-Created and maintained by [Jay (palmajay-coder)](https://github.com/palmajay-coder).
-
-Development assistance from **OpenAI Codex**.
+Not affiliated with MyDramaList, Nuvio or the data providers. See [third-party notices](THIRD_PARTY_NOTICES.md).
