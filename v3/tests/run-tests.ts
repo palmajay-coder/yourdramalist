@@ -5,8 +5,11 @@ const suites = [
   "featured.test.ts", "wallpaper.test.ts", "posterBackground.test.ts",
   "addon.test.ts", "preferences.test.ts", "ui.test.ts",
 ];
+const failures: string[] = [];
 for (const suite of suites) {
   console.log("\nSUITE " + suite);
-  await import(new URL("../" + suite, import.meta.url).href);
+  try { await import(new URL("../" + suite, import.meta.url).href); }
+  catch (error) { failures.push(suite); console.error(error); }
 }
+if (failures.length) throw Error("Failed offline suites: " + failures.join(", "));
 console.log("\nAll " + suites.length + " offline suites completed.");

@@ -17,9 +17,9 @@ jobs:
           persist-credentials: false
       - name: Scan the V3 publication for known secrets/private captures
         run: node v3/tests/audit-release.mjs
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
-          deno-version: v2.x
+          deno-version: v2.9.8
       - name: Run offline assertion suites with test-only Val Town adapters
         working-directory: v3
         run: deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts
