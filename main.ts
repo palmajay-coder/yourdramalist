@@ -82,9 +82,20 @@ import {
 } from "./scrape.ts";
 import { blob } from "https://esm.town/v/std/blob/main.ts";
 
-function Ht(t) {
-  const e = we(),
-    n = { ...e, sun: ke, wm: ve, wallpaperIcon: Wi, erdb: Le },
+async function Ht(t) {
+  const e = we();
+  let wpv = "0";
+  try {
+    wpv = await (await blob.get("19769276.v")).text();
+  } catch {}
+  const n = {
+      ...e,
+      sun: ke,
+      wm: ve,
+      wallpaperIcon: Wi,
+      erdb: Le,
+      step1HeroImage: "/assets/hero.png?v=" + encodeURIComponent(wpv),
+    },
     s = (a) => JSON.stringify(a).replace(/</g, "\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -1943,6 +1954,11 @@ async function Qt(t, e) {
       if (!m) return v(e, 400, { error: "No image provided." });
       const bytes = Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0));
       await blob.set("19769276.png", bytes);
+      let wpv = 0;
+      try {
+        wpv = parseInt(await (await blob.get("19769276.v")).text(), 10) || 0;
+      } catch {}
+      await blob.set("19769276.v", String(wpv + 1));
       return v(e, 200, { ok: !0 });
     }
     if (s.length === 1 && s[0] === "wpadmin") {
@@ -1995,9 +2011,9 @@ document.getElementById('f').onchange = async (ev) => {
         "text/html",
       );
     if (s.length === 0 || (s.length === 1 && s[0] === "configure"))
-      return v(e, 200, Ht(null), "text/html");
+      return v(e, 200, await Ht(null), "text/html");
     if (s.length === 2 && s[1] === "configure")
-      return v(e, 200, Ht(await Pe(await gk(gt(s[0]), s[0]))), "text/html");
+      return v(e, 200, await Ht(await Pe(await gk(gt(s[0]), s[0]))), "text/html");
     if (s.length === 1 && s[0] === "manifest.json")
       return v(e, 200, Vt(!1), "application/json", 3600);
     if (s[0] === "health") return v(e, 200, { ok: !0, version: Q });
