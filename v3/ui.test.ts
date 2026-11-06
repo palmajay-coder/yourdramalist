@@ -1,0 +1,12 @@
+import {parse} from "npm:acorn@8.15.0";
+import handler from "./app.ts";
+import {adminPage} from "./wallpaperAdmin.ts";
+const html=await(await handler(new Request("https://test/"))).text();
+let passed=0;
+for(const [name,value] of [["public app",html],["admin signed out",adminPage(false)],["admin owner",adminPage(true)]]){
+ for(const m of value.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))parse(m[1],{ecmaVersion:"latest"});
+ console.log("PASS valid browser JavaScript: "+name);passed++;
+}
+if(!html.includes("CONNECT")||html.includes("01 Connect")||!html.includes("and select your choice."))throw Error("Copy regression");
+console.log("PASS navigation labels and shared discover copy");passed++;
+console.log(JSON.stringify({passed}));

@@ -1,3 +1,7 @@
+> **YourDramaList V3 public beta:** [Source, setup and limitations](./v3/README.md) · [Privacy](./v3/PRIVACY.md) · [Security reporting](./SECURITY.md) · [V3 MIT license](./v3/LICENSE)
+>
+> The files at the repository root below belong to the original app. V3 is published separately in `v3/`; the privacy and feature descriptions below apply to the original version, not the V3 beta.
+
 # YourDramaList (YDL)
 
 An unofficial [MyDramaList](https://mydramalist.com) addon for [Nuvio](https://nuvio.app) and Stremio. YDL brings your MyDramaList lists, watchlists, ratings, and reviews straight into your streaming app, with optional custom posters and rating overlays for anyone who wants them.
