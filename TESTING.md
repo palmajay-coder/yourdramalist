@@ -25,3 +25,5 @@ GitHub Actions runs the same command for YourDramaList changes. Runtime tests us
 - Classic Blue icon endpoint returned PNG, with a 256×256 source asset.
 
 An actual Nuvio installation/playback and real ERDB output with a valid visitor key pair were not performed in this release review. No production API key, OAuth session or configuration-token secret is supplied to CI.
+
+Drama-search tests use synthetic responses and a fake clock to check input validation, parsing, cache reuse/expiry, request coalescing, concurrency and minute quotas, upstream cooldowns, response-size limits, failure recovery, and the dismissible floating retry notice. Browser preview checks can force a 429 on a temporary test endpoint without generating excess MDL requests; no forced-error switch is deployed to the main app.

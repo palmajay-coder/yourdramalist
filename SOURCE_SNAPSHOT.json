@@ -50,8 +50,8 @@
     },
     {
       "path": "app.ts",
-      "sha256": "51b67cc4c8d065948556b1117acec03908a5ec91775cca5a3790f1935c4f61f4",
-      "version": 372,
+      "sha256": "82e6e8e295b31e6205758b3064a9151a21074ce673b9eaf6f6f35b2a4a7a187e",
+      "version": 373,
       "type": "http",
       "publicationAdaptation": "deployment source"
     },
@@ -91,9 +91,16 @@
       "publicationAdaptation": "deployment source"
     },
     {
+      "path": "dramaSearch.test.ts",
+      "sha256": "5e1e35a58949d1b8386f8781765c6b13052d7ce5d6451c184a96204e94789bfa",
+      "version": 373,
+      "type": "script",
+      "publicationAdaptation": "deployment source"
+    },
+    {
       "path": "dramaSearchApi.ts",
-      "sha256": "78acba542fc6429bfdcd780d2c91c787fcef6610b52a0a12ac56deb87469bfc1",
-      "version": 100,
+      "sha256": "8cd75a3a7fe7cd1cc5faae4fba8b8eeccd3f27349ba7fd5a98640c19dff0d348",
+      "version": 373,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -164,6 +171,13 @@
       "path": "listOwnerApi.ts",
       "sha256": "5907867eed955ca4e97baec74ffd7284b596e65ea29948578a6530e8c70b5099",
       "version": 130,
+      "type": "script",
+      "publicationAdaptation": "deployment source"
+    },
+    {
+      "path": "notifications.ts",
+      "sha256": "50d72c6260b5b0be99a0e8bf8420c0fdd866294aafb63df22b28f8013e24c967",
+      "version": 373,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -302,8 +316,8 @@
     },
     {
       "path": "text.ts",
-      "sha256": "53501dbb80d969a416d37423923f6d59406fbc7cf385a3bbcf4a282b9706f1ca",
-      "version": 367,
+      "sha256": "4478348206bddc7e6f9e86835b1992b3bdde4e5cf9d9d08ac853b75f62220f09",
+      "version": 373,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },

@@ -11,6 +11,7 @@ First public beta of the main YourDramaList app. The site displays **V.1.0.0 BET
 - Generated encrypted manifest URLs, Copy and Install in Nuvio.
 - Featured banner, light/dark themes, moving TMDB poster background and owner wallpaper settings.
 - Clear selection, persistent selections and consistent selection wording.
+- Bounded drama search, five-minute result caching and a floating retry notification matching the original site.
 - Classic Blue 256×256 icon, public documentation and offline tests.
 
 Existing storage keys, encryption context and add-on identifiers are retained for compatibility. GitHub publication does not automatically deploy the live app.

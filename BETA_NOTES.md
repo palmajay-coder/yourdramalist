@@ -9,3 +9,5 @@
 - Setup selections, username, theme and non-secret preferences are saved in the browser. Provider keys must be re-entered after a full reload.
 - Public titles/biographies are sourced from MDL, artwork from the providers credited in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This software license does not license third-party content.
 - Recommendations and video backgrounds are not part of this beta.
+
+- Drama search reuses results for five minutes (up to 100 cached searches), coalesces identical requests, allows three simultaneous upstream lookups and 30 uncached lookups per minute per running server instance, and honours short MDL cooldowns. These are per-runtime safeguards, not a distributed or per-person traffic quota.
