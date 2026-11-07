@@ -6,13 +6,13 @@ const script=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1
 const assert=(value:unknown,message:string)=>{if(!value)throw Error(message)};
 const saved=new Map([["ydl-v3-user","sample_user"],["ydl-v3-preferences",'{"reviews":true}'],["ydl-v3-theme","light"]]);
 const initial=new Map(saved);
-function mount(){
+function mount(fetcher: typeof fetch = async()=>Response.json({})){
  const {document,window}=parseHTML(html);
  const location={href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists"};
  const storage={getItem:(key:string)=>saved.get(key)??null,setItem:(key:string,value:string)=>saved.set(key,value),removeItem:(key:string)=>saved.delete(key)};
  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
   window,document,storage,location,{pushState:(_state:unknown,_title:string,path:string)=>{location.pathname=path;}},
-  async()=>Response.json({}),()=>0,()=>({matches:false}),class{observe(){}}
+  fetcher,()=>0,()=>({matches:false}),class{observe(){}}
  );
  return document;
 }
@@ -44,3 +44,22 @@ document=mount();
 assert(document.getElementById("count")!.textContent==="(0)","Cleared selection should stay empty after refresh");
 assert(!/basket/i.test(html),"Selection terminology regression");
 console.log("PASS cleared selection survives refresh and uses selection terminology");
+
+document=mount(async()=>Response.json({lists:[
+ {name:"Sample’s List",url:"https://mydramalist.com/dramalist/sample",kind:"watchlist",combined:true},
+ {name:"Sample’s Plan to Watch",url:"https://mydramalist.com/dramalist/sample/plan_to_watch",kind:"watchlist"},
+ {name:"Favorites",url:"https://mydramalist.com/list/abcd"}
+]}));
+const profileInput=document.getElementById("profileInput") as HTMLInputElement;
+profileInput.value="Sample";
+await (document.getElementById("profileForm") as HTMLFormElement).onsubmit!({preventDefault(){}} as SubmitEvent);
+await new Promise(resolve=>setTimeout(resolve,0));
+const names=()=>[...document.querySelectorAll("#listItems h3")].map(node=>node.textContent);
+assert(names().join("|")==="Sample’s Plan to Watch|Sample’s All Dramas & Films","Watchlists should open with the combined card last");
+(document.querySelector("#listItems input") as HTMLInputElement).onchange!({} as Event);
+(document.querySelector('[data-community-view="custom"]') as HTMLButtonElement).click();
+assert(names().join("|")==="Sample’s Favorites list","Custom tab should show only custom lists");
+assert(document.getElementById("count")!.textContent==="(1)","Switching tabs lost selection");
+(document.querySelector('[data-community-view="watchlists"]') as HTMLButtonElement).click();
+assert((document.querySelector("#listItems input") as HTMLInputElement).checked,"Returning to watchlists lost checkbox state");
+console.log("PASS Community tabs separate profile results and share selections");

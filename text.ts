@@ -124,6 +124,13 @@ export const TEXT = {
   listsTitle: "Choose your lists",
   listsDescription: "Explore MyDramaList and start building your catalog.",
   profilesTab: "Community",
+  communityListTypes: "Community list types",
+  communityWatchlists: "Watchlists",
+  communityCustomLists: "Custom lists",
+  communityNoWatchlists: "No public watchlists found.",
+  communityNoCustomLists: "No public custom lists found.",
+  communityAllTitles: "All Dramas & Films",
+  communityAllTitlesDescription: "All watchlist statuses in one catalog.",
   discoverTab: "Discover",
   profileSearchLabel: "Enter a username or paste a link from any list.",
   profilePlaceholder:
