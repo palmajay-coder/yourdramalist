@@ -2,9 +2,8 @@
 
 ## 1.0.5
 
-- Add a TMDB language preference so catalog rows can match the language selected in Nuvio.
-- Apply the selected language to TMDB catalog metadata requests and keep cached results separate by language.
-- Localize generated Explore, country, watchlist, and filmography catalog names; keep user-authored MyDramaList list titles unchanged.
+- Add language filter when selecting TMDB for Metadata so users can display catalogs in their desired language.
+- Apply the selected language to TMDB metadata requests and keep cached results separate by language.
 
 ## 1.0.4
 
