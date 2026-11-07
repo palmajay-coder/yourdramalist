@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+- Add a TMDB language preference so catalog rows can match the language selected in Nuvio.
+- Apply the selected language to TMDB catalog metadata requests and keep cached results separate by language.
+
 ## 1.0.4
 
 - Revamped the Poster settings in Preferences to include drop downs list of different providers (i.e TMDB Posters (Default), Easy Posters, Better Posters. more providers to come.) 
