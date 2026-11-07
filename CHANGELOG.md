@@ -2,7 +2,7 @@
 
 ## 1.0.1
 
-- Show a shareable diagnostic code when the server rejects a manifest request. The matching server log records only the code, time, and failure category.
+- Show a diagnostic code when the server rejects a manifest request. The matching server log records only the code, time, and failure category.
 - Show a separate connection message when the browser cannot reach the server.
 
 ## 1.0.0
