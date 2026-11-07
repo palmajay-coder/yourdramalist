@@ -47,11 +47,10 @@ const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.prefe
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
  const pattern=betterPostersPattern(config.betterPosters);
- // Existing install links used `tmdb` for TMDB-first metadata with MDL fallback.
- // Keep that behavior while new preferences use the explicit three-way choice.
+ // TMDB remains primary, with MDL filling in metadata TMDB does not provide.
  const metadataProvider=String((config.preferences as any).metadataProvider||"mdl");
  const tmdbMetadata=metadataProvider!=="mdl";
- const artworkMetadata={metadata:true,poster:false,descriptionSource:metadataProvider==="tmdb-mdl"?"mdl":"tmdb",clearMissingMetadata:metadataProvider==="tmdb-only"};
+ const artworkMetadata={metadata:true,poster:false,descriptionSource:"tmdb",clearMissingMetadata:false};
  function applyBetter<T extends {id:string;poster?:string}>(meta:T):T {
   return pattern && /^tt\d+$/.test(meta.id) ? {...meta,poster:pattern.replace("{imdb_id}",meta.id)} : meta;
  }
