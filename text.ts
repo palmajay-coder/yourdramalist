@@ -127,6 +127,8 @@ export const TEXT = {
   communityListTypes: "Community list types",
   communityWatchlists: "Watchlists",
   communityCustomLists: "Custom lists",
+  communitySelectAll: "Select all",
+  communitySelectionLimit: "You can select up to 40 catalogs. Remove some selections and try again.",
   communityNoWatchlists: "No public watchlists found.",
   communityNoCustomLists: "No public custom lists found.",
   communityAllTitles: "All Dramas & Films",

@@ -6,7 +6,7 @@
 - Restore the poster ratings toggle and preview in a dedicated tab alongside BetterPosters.
 - Prefer TMDB artwork for standard catalog posters when an IMDb match provides it.
 - Keep watchlist cards aligned with a thumbnail placeholder and remove their generated descriptions.
-- Separate Community profile results into Watchlists and Custom lists tabs with shared selections. The optional All Dramas & Films catalog appears below the individual watchlists.
+- Separate Community profile results into Watchlists and Custom lists tabs with shared selections. The optional All Dramas & Films catalog appears first, and Select all adds the selectable catalogs in the current tab.
 
 - Distinguish empty watchlists from missing poster artwork.
 
