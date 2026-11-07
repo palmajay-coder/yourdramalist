@@ -62,7 +62,8 @@ await test("preview limits concurrent upstream requests", async () => {
 });
 
 const {document, window} = parseHTML('<html><body><section id="preferences"></section><section id="confirm"></section></body></html>');
-Object.assign(globalThis, {document, localStorage: {getItem: () => null, setItem: () => {}}});
+Object.assign(globalThis, {document});
+Object.defineProperty(globalThis,"localStorage",{value:{getItem:()=>null,setItem:()=>{}},writable:true,configurable:true});
 let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const change = (input: HTMLInputElement, checked: boolean) => {input.checked = checked; input.dispatchEvent(new window.Event("change"));};

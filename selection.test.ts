@@ -19,11 +19,11 @@ function mount(){
 let document=mount();
 assert(document.getElementById("clearSelection")!.classList.contains("hidden"),"Clear should be hidden for an empty selection");
 document.querySelector<HTMLButtonElement>('[data-filter="catalogs"]')!.click();
-const cards=document.querySelectorAll<HTMLInputElement>('#listItems input[type="checkbox"]');
-for(const card of [cards[0],cards[1]]){card.checked=true;card.dispatchEvent(new document.defaultView!.Event("change"));}
+const cards=document.querySelectorAll<HTMLButtonElement>('.catalogAdd');
+for(const card of [cards[0],cards[1]])card.click();
 assert(document.getElementById("count")!.textContent==="(2)","Two catalogs should be selected");
 assert(!document.getElementById("clearSelection")!.classList.contains("hidden"),"Clear should appear for a nonempty selection");
-assert(cards[0].checked&&cards[1].checked,"Selected cards should be checked");
+assert(cards[0].getAttribute("aria-pressed")==="true"&&cards[1].getAttribute("aria-pressed")==="true","Selected cards should be checked");
 assert(JSON.parse(saved.get("ydl-v3-selection")!).length===2,"Selection should be saved");
 console.log("PASS clear control appears only when selected catalogs exist");
 
@@ -35,7 +35,7 @@ clear.click();
 assert(document.getElementById("count")!.textContent==="(0)","Clear should reset the count");
 assert(document.getElementById("continue")!.hasAttribute("disabled"),"Continue should be disabled");
 assert(clear.classList.contains("hidden"),"Clear should hide when empty");
-assert([...document.querySelectorAll<HTMLInputElement>('#listItems input[type="checkbox"]')].every(c=>!c.checked),"All displayed cards should be unchecked");
+assert([...document.querySelectorAll<HTMLButtonElement>('.catalogAdd')].every(c=>c.getAttribute('aria-pressed')==='false'),"All displayed cards should be unchecked");
 assert(saved.get("ydl-v3-selection")==="[]","Cleared selection should be saved");
 for(const [key,value]of initial)assert(saved.get(key)===value,"Unrelated saved setting changed: "+key);
 console.log("PASS clear removes all catalogs and preserves username, preferences and theme");

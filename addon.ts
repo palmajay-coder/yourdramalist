@@ -1,11 +1,13 @@
 import {normalizePreferences,preferenceIssue} from './preferences.ts';
+import {normalizeTitle,weeklyCatalog} from './collections.ts';
+import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
 import {personUrl} from './people.ts';
 import {handlePeople} from './peopleApi.ts';
-import {Ee,X,K,Je,Te} from './addonCore.ts';
+import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
-type Entry={id:string;name:string;type:'series'|'movie';person?:string;mode?:'actor'|'director'};
+type Entry={id:string;name:string;type:'series'|'movie';weekly?:{country:string;slot:number};person?:string;mode?:'actor'|'director'};
 export function normalizeAddon(body:any){
  if(!body||!Array.isArray(body.catalogs)||!body.catalogs.length||body.catalogs.length>40)throw Error('catalogs');
  const preferences=normalizePreferences(body.preferences),user=/^[a-zA-Z0-9_-]{1,60}$/.test(body.user||'')?body.user:'';
@@ -13,6 +15,7 @@ export function normalizeAddon(body:any){
  if(preferenceIssue(preferences,keys))throw Error('preferences');
  const entries:Entry[]=body.catalogs.map((item:any)=>{
   const name=String(item.name||'').trim().slice(0,180);if(!name)throw Error('catalogs');
+  if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return{id:catalog.url,name,type:catalog.types[0]};}
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw Error('catalogs');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
   const source=String(item.url||'');let id='';
@@ -33,10 +36,20 @@ export function createTokenCodec(secret:string){
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
-export function makeManifest(config:AddonConfig){return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:e.name,extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:AddonConfig){return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:e.weekly?weeklyCatalog(e.weekly.country,e.weekly.slot).name:e.name,extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
+ if(entry.weekly){
+  const data=await (deps as any).weekly?.(entry.weekly.country)??await collections.weekly(entry.weekly.country);
+  let items=data.collections[entry.weekly.slot]?.items||[];
+  if(config.preferences.hideCompleted&&config.user){
+   const watched=await ((deps as any).watchlist||G)(config.user).catch(()=>({}));
+   const hidden=[...(watched[2]||[]),...(watched[5]||[])];
+   items=items.filter((item:any)=>!hidden.some((x:any)=>x.title&&normalizeTitle(x.title)===normalizeTitle(item.name)&&(!x.year||String(x.year)===item.date.slice(0,4))));
+  }
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);return{metas:metas.slice(skip,skip+30)};
+ }
  let pool:any[];
  if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
  else pool=(await deps.source(entry.id)).items;

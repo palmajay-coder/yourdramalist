@@ -21,7 +21,7 @@ export function exploreCatalog(category:string,country=""){
  return {kind:"explore",url:id,catalogId:id,category,country,profile:"MyDramaList",name:"MyDramaList’s "+k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:k[1]+" on MyDramaList"+(country?", from "+c[1]:"")+".",posters:[] as string[]};
 }
 export function userListName(list:any){
- if(list.kind==="filmography"||list.kind==="explore")return list.name;
+ if(list.kind==="filmography"||list.kind==="explore"||list.kind==="weekly")return list.name;
  const author=list.profileName||list.profile;
  const raw=String(list.originalName||list.name||"Untitled");
  const named=author&&author!=="MyDramaList"&&!raw.toLowerCase().startsWith(String(author).toLowerCase()+"’s ")&&!raw.toLowerCase().startsWith(String(author).toLowerCase()+"'s ")?author+"’s "+raw:raw;

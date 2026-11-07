@@ -1,38 +1,39 @@
-// @ts-nocheck -- installed into the existing V3 browser scope.
+// @ts-nocheck -- installed into the existing browser scope.
 export function installExploreUI(){
- const categories=exploreCategories,countries=exploreCountries;
- const root=$('exploreSearch'),label=document.createElement('label');label.textContent='Country';label.htmlFor='exploreCountry';
+ const root=$('exploreSearch'),label=document.createElement('label');label.textContent=copy.catalogCountry;label.htmlFor='exploreCountry';
  const select=document.createElement('select');select.id='exploreCountry';
- for(const [value,name] of countries){const o=document.createElement('option');o.value=value;o.textContent=name;select.append(o)}
- root.append(label,select);const controls=document.createElement('div');controls.className='filters';root.append(controls);
- function catalog(k){return exploreCatalog(k[0],select.value)}
+ for(const [value,name]of exploreCountries.filter(c=>c[0])){const option=document.createElement('option');option.value=value;option.textContent=name;select.append(option)}
+ try{select.value=localStorage.getItem('ydl-catalog-country')||'3'}catch{select.value='3'}if(!select.value)select.value='3';root.append(label,select);
+ const jump=document.createElement('button');jump.type='button';jump.className='catalogMobileSelection';jump.textContent=copy.selectionTitle+' ↓';jump.onclick=()=>document.querySelector('.sidebar').scrollIntoView({behavior:'smooth'});root.append(jump);
+ const dialog=document.createElement('dialog');dialog.className='catalogDialog';dialog.setAttribute('aria-label',copy.catalogTitlePreview);const close=document.createElement('button');close.type='button';close.className='secondary catalogDialogClose';close.textContent='×';close.setAttribute('aria-label',copy.closePreview);const content=document.createElement('div');dialog.append(close,content);document.body.append(dialog);close.onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});let detailRequest=0;
+ async function details(item){
+  const request=++detailRequest;content.replaceChildren();if(item.poster){const img=document.createElement('img');img.src=item.poster;img.alt=item.name;content.append(img)}
+  const title=document.createElement('h2');title.textContent=item.name;const meta=document.createElement('p');meta.textContent=item.details||item.date?.slice(0,4)||'';const score=document.createElement('div'),pop=document.createElement('p'),synopsis=document.createElement('p');synopsis.className='dramaSynopsis';content.append(title,meta,score,pop,synopsis);dialog.showModal();
+  if(item.kind){if(item.score)score.textContent='★ '+Number(item.score).toFixed(1)+'/10 · TMDB';renderSynopsis(synopsis,item.overview);return}
+  if(item.score)renderScore(score,item.score);
+  try{const response=await fetch('/api/mdl/drama-details?url='+encodeURIComponent(item.url),{signal:AbortSignal.timeout(15000)});const data=await response.json();if(request!==detailRequest||!dialog.open)return;if(!response.ok)throw Error();renderScore(score,data.score??item.score);renderSynopsis(synopsis,data.synopsis);if(data.popularity)pop.textContent=copy.catalogPopularity+' #'+data.popularity.toLocaleString();if(data.status==='unavailable'&&!data.synopsis)synopsis.textContent=copy.catalogDetailsUnavailable;}catch{if(request===detailRequest)synopsis.textContent=copy.catalogDetailsUnavailable}
+ }
+ let observer,renderId=0,countdown,selectedCountry=select.value;const buttons=new Map();let workers=0;const jobs=[];
+ function sync(){for(const [url,button]of buttons){const on=state.selection.some(x=>x.url===url);button.textContent=on?copy.catalogAdded:copy.catalogAdd;button.setAttribute('aria-pressed',String(on))}}
+ function enqueue(job){jobs.push(job);pump()}
+ function pump(){while(workers<2&&jobs.length){const job=jobs.shift();workers++;job().finally(()=>{workers--;pump()})}}
+ function shelf(c,parent){
+  const card=document.createElement('article');card.className='catalogShelf';const head=document.createElement('div');head.className='catalogShelfHead';const info=document.createElement('div'),h=document.createElement('h3'),p=document.createElement('p');h.textContent=c.name;p.textContent=c.description;info.append(h,p);const actions=document.createElement('div');actions.className='catalogRowActions';const add=document.createElement('button');add.type='button';add.className='secondary catalogAdd';add.setAttribute('aria-label',copy.catalogSelect+' '+c.name);add.onclick=()=>toggleList(c);buttons.set(c.url,add);actions.append(add);head.append(info,actions);const track=document.createElement('div');track.className='catalogShelfTrack';track.setAttribute('aria-label',c.name);card.append(head,track);parent.append(card);
+  function fill(items){track.replaceChildren();for(const item of items){const button=document.createElement('button');button.type='button';button.className='catalogPoster';button.setAttribute('aria-label',copy.catalogTitlePreview+': '+item.name);if(item.poster){const img=document.createElement('img');img.src=item.poster;img.alt=item.name;img.loading='lazy';img.referrerPolicy='no-referrer';button.append(img)}const title=document.createElement('strong');title.textContent=item.name;const year=document.createElement('small');year.textContent=item.date?.slice(0,4)||item.details?.match(/\b(?:19|20)\d{2}\b/)?.[0]||'';button.append(title,year);button.onclick=()=>details(item);track.append(button)}c.posters=items.map(x=>x.poster).filter(Boolean).slice(0,5);const selected=state.selection.find(x=>x.url===c.url);if(selected){Object.assign(selected,{posters:c.posters,name:c.name,description:c.description});renderSelection()}if(items.length>5&&!actions.querySelector('.catalogArrow'))for(const [text,amount]of [['‹',-1],['›',1]]){const b=document.createElement('button');b.type='button';b.className='secondary catalogArrow';b.textContent=text;b.setAttribute('aria-label',amount<0?copy.catalogPrevious:copy.catalogNext);b.onclick=()=>track.scrollBy({left:amount*track.clientWidth,behavior:'smooth'});actions.insertBefore(b,add)}if(!items.length){const empty=document.createElement('p');empty.className='catalogShelfStatus';empty.textContent=copy.catalogEmpty;track.append(empty)}}
+  return{card,track,fill};
+ }
+ function skeleton(track){track.innerHTML='<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>'}
  function render(){
-  if(state.tab!=='discover'||state.filter!=='catalogs')return;
-  listRequest++;$('results').textContent='';
-  renderLists(categories.map(catalog));
-  // Previews are optional; selecting a catalog never depends on a live fetch.
-  for(const [i,card] of [...$('listItems').children].entries()){
-   const c=catalog(categories[i]),button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='View titles';
-   button.onclick=()=>titles(c,1);card.querySelector('.listinfo').append(button);
-  }
-  requestAnimationFrame(alignSelection);
+  if(state.tab!=='discover'||state.filter!=='catalogs')return;const id=++renderId,request=++listRequest;selectedCountry=select.value;try{localStorage.setItem('ydl-catalog-country',select.value)}catch{}
+  observer?.disconnect();clearInterval(countdown);jobs.length=0;buttons.clear();$('results').replaceChildren();$('listItems').replaceChildren();
+  const weekly=document.createElement('section'),heading=document.createElement('h2');heading.className='catalogSectionTitle';heading.textContent=copy.weeklyTitle;const note=document.createElement('div');note.className='catalogSectionNote';const caption=document.createElement('span');caption.textContent=copy.weeklyDescription;const clock=document.createElement('span');clock.className='collectionClock';note.append(caption,clock);weekly.append(heading,note);$('listItems').append(weekly);
+  const weeklyRows=document.createElement('div');weekly.append(weeklyRows);skeleton(weeklyRows);
+  function weeklyLoad(){enqueue(async()=>{if(id!==renderId||request!==listRequest)return;try{const response=await fetch('/api/catalogs/weekly?country='+selectedCountry,{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId||request!==listRequest)return;if(!response.ok||!Array.isArray(data.collections)||!Number.isFinite(Date.parse(data.nextRefresh)))throw Error();weeklyRows.replaceChildren();for(const collection of data.collections||[]){const row=shelf(collection.catalog,weeklyRows);row.fill(collection.items)}if(data.warning){const warning=document.createElement('p');warning.className='catalogShelfStatus';warning.textContent=copy.weeklySaved;weeklyRows.prepend(warning)}function tick(){const remaining=Math.max(0,Date.parse(data.nextRefresh)-Date.now());if(!remaining){clock.textContent=copy.weeklyRefreshing;clearInterval(countdown);if(data.status!=='stale')render();return}const hours=Math.floor(remaining/3600000);clock.textContent='◷ '+Math.floor(hours/24)+'d '+hours%24+'h';clock.title=copy.weeklyRefreshTimezone}tick();countdown=setInterval(tick,60000);sync()}catch{if(id!==renderId||request!==listRequest)return;weeklyRows.replaceChildren();const message=document.createElement('p');message.className='catalogShelfStatus';message.textContent=copy.weeklyUnavailable;const retry=document.createElement('button');retry.type='button';retry.className='secondary catalogRetry';retry.textContent=copy.catalogRetry;retry.onclick=()=>{retry.disabled=true;weeklyLoad()};weeklyRows.append(message,retry);clock.hidden=true}})}weeklyLoad();
+  const more=document.createElement('section');more.className='catalogMore';const moreHeading=document.createElement('h2');moreHeading.className='catalogSectionTitle';moreHeading.textContent=copy.catalogMore;more.append(moreHeading);$('listItems').append(more);
+  const loadRow=(row,c)=>enqueue(async()=>{if(id!==renderId||request!==listRequest)return;skeleton(row.track);try{const response=await fetch('/api/catalogs/shelf?category='+c.category+'&country='+c.country,{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId||request!==listRequest)return;if(!response.ok)throw Error();row.fill(data.items||[]);if(data.warning){const p=document.createElement('p');p.className='catalogShelfStatus';p.textContent=copy.catalogSaved;row.card.append(p)}}catch{if(id!==renderId||request!==listRequest)return;row.track.replaceChildren();const p=document.createElement('p');p.className='catalogShelfStatus';p.textContent=copy.catalogUnavailable;const retry=document.createElement('button');retry.type='button';retry.className='secondary catalogRetry';retry.textContent=copy.catalogRetry;retry.onclick=()=>loadRow(row,c);row.track.append(p,retry)}});
+  const targets=new Map();for(const k of exploreCategories){const c=exploreCatalog(k[0],select.value),row=shelf(c,more);targets.set(row.card,()=>loadRow(row,c));skeleton(row.track)}
+  if(typeof IntersectionObserver!=='undefined'){observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){observer.unobserve(entry.target);targets.get(entry.target)?.()}},{rootMargin:'200px'});for(const card of targets.keys())observer.observe(card)}else{for(const fn of targets.values())fn()}
+  const credit=document.createElement('p');credit.className='catalogArtworkCredit';credit.textContent=copy.catalogArtworkCredit;more.append(credit);sync();requestAnimationFrame(alignSelection);
  }
- async function titles(c,page){
-  const request=++listRequest;$('listItems').replaceChildren();$('results').textContent='';
-  try{
-   const response=await fetch(c.catalogEndpoint+'&page='+page,{signal:AbortSignal.timeout(15000)}),data=await response.json();
-   if(request!==listRequest)return;if(!response.ok)throw Error(data.error||'Unable to load titles.');
-   $('results').replaceChildren();const back=document.createElement('button');back.className='secondary';back.textContent='Back';back.onclick=render;$('results').append(back);
-   if(data.warning){const p=document.createElement('p');p.textContent=data.warning;$('results').append(p)}
-   c.posters=data.items.map(x=>x.poster).filter(Boolean).slice(0,5);
-   renderLists([c]);
-   const selected=state.selection.find(x=>x.url===c.url);if(selected){selected.posters=c.posters;try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}renderSelection()}
-   renderDramaMatches({dramas:data.items,page:1,hasNextPage:false},{append:true,relatedLists:false});
-   if(!data.items.length){const p=document.createElement('p');p.textContent='No titles were returned for this catalog.';$('listItems').append(p)}
-   const nav=document.createElement('nav');nav.className='searchPages';
-   for(const [name,n] of [['← Previous',page-1],['More titles →',page+1]])if(n>0&&(n<page||data.hasNextPage)){const b=document.createElement('button');b.className='secondary';b.textContent=name;b.onclick=()=>titles(c,n);nav.append(b)}
-   $('listItems').append(nav);
-  }catch(e){if(request!==listRequest)return;$('results').textContent=e.message;const back=document.createElement('button');back.className='secondary';back.textContent='Back';back.onclick=render;$('results').append(back)}
- }
- select.onchange=render;return {render};
+ select.onchange=render;return{render,sync};
 }

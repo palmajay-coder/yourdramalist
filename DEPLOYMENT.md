@@ -11,7 +11,7 @@ YourDramaList targets **Val Town / Deno**. The source is not currently a platfor
    | Name | Purpose |
    | --- | --- |
    | `YDL_MANIFEST_SECRET` | Required for install links. Generate your own cryptographically random 32-byte secret encoded as 64 hexadecimal characters. Keep it stable and private. Rotation invalidates all existing links. |
-   | `TMDB_API_KEY` | Optional server-side key for the moving poster background and inherited metadata-matching fallback. Never reuse the original maintainer's key. |
+   | `TMDB_API_KEY` | Server-side key for weekly collections, matched catalog artwork, moving poster backgrounds and metadata fallback. Never reuse the original maintainer's key. |
    | `OAUTH_STATE_ENCRYPTION_KEY` | Configure when required by the Val Town OAuth middleware used for the owner admin flow; follow its current documentation. |
 
    Do not create per-visitor keys as deployment environment variables. Visitors enter optional poster-rating keys in Preferences. The example file lists names only; it contains no usable secret.
@@ -33,3 +33,11 @@ See [TESTING.md](TESTING.md). The portable offline harness supplies test-only Va
 Publication to GitHub does not deploy Val Town automatically. Review the GitHub diff, run checks, deploy the selected application files to your Val, and record the source commit. Environment secrets must be set independently and must never be included in a source synchronization. There is no automatic GitHub-to-production deployment in this beta.
 
 See [PRIVACY.md](PRIVACY.md) before collecting user credentials. The app can decrypt the configuration links it serves; do not describe the link encryption as zero-knowledge or end-to-end encryption.
+
+## Weekly collections
+
+Deploy `weeklyRefresh.ts` as an interval file with cron `0 0 * * 1` (Monday at 00:00 UTC). The request handler also checks the UTC week, so delayed jobs cannot freeze the old week indefinitely. Themes rotate in pairs from `collections.ts`; at most two are active, shared across countries. A country may have fewer than 20 matching titles. No arbitrary URL or user query is accepted by the shelf endpoints.
+
+TMDB requests use the owner’s `TMDB_API_KEY`, three concurrent requests, at most 120 new upstream requests per minute per runtime, a bounded queue, eight-second timeouts, one-megabyte responses and 429 cooldowns. Public metadata is cached in the val-scoped `catalog-collections:v1` blob, capped at 250 entries and about 2 MB. No API key is placed in that blob. Provider failures may show recent saved collections; no fixture content is substituted.
+
+Collection slots keep their install IDs across weekly changes. Some Nuvio clients may retain the old collection name until they refresh the manifest. Weekly watchlist filtering compares normalized title/year against completed/dropped MDL records; alternate-language names may not match. Titles without IMDb mappings are omitted from Nuvio. Theme suitability depends on TMDB keyword coverage.

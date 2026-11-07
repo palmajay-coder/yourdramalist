@@ -2,17 +2,18 @@
 
 ![YourDramaList landing page](docs/images/landing-page.png)
 
-**V.1.0.0 BETA** · Your MyDramaList favorites, brought to Nuvio.
+**1.0.0-beta.2** · Your MyDramaList favorites, brought to Nuvio.
 
 A free, unofficial add-on for Asian dramas and movies.
 
-**[Get started](https://niwa710--b3275342d95911f1bbef1607ee4eb77e.web.val.run/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md)
+**[Get started](https://yourdramalist.val.run/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md)
 
 ## Features
 
 - Public MDL lists and direct list links.
 - Drama, actor and director discovery.
-- Filmographies and country catalogs.
+- Filmographies and country catalogs with five-poster shelves.
+- Two country-filtered weekly collections, refreshed Mondays.
 - MDL ratings, viewer verdicts and community reviews.
 - Optional IMDb, Rotten Tomatoes and Letterboxd poster badges.
 

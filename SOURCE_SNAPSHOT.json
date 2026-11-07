@@ -1,9 +1,9 @@
 {
   "source": "Niwa710/YourDramaList",
   "recorded": "2026-11-06",
-  "appVersion": "1.0.0-beta.1",
-  "manifestVersion": "1.0.0-beta.1",
-  "release": "1.0.0-beta.1",
+  "appVersion": "1.0.0-beta.2",
+  "manifestVersion": "1.0.0-beta.2",
+  "release": "1.0.0-beta.2",
   "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded.",
   "files": [
     {
@@ -15,8 +15,8 @@
     },
     {
       "path": "addon.ts",
-      "sha256": "00421604acfa1d9b96d3572bac0ce24f418695012f3f08e6d5c6272baa544e09",
-      "version": 351,
+      "sha256": "e7b3861900b4172e9fd9f590edb201358853c58cfe035a133ebcd0167ae3a258",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -50,9 +50,37 @@
     },
     {
       "path": "app.ts",
-      "sha256": "82e6e8e295b31e6205758b3064a9151a21074ce673b9eaf6f6f35b2a4a7a187e",
-      "version": 373,
+      "sha256": "e8ffea7896cbdbd9e7ea9fd0321e84d735f3a300c718a067b24187331c882e23",
+      "version": 374,
       "type": "http",
+      "publicationAdaptation": "deployment source"
+    },
+    {
+      "path": "catalogShelves.css",
+      "sha256": "8bf4a1fb65b9d67c65d02d18736721f4ec9b3df71a23f81a87b59df70855d15f",
+      "version": 375,
+      "type": "file",
+      "publicationAdaptation": "deployment source"
+    },
+    {
+      "path": "collectionService.ts",
+      "sha256": "3fe5d9ec8188d410823207c8cf6af859fab9c471412020b9cb2d49b445465def",
+      "version": 374,
+      "type": "script",
+      "publicationAdaptation": "deployment source"
+    },
+    {
+      "path": "collections.test.ts",
+      "sha256": "00acf192395644b84287b7dca2159e0d7322575ec3944c3aa5465ab894441f4d",
+      "version": 374,
+      "type": "script",
+      "publicationAdaptation": "deployment source"
+    },
+    {
+      "path": "collections.ts",
+      "sha256": "08de49709cdb9361842c86bf0de9590757007631107ad95e91eb60fa9f3d521a",
+      "version": 374,
+      "type": "script",
       "publicationAdaptation": "deployment source"
     },
     {
@@ -113,8 +141,8 @@
     },
     {
       "path": "explore.ts",
-      "sha256": "2d5e3888d0c1c1f822e94b6a6f0d30b0987e8009840c4617c611103b1ba20a0f",
-      "version": 210,
+      "sha256": "d37bf40b5fb6c1cf3cb00c9842bb85a2c0edcac669ea8fe52b615ca3a4a96e8a",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -127,8 +155,8 @@
     },
     {
       "path": "exploreClient.ts",
-      "sha256": "d969a65f87c6b5bb02f172fcf5ff652fd6029280da04af86683c83a0d474a000",
-      "version": 360,
+      "sha256": "419276f13c631386418c243cd5b8ca90768bebab10e3624130e076eb16a86b27",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -274,8 +302,8 @@
     },
     {
       "path": "preferences.test.ts",
-      "sha256": "cf5a657f25df9d298d16992e4d23702553a683f097030aa304ba2ad28991ac8a",
-      "version": 358,
+      "sha256": "a92c257d654f495f9b421bb091fbe615581ffff8f38c23a3e49c4ba3ef4a34f8",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -288,8 +316,8 @@
     },
     {
       "path": "preferencesClient.ts",
-      "sha256": "fe6313b96ee106534a1eb2e7cb2c66776862adc6d9202e89fd7f908c66f0aa19",
-      "version": 357,
+      "sha256": "fbf1e1433584c8b57ef50a5b7ecac1f2cd47288afb171df4c7858c9f1d390c1e",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -309,22 +337,22 @@
     },
     {
       "path": "selection.test.ts",
-      "sha256": "258f58871afc7f354c920ab7eee5f37e741eacd2f735f4dedcdfcb45fa070afa",
-      "version": 364,
+      "sha256": "a2f393489ee1c62545d91864a8aa7f490588792bdf5d9f0ddba17ed61aed0164",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
     {
       "path": "text.ts",
-      "sha256": "4478348206bddc7e6f9e86835b1992b3bdde4e5cf9d9d08ac853b75f62220f09",
-      "version": 373,
+      "sha256": "ba24371212a5989e75e42687176a6f5036ce67a4f792e0d549c3641947f12a80",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
     {
       "path": "ui.test.ts",
-      "sha256": "8094d5df6fbfdaf13769fb60dc521405405490e0d4f7b827fd3ceace45451bbb",
-      "version": 230,
+      "sha256": "c7fc9e20b51d70418eb1cd2c799082638e29f36b27e327a385edd43996ad8f00",
+      "version": 374,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -355,7 +383,15 @@
       "version": 224,
       "type": "script",
       "publicationAdaptation": "deployment source"
+    },
+    {
+      "path": "weeklyRefresh.ts",
+      "sha256": "7f9ec7f8e0a2d99b3186250c8a781d5b2f8a9640d5eccd650a41d0677e5524f0",
+      "version": 374,
+      "type": "interval",
+      "publicationAdaptation": "deployment source"
     }
   ],
-  "displayVersion": "V.1.0.0 BETA"
+  "displayVersion": "V.1.0.0 BETA",
+  "productionValVersion": 375
 }

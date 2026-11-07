@@ -1,8 +1,29 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.0-beta.1";
+export const APP_VERSION = "1.0.0-beta.2";
 export const DISPLAY_VERSION = "1.0.0 BETA";
 
 export const TEXT = {
+  catalogCountry: "Country",
+  weeklyTitle: "This Week’s Picks",
+  weeklyDescription: "Curated collections · Refresh every Monday",
+  weeklyRefreshTimezone: "Refreshes Monday at 00:00 UTC",
+  weeklyRefreshing: "New week",
+  weeklySaved: "Showing saved collections. Live refresh is temporarily unavailable.",
+  weeklyUnavailable: "Weekly collections are temporarily unavailable.",
+  catalogMore: "More from MyDramaList",
+  catalogAdd: "+ Add catalog",
+  catalogAdded: "✓ Added",
+  catalogSelect: "Select catalog",
+  catalogTitlePreview: "Title preview",
+  catalogPopularity: "Popularity",
+  catalogPrevious: "Previous titles",
+  catalogNext: "More titles",
+  catalogEmpty: "No matching titles available for this country.",
+  catalogRetry: "Try again",
+  catalogUnavailable: "Titles are temporarily unavailable. You can still add this catalog.",
+  catalogSaved: "Showing saved MyDramaList titles.",
+  catalogDetailsUnavailable: "Details are temporarily unavailable.",
+  catalogArtworkCredit: "Catalog rankings from MyDramaList. Weekly collections and matched artwork use TMDB.",
   siteName: "YourDramaList",
   subtitle: "Bring your favorite lists from MyDramaList to Nuvio.",
   getStarted: "Get Started →",

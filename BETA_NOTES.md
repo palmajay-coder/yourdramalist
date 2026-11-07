@@ -11,3 +11,6 @@
 - Recommendations and video backgrounds are not part of this beta.
 
 - Drama search reuses results for five minutes (up to 100 cached searches), coalesces identical requests, allows three simultaneous upstream lookups and 30 uncached lookups per minute per running server instance, and honours short MDL cooldowns. These are per-runtime safeguards, not a distributed or per-person traffic quota.
+
+- Weekly collections use TMDB keywords/genres and country filters, rather than personal recommendations. They rotate as two shared themes on Mondays at 00:00 UTC. Sparse metadata can produce shorter collections; mood classification is approximate. MDL country catalogs retain MDL order and sources.
+- Version badges are hidden on the website. Current source/manifest version: `1.0.0-beta.2`.

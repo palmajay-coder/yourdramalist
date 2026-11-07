@@ -10,3 +10,7 @@ for(const [name,value] of [["public app",html],["admin signed out",adminPage(fal
 if(!html.includes("CONNECT")||html.includes("01 Connect")||!html.includes("and select your choice."))throw Error("Copy regression");
 console.log("PASS navigation labels and shared discover copy");passed++;
 console.log(JSON.stringify({passed}));
+
+if(/brandVersion|landingBrandVersion/.test(html.replace(/<style>[\s\S]*?<\/style>/g,""))||/<title>[^<]*V\./.test(html))throw Error("Visible version badge returned");
+if(!html.includes("More from MyDramaList")||!html.includes("catalogShelves.css"))throw Error("Catalog shelf integration missing");
+console.log("PASS catalog integration and no visible version badge");

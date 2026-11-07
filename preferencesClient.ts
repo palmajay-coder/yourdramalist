@@ -157,7 +157,7 @@ export function installPreferencesUI(api: {
     const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
     if(prefs.posters)manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));confirm.append(manifest);
-    const data={catalogs:api.selection().map(({name,url,kind,category,country,mode,personUrl})=>({name,url,kind,category,country,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),hideCompleted:!!api.user()&&prefs.hideCompleted},keys:prefs.posters?keys():{tmdb:"",mdblist:""}};
+    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),hideCompleted:!!api.user()&&prefs.hideCompleted},keys:prefs.posters?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");}
     async function prepare(){retry.hidden=true;status.textContent="";try{
