@@ -2,7 +2,7 @@
 
 ## 1.0.2
 
-- Fix manifest generation for built-in MyDramaList watchlists selected through Community.
+- Fix manifest issue for built-in user watchlists. 
 - Add BetterPosters as an optional artwork provider for YDL catalogs. Paste a BetterPosters poster URL pattern in Preferences and generate a new install link.
 
 ## 1.0.1
