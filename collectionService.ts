@@ -34,7 +34,7 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   weeklyCatalog(country,0);await init();const window=weekWindow(now()),key="weekly:"+country+":"+window.week;
   const previous=[...cache].filter(([k,v])=>k.startsWith("weekly:"+country+":")&&k!==key&&v.data?.collections).sort((a,b)=>b[0].localeCompare(a[0]));
   const recent=new Set(previous.slice(0,2).flatMap(([,v])=>v.data.collections.flatMap((c:any)=>c.items.map((x:any)=>x.kind+":"+x.id))));
-  try{return await memo(key,Date.parse(window.nextRefresh)-now(),async()=>{
+  try{const data=await memo(key,Date.parse(window.nextRefresh)-now(),async()=>{
    const used=new Set<string>(),collections=[];
    for(const [slot,theme]of window.themes.entries()){
     const keywords="keywords"in theme?(await Promise.all(theme.keywords!.map(keyword))).filter(Boolean).join("|"):"";
@@ -53,7 +53,7 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
     collections.push({catalog,items});
    }
    return {...window,themes:undefined,collections,status:"live"};
-  })}catch{const old=cache.get(key)?.data||previous[0]?.[1].data;if(old&&now()-Date.parse(old.week)<21*86400000)return{...old,status:"stale",warning:"Showing saved collections. Live refresh is temporarily unavailable."};throw Error("Weekly collections are temporarily unavailable.")}
+  });return {...data,nextRefresh:window.nextRefresh};}catch{const old=cache.get(key)?.data||previous[0]?.[1].data;if(old&&now()-Date.parse(old.week)<21*86400000)return{...old,status:"stale",warning:"Showing saved collections. Live refresh is temporarily unavailable."};throw Error("Weekly collections are temporarily unavailable.")}
  }
  async function artwork(item:any,country=""){
   if(!keyFor())return item;

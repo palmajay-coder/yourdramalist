@@ -6,7 +6,7 @@ export const TEXT = {
   catalogCountry: "Country",
   weeklyTitle: "This Week’s Picks",
   weeklyDescription: "Curated collections · Refresh every Monday",
-  weeklyRefreshTimezone: "Refreshes Monday at 00:00 UTC",
+  weeklyRefreshTimezone: "Refreshes Monday at midnight Pacific time",
   weeklyRefreshing: "New week",
   weeklySaved: "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",

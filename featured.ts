@@ -1,30 +1,155 @@
-import {load} from "npm:cheerio@1.0.0";
-export function extractFeatured(html:string){
- const $=load(html),box=$(".featured-list").first();if(!box.length)throw Error("Featured list is unavailable.");
- let id="";for(const a of box.find("a[href]").toArray()){try{const u=new URL($(a).attr("href")!,"https://mydramalist.com");if(u.origin==="https://mydramalist.com"&&!u.username&&!u.password&&!u.port){const m=u.pathname.match(/^\/list\/([A-Za-z0-9_-]+)\/?$/);if(m&&m[1]!=="create"){id=m[1];break}}}catch{}}
- const clean=(s:string)=>s.replace(/\s+/g," ").trim(),title=clean(box.find(".list-title").first().text());
- if(!id||!title)throw Error("Featured list is unavailable.");
- const images:string[]=[];for(const el of box.find("img").toArray()){try{const img=$(el);const u=new URL(img.attr("data-src")||img.attr("src")||"","https://mydramalist.com");if(u.protocol==="https:"&&u.hostname==="i.mydramalist.com"&&!u.username&&!u.password&&!u.port&&!images.includes(u.href))images.push(u.href)}catch{}if(images.length===3)break}
- return {id,url:"https://mydramalist.com/list/"+id,title,label:clean(box.find(".list-type").first().text()),description:clean(box.find(".list-desc").first().text()),images};
+import {load, type Cheerio, type CheerioAPI} from "npm:cheerio@1.0.0";
+import type {AnyNode} from "npm:domhandler@5.0.3";
+import {nextPacificMidnight} from "./pacificTime.ts";
+
+const origin = "https://mydramalist.com";
+const clean = (value: string) => value.replace(/\s+/g, " ").trim();
+
+function listId(href: string) {
+  try {
+    const url = new URL(href, origin);
+    if (url.origin !== origin || url.username || url.password) return "";
+    const id = url.pathname.match(/^\/list\/([A-Za-z0-9]{4,20})\/?$/)?.[1] || "";
+    return id !== "create" ? id : "";
+  } catch { return ""; }
 }
-export function createFeaturedService(storage?:{load:()=>Promise<any>;save:(v:any)=>Promise<any>},fetcher:typeof fetch=fetch,now=Date.now){
- let entry:any=null,ready:Promise<void>|undefined,pending:Promise<any>|undefined;
- async function bounded<T>(p:Promise<T>){let t;try{return await Promise.race([p,new Promise<undefined>(r=>{t=setTimeout(()=>r(undefined),1000)})])}finally{clearTimeout(t)}}
- return async()=>{
- ready??=(async()=>{try{entry=storage?await bounded(storage.load()):null}catch{}})();await ready;
- if(entry&&entry.expires>now())return {featured:entry.data,status:entry.error?(entry.data?"stale":"unavailable"):"cached"};
- if(pending)return pending;
- pending=(async()=>{const old=entry;try{
- const r=await fetcher("https://mydramalist.com/list",{redirect:"error",signal:AbortSignal.timeout(8000),headers:{Accept:"text/html"}});
- if(!r.ok){await r.body?.cancel();throw Error("MyDramaList unavailable.")}
- if(!r.headers.get("content-type")?.includes("text/html")){await r.body?.cancel();throw Error("Unexpected content.")}
- const reader=r.body!.getReader(),decoder=new TextDecoder();let html="",size=0;
- try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>3000000)throw Error("Page too large.");html+=decoder.decode(value,{stream:true})}html+=decoder.decode()}finally{await reader.cancel().catch(()=>{})}
- if(r.headers.get("cf-mitigated")==="challenge"||/cf-chl-|Just a moment|\/cdn-cgi\/challenge-platform/i.test(html))throw Error("MDL access restricted.");
- entry={data:extractFeatured(html),at:now(),expires:now()+1800000};
- }catch{entry={data:old?.data&&now()-old.at<7*86400000?old.data:null,at:old?.at||now(),expires:now()+60000,error:true}}
- if(storage)await bounded(storage.save(entry)).catch(()=>{});
- return {featured:entry.data,status:entry.error?(entry.data?"stale":"unavailable"):"live"};
- })().finally(()=>pending=undefined);return pending;
- };
+
+function posters($: CheerioAPI, box: Cheerio<AnyNode>) {
+  const images = new Set<string>();
+  for (const node of box.find("img").toArray()) {
+    try {
+      const img = $(node);
+      const url = new URL(img.attr("data-src") || img.attr("src") || "", origin);
+      if (url.origin === "https://i.mydramalist.com" && !url.username && !url.password) images.add(url.href);
+    } catch { /* Ignore invalid poster links. */ }
+    if (images.size === 3) break;
+  }
+  return [...images];
+}
+
+export function extractFeatured(html: string) {
+  return featuredCard(load(html));
+}
+
+function featuredCard($: CheerioAPI) {
+  const box = $(".featured-list").first();
+  const id = box.find("a[href]").toArray().map(a => listId($(a).attr("href")!)).find(Boolean);
+  const title = clean(box.find(".list-title").first().text());
+  if (!id || !title) throw Error("Featured list is unavailable.");
+  return {id, url: origin + "/list/" + id, title, label: clean(box.find(".list-type").first().text()),
+    description: clean(box.find(".list-desc").first().text()), images: posters($, box)};
+}
+
+type Card = ReturnType<typeof featuredCard>;
+const sections = [
+  {key: "recent", heading: /^Recent(?:ly)? Activity Lists$/i, label: "Recent Activity"},
+  {key: "trending", heading: /^Trending Lists$/i, label: "Trending"},
+] as const;
+
+function extractBanners(html: string, previous: Record<string, {lineup: string; card: Card}> = {}, random = Math.random) {
+  const $ = load(html);
+  const featured = featuredCard($);
+  const picks: typeof previous = {};
+  const used = new Set([featured.id]);
+  for (const section of sections) {
+    const header = $(".box-header").filter((_, node) => section.heading.test(clean($(node).find("h2").text()))).first();
+    const candidates = new Map<string, Card>();
+    for (const node of header.next(".box-body").find(".custom-list-preview").toArray()) {
+      const box = $(node);
+      if (!box.find(".content.titles").length) continue;
+      const link = box.find(".title a[href], a.title-primary[href]").first();
+      const id = listId(link.attr("href") || "");
+      const title = clean(link.text());
+      const images = posters($, box.find(".content.titles").first());
+      if (id && title && images.length) candidates.set(id, {id, title, label: section.label,
+        url: origin + "/list/" + id, description: "", images});
+    }
+    const lineup = [...candidates.keys()].sort().join(",");
+    const old = previous[section.key];
+    const eligible = [...candidates.values()].filter(card => !used.has(card.id));
+    let card = old?.lineup === lineup && !used.has(old.card.id) ? candidates.get(old.card.id) : undefined;
+    if (!card && eligible.length) {
+      const fresh = eligible.filter(item => item.id !== old?.card.id);
+      const pool = fresh.length ? fresh : eligible;
+      card = pool[Math.floor(random() * pool.length)];
+    }
+    if (!card && !header.length && old && !used.has(old.card.id)) card = old.card;
+    if (card) {
+      picks[section.key] = {lineup, card};
+      used.add(card.id);
+    }
+  }
+  return {featured, picks, slides: [featured, ...Object.values(picks).map(pick => pick.card)]};
+}
+
+export function createFeaturedService(
+  storage?: {load: () => Promise<any>; save: (value: any) => Promise<any>},
+  fetcher: typeof fetch = fetch, now = Date.now, random = Math.random,
+) {
+  let entry: any = null;
+  let ready: Promise<void> | undefined;
+  let pending: Promise<any> | undefined;
+  async function bounded<T>(promise: Promise<T>) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([promise, new Promise<undefined>(resolve => {
+        timer = setTimeout(() => resolve(undefined), 1000);
+      })]);
+    } finally { clearTimeout(timer); }
+  }
+  function result(status: string) {
+    return {featured: entry?.data ?? null, slides: entry?.slides ?? (entry?.data ? [entry.data] : []),
+      nextRefresh: new Date(entry.expires).toISOString(), status};
+  }
+  return async () => {
+    ready ??= (async () => {
+      try { entry = storage ? await bounded(storage.load()) : null; } catch { /* Use memory cache. */ }
+    })();
+    await ready;
+    if (entry?.slides && entry.expires > now()) return result(entry.error ? (entry.data ? "stale" : "unavailable") : "cached");
+    if (pending) return pending;
+    pending = (async () => {
+      if (storage) {
+        try {
+          const shared = await bounded(storage.load());
+          if (shared?.slides && shared.expires > now()) {
+            entry = shared;
+            return result(entry.error ? (entry.data ? "stale" : "unavailable") : "cached");
+          }
+        } catch { /* Use memory cache. */ }
+      }
+      const old = entry;
+      const expires = nextPacificMidnight(now());
+      try {
+        const response = await fetcher(origin + "/list", {redirect: "error", signal: AbortSignal.timeout(8000), headers: {Accept: "text/html"}});
+        if (!response.ok || !response.headers.get("content-type")?.includes("text/html") ||
+            response.headers.get("cf-mitigated") === "challenge" || !response.body) {
+          await response.body?.cancel();
+          throw Error("MyDramaList unavailable.");
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let html = "", size = 0;
+        try {
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            size += value.length;
+            if (size > 3000000) throw Error("Page too large.");
+            html += decoder.decode(value, {stream: true});
+          }
+          html += decoder.decode();
+        } finally { await reader.cancel().catch(() => {}); }
+        if (/cf-chl-|Just a moment|\/cdn-cgi\/challenge-platform/i.test(html)) throw Error("MDL access restricted.");
+        const data = extractBanners(html, old?.picks, random);
+        entry = {data: data.featured, slides: data.slides, picks: data.picks, at: now(), expires};
+      } catch {
+        entry = {data: old?.data ?? null, slides: old?.slides ?? (old?.data ? [old.data] : []),
+          picks: old?.picks, at: old?.at, expires, error: true};
+      }
+      if (storage) await bounded(storage.save(entry)).catch(() => {});
+      return result(entry.error ? (entry.data ? "stale" : "unavailable") : "live");
+    })().finally(() => { pending = undefined; });
+    return pending;
+  };
 }

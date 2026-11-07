@@ -36,7 +36,7 @@ See [PRIVACY.md](PRIVACY.md) before collecting user credentials. The app can dec
 
 ## Weekly collections
 
-Deploy `weeklyRefresh.ts` as an interval file with cron `0 0 * * 1` (Monday at 00:00 UTC). The request handler also checks the UTC week, so delayed jobs cannot freeze the old week indefinitely. Themes rotate in pairs from `collections.ts`; at most two are active, shared across countries. A country may have fewer than 20 matching titles. No arbitrary URL or user query is accepted by the shelf endpoints.
+Deploy `weeklyRefresh.ts` as an interval file with cron `0 7,8 * * *`. The job runs its refresh only at midnight in America/Los_Angeles. It refreshes the MDL banner daily and the weekly collections on Mondays. Request-time cache expiry also handles delayed jobs. Themes rotate in pairs from `collections.ts`; at most two are active, shared across countries. A country may have fewer than 20 matching titles. No arbitrary URL or user query is accepted by the shelf endpoints.
 
 TMDB requests use the owner’s `TMDB_API_KEY`, three concurrent requests, at most 120 new upstream requests per minute per runtime, a bounded queue, eight-second timeouts, one-megabyte responses and 429 cooldowns. Public metadata is cached in the val-scoped `catalog-collections:v1` blob, capped at 250 entries and about 2 MB. No API key is placed in that blob. Provider failures may show recent saved collections; no fixture content is substituted.
 

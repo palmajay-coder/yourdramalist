@@ -1,3 +1,4 @@
+import {pacificDate, pacificMidnight} from "./pacificTime.ts";
 // Stable weekly slots: installation IDs never include a date or theme name.
 export const COLLECTION_COUNTRIES:Record<string,string>={"3":"KR","2":"CN","1":"JP","5":"TW","6":"TH"};
 export const THEMES=[
@@ -9,9 +10,9 @@ export const THEMES=[
  {name:"Under Suspicion",description:"Crime stories with something to hide.",genre:"80"},
 ];
 export function weekWindow(time=Date.now()){
- const d=new Date(time);d.setUTCHours(0,0,0,0);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));
+ const {date:d}=pacificDate(time);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));
  const start=d.getTime(),index=Math.floor((start-Date.UTC(2026,10,2))/604800000);
- return{week:d.toISOString().slice(0,10),nextRefresh:new Date(start+604800000).toISOString(),themes:[0,1].map(i=>THEMES[((index*2+i)%THEMES.length+THEMES.length)%THEMES.length])};
+ return{week:d.toISOString().slice(0,10),nextRefresh:new Date(pacificMidnight(new Date(start+604800000))).toISOString(),themes:[0,1].map(i=>THEMES[((index*2+i)%THEMES.length+THEMES.length)%THEMES.length])};
 }
 export function weeklyCatalog(country:string,slot:number){
  if(!COLLECTION_COUNTRIES[country]||![0,1].includes(slot))throw Error("Invalid collection");
