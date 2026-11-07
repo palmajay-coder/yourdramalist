@@ -52,7 +52,7 @@ export function installPreferencesUI(api: {
   const metadataNames: Record<MetadataProvider, string> = {mdl: copy.metadataMdl, tmdb: copy.metadataTmdb};
   const metadataDescriptions: Record<MetadataProvider, string> = {mdl: copy.metadataMdlDescription, tmdb: copy.metadataTmdbDescription};
   const metadataSelect = node("select", "prefSelect"); metadataSelect.id = "prefMetadataProvider";
-  for (const provider of ["mdl", "tmdb-mdl", "tmdb-only"] as const) {
+  for (const provider of ["mdl", "tmdb"] as const) {
     const option = node("option", "", metadataNames[provider]); option.value = provider; metadataSelect.append(option);
   }
   metadataSelect.value = prefs.metadataProvider;
