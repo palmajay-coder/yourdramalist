@@ -8,7 +8,8 @@ import {loadWatchlist,loadWatchlistCategory,WATCHLIST_CARDS} from './addonScrape
 import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
-type Entry={id:string;name:string;type:'series'|'movie';watchlist?:string;watchlistStatus?:string;weekly?:{country:string;slot:number};person?:string;mode?:'actor'|'director'};
+import {localizedCatalogName} from './catalogLabels.ts';
+type Entry={id:string;name:string;type:'series'|'movie';watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -22,11 +23,11 @@ export function normalizeAddon(body:any){
  const entries:Entry[]=body.catalogs.map((item:any)=>{
   const name=String(item.name||'').trim().slice(0,180);if(!name)throw new InvalidConfig('catalog-entry');
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
-  if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return{id:catalog.url,name,type:catalog.types[0]};}
+  if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return{id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}};}
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
   const source=String(item.url||'');let id='';
   if(/^d\.[1-5]\.[a-zA-Z0-9_-]{1,60}$/.test(source))id=source;
-  else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const watchlist=u.pathname.match(/^\/dramalist\/([a-zA-Z0-9_-]{1,60})(?:\/([a-z_]+))?\/?$/);if(watchlist){const username=watchlist[1].toLowerCase();const status=watchlist[2];if(status&&!WATCHLIST_CARDS.some(([key])=>key===status))throw new InvalidConfig('catalog-entry');return{id:'watchlist:'+username+(status?':'+status:''),name,type:'series',watchlist:username,...(status?{watchlistStatus:status}:{})};}const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
+  else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const watchlist=u.pathname.match(/^\/dramalist\/([a-zA-Z0-9_-]{1,60})(?:\/([a-z_]+))?\/?$/);if(watchlist){const username=watchlist[1].toLowerCase();const status=watchlist[2];if(status&&!WATCHLIST_CARDS.some(([key])=>key===status))throw new InvalidConfig('catalog-entry');return{id:'watchlist:'+username+(status?':'+status:''),name,type:'series',watchlist:username,...(status?{watchlistStatus:status}:{watchlistAll:true})};}const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
   return{id,name,type:'series'};
  });
  if(new Set(entries.map(x=>x.id)).size!==entries.length)throw new InvalidConfig('duplicate-catalog');
@@ -42,7 +43,7 @@ export function createTokenCodec(secret:string){
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
-export function makeManifest(config:AddonConfig){return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:e.weekly?weeklyCatalog(e.weekly.country,e.weekly.slot).name:e.name,extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
@@ -50,7 +51,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  // TMDB remains primary, with MDL filling in metadata TMDB does not provide.
  const metadataProvider=String((config.preferences as any).metadataProvider||"mdl");
  const tmdbMetadata=metadataProvider!=="mdl";
- const artworkMetadata={metadata:true,poster:false,descriptionSource:"tmdb",clearMissingMetadata:false};
+ const artworkMetadata={metadata:true,poster:false,descriptionSource:"tmdb",clearMissingMetadata:false,language:config.preferences.tmdbLanguage};
  function applyBetter<T extends {id:string;poster?:string}>(meta:T):T {
   return pattern && /^tt\d+$/.test(meta.id) ? {...meta,poster:pattern.replace("{imdb_id}",meta.id)} : meta;
  }
