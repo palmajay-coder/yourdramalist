@@ -92,4 +92,15 @@ await test("watchlist cards keep MDL order and distinguish empty from unreadable
  assert(metas.metas[0].poster==="tmdb","standard poster not upgraded");
 });
 
+await test("watchlist previews fall back to artwork for actual list titles", async () => {
+ const cards = await profileWatchlistCards("Sample","Sample",async (_,status)=>{
+  if(status==="watching")return [{title:"First"},{title:"Second"}];
+  if(status==="completed")return [{title:"Third",image:"existing"}];
+  if(status==="on_hold")return [];
+  throw Error("unreadable");
+ },async item=>"poster:"+item.title);
+ assert(cards[0].posters.join(",")==="poster:First,poster:Second","missing fallback posters");
+ assert(cards[1].posters.join(",")==="existing" && !cards[2].posters.length,"existing or empty artwork changed");
+});
+
 console.log(JSON.stringify({passed}));

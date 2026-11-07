@@ -10,6 +10,8 @@
 
 - Distinguish empty watchlists from missing poster artwork.
 
+- Fill missing Community watchlist thumbnails with matched artwork from titles in the list.
+
 ## 1.0.2
 
 - Fix manifest issue for built-in user watchlists. 

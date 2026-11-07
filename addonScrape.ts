@@ -817,14 +817,19 @@ export function loadWatchlistCategory(username, status) {
   });
 }
 
-export async function profileWatchlistCards(username, name, load = loadWatchlistCategory) {
+export async function profileWatchlistCards(username, name, load = loadWatchlistCategory, fallbackArtwork = async (_item) => null) {
   const cards = await It(WATCHLIST_CARDS, 2, async ([status, label]) => {
     const items = await Promise.resolve().then(() => load(username, status)).catch(() => null);
     if (!items) return null;
+    let posters = [...new Set(items.map(item => item.image).filter(Boolean))].slice(0,5);
+    if (!posters.length && items.length) {
+      const matched = await It(items.slice(0,3), 2, item => Promise.resolve().then(() => fallbackArtwork(item)).catch(() => null));
+      posters = [...new Set(matched.filter(Boolean))];
+    }
     return {
       kind:"watchlist", name:`${name}’s ${label}`, empty:items.length===0,
       url:`${T}/dramalist/${username.toLowerCase()}/${status}`,
-      posters:[...new Set(items.map(item => item.image).filter(Boolean))].slice(0,5),
+      posters,
     };
   });
   return cards.filter(Boolean);
