@@ -61,7 +61,7 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   const poster=await memo("art:"+item.url,7*86400000,async()=>{const data=await request("search/"+kind,{query:item.name,include_adult:"false",language:"en-US"});return matchArtwork(item,data.results||[],kind,country)}).catch(()=>null);
   return poster?{...item,poster,posterSource:"TMDB"}:item;
  }
- async function standardArtwork(items:any[]){
+ async function standardArtwork(items:any[],{metadata=false,poster:usePoster=true}={}){
   if(!keyFor()||!items.length)return items;
   const result=items.slice();
   let cursor=0, timer:ReturnType<typeof setTimeout>|undefined;
@@ -69,14 +69,28 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   async function worker(){
    while(!expired&&cursor<items.length){
     const i=cursor++, item=items[i];
-    if(/^https:\/\/image\.tmdb\.org\/t\/p\/w780\//.test(item.poster||""))continue;
+    const needsPoster=usePoster&&!/^https:\/\/image\.tmdb\.org\/t\/p\/w780\//.test(item.poster||"");
+    if(!needsPoster&&!metadata)continue;
+    if(!/^tt\d+$/.test(item.id))continue;
     const kind=item.type==="movie"?"movie":"tv";
-    const poster=await memo("poster-by-imdb:"+kind+":"+item.id,7*86400000,async()=>{
-     const data=await request("find/"+item.id,{external_source:"imdb_id"});
+    const match=await memo("catalog-tmdb:"+kind+":"+item.id,7*86400000,async()=>{
+     const data=await request("find/"+item.id,{external_source:"imdb_id",language:"en-US"});
      const matches=kind==="movie"?data.movie_results:data.tv_results;
-     return matches?.length===1?posterUrl(matches[0].poster_path):null;
+     if(matches?.length!==1)return null;
+     const match=matches[0];
+     return {poster:posterUrl(match.poster_path),name:String(match.name||match.title||"").trim(),description:String(match.overview||"").trim(),year:String(match.first_air_date||match.release_date||"").match(/^\d{4}(?=-)/)?.[0]};
     }).catch(()=>null);
-    if(poster&&!expired)result[i]={...item,poster};
+    if(!match||expired)continue;
+    const update={...item};
+    if(needsPoster&&match.poster)update.poster=match.poster;
+    // Some MDL sequel entries share the parent series IMDb ID.
+    const separateSeason=/\b(?:season|part)\s*\d+\s*$/i.test(item.name||"")&&normalizeTitle(item.name)!==normalizeTitle(match.name);
+    if(metadata&&!separateSeason){
+     if(match.name)update.name=match.name;
+     if(match.description)update.description=match.description;
+     if(match.year)update.releaseInfo=match.year;
+    }
+    result[i]=update;
    }
   }
   try{

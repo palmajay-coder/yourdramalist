@@ -14,6 +14,8 @@
 
 - Recover missing catalog release years from matched metadata or the exact MyDramaList title page.
 
+- Add a Metadata provider preference for MyDramaList (default) or TMDB. TMDB uses the server key and falls back to existing catalog details when metadata is missing.
+
 ## 1.0.2
 
 - Fix manifest issue for built-in user watchlists. 

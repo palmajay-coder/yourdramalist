@@ -47,6 +47,7 @@ const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.prefe
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
  const pattern=betterPostersPattern(config.betterPosters);
+ const tmdbMetadata=config.preferences.metadataProvider==="tmdb";
  function applyBetter<T extends {id:string;poster?:string}>(meta:T):T {
   return pattern && /^tt\d+$/.test(meta.id) ? {...meta,poster:pattern.replace("{imdb_id}",meta.id)} : meta;
  }
@@ -58,7 +59,8 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
    const hidden=[...(watched[2]||[]),...(watched[5]||[])];
    items=items.filter((item:any)=>!hidden.some((x:any)=>x.title&&normalizeTitle(x.title)===normalizeTitle(item.name)&&(!x.year||String(x.year)===item.date.slice(0,4))));
   }
-  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);return{metas:metas.slice(skip,skip+30).map(applyBetter)};
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyBetter);
+  return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,{metadata:true,poster:false}):page};
  }
  let pool:any[];
  if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
@@ -77,8 +79,9 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  const selected=pool.slice(skip,skip+30),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg';metas[group[i].i]=meta;});}));
  const matched=metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&a.findIndex(y=>y?.id===x.id)===i);
- const artwork=pattern||runtime.erdb||!deps.standardArtwork?matched.map(applyBetter):await deps.standardArtwork(matched);
- return{metas:artwork.filter(x=>x.poster)};
+ const standardPoster=!pattern&&!runtime.erdb;
+ const artwork=deps.standardArtwork&&(standardPoster||tmdbMetadata)?await deps.standardArtwork(matched,{metadata:tmdbMetadata,poster:standardPoster}):matched;
+ return{metas:artwork.map(applyBetter).filter(x=>x.poster)};
 }
 let active=0,created:number[]=[];
 async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw RangeError('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}

@@ -2,6 +2,7 @@
 export const RATING_SOURCES = ["letterboxd", "tomatoes", "imdb"] as const;
 export type RatingSource = typeof RATING_SOURCES[number];
 export interface Preferences {
+  metadataProvider: "mdl" | "tmdb";
   reviews: boolean;
   posters: boolean;
   ratings: RatingSource[];
@@ -13,6 +14,7 @@ export function normalizePreferences(value: unknown): Preferences {
   const v = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const ratings = Array.isArray(v.ratings) ? v.ratings : null;
   return {
+    metadataProvider: v.metadataProvider === "tmdb" ? "tmdb" : "mdl",
     reviews: v.reviews === true,
     posters: v.posters === true,
     ratings: ratings

@@ -119,6 +119,10 @@ await test("Confirm shows the server diagnostic code and a separate connection e
   }
 });
 await test("BetterPosters validates its URL and sends it without rating keys", async () => {
+  const mdl=document.querySelector<HTMLInputElement>('input[name="metadataProvider"][value="mdl"]')!;
+  assert(mdl.checked,"MyDramaList is the default metadata provider");
+  const tmdb=document.querySelector<HTMLInputElement>('input[name="metadataProvider"][value="tmdb"]')!;
+  change(tmdb,true);
   chooseArtwork("better");
   const next = document.querySelector(".prefActions button") as HTMLButtonElement;
   page = "";
@@ -135,7 +139,7 @@ await test("BetterPosters validates its URL and sends it without rating keys", a
     ui.show("confirm");
     await new Promise(resolve => setTimeout(resolve, 0));
     assert(payload.betterPosters === $("prefBetterPosters").value && !payload.preferences.posters, "poster preference missing");
-    assert(!payload.keys.tmdb && !payload.keys.mdblist, "rating keys sent");
+    assert(payload.preferences.metadataProvider==="tmdb" && !payload.keys.tmdb && !payload.keys.mdblist, "metadata provider requires no user keys");
   } finally {
     globalThis.fetch = originalFetch;
   }

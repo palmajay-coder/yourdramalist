@@ -15,6 +15,16 @@ await test('artwork requires unique exact title, year and TV country; no inventi
 await test('weekly manifest and installed catalog use stable slot and IMDb resources',async()=>{const c=normalizeAddon({catalogs:[{kind:'weekly',country:'3',slot:0,name:'old weekly name'}],preferences:{}});ok(c.entries[0].id==='weekly:3:0'&&makeManifest(c).catalogs[0].id==='ydl_0');const result=await loadCatalog(c,0,0,'https://test/addon/token',{weekly:async()=>({collections:[{items:[{name:'A',date:'2020-01-01'}]}]}),weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt1',name:x.name}))}as any);ok(result.metas[0].id==='tt1')});
 await test('weekly watchlist preference removes matching completed titles',async()=>{const c=normalizeAddon({catalogs:[{kind:'weekly',country:'3',slot:0,name:'weekly'}],user:'Jay',preferences:{hideCompleted:true}});const result=await loadCatalog(c,0,0,'https://test',{weekly:async()=>({collections:[{items:[{name:'Watched',date:'2020-01-01'},{name:'New',date:'2021-01-01'}]}]}),watchlist:async()=>({2:[{title:'Watched',year:2020}]}),weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt1',name:x.name}))}as any);ok(result.metas.length===1&&result.metas[0].name==='New')});
 await test('invalid API country/category and write requests make no upstream calls',async()=>{for(const path of ['/api/catalogs/weekly?country=99','/api/catalogs/shelf?country=3&category=bad'])ok((await handleCollections(new Request('https://test'+path))).status===400);ok((await handleCollections(new Request('https://test/api/catalogs/weekly',{method:'POST'}))).status===405)});
+await test("TMDB metadata takes priority without changing artwork or inheriting a parent season",async()=>{
+ const svc=createCollectionService(undefined,()=>"server-key",async()=>Response.json({tv_results:[{name:"TMDB Title",first_air_date:"2024-01-01",overview:" ",poster_path:"/example.jpg"}]}));
+ const original={id:"tt123",type:"series",name:"MDL Title",releaseInfo:"2025",description:"MDL synopsis",poster:"https://btttr.cc/poster/tt123.jpg"};
+ const [result,season]=await svc.standardArtwork([original,{...original,name:"TMDB Title Season 2"}],{metadata:true,poster:false});
+ ok(result.name==="TMDB Title"&&result.releaseInfo==="2024"&&result.description===original.description&&result.poster===original.poster,"TMDB priority or fallback failed");
+ ok(season.name==="TMDB Title Season 2"&&season.releaseInfo==="2025","parent metadata overwrote sequel");
+ const [standard]=await svc.standardArtwork([original]);
+ ok(standard.name===original.name&&standard.poster.includes("/w780/"),"default artwork path changed metadata");
+});
+
 console.log(JSON.stringify({passed}));
 await test("Monday Pacific midnight follows daylight saving",()=>{
  ok(weekWindow(Date.UTC(2026,2,8,12)).nextRefresh==="2026-03-09T07:00:00.000Z");

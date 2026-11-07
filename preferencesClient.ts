@@ -47,6 +47,22 @@ export function installPreferencesUI(api: {
   close.onclick = () => dialog.close();
   dialog.addEventListener("click", e => {if(e.target === dialog) {const r = dialog.getBoundingClientRect(); const m = e as MouseEvent; if(m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) dialog.close();}});
 
+  const metadata = node("section", "panel prefPanel");
+  const metadataHeading = node("h2", "", copy.metadataProvider); metadataHeading.id = "prefMetadataHeading";
+  const metadataChoices = node("div", "prefMetadataChoices");
+  metadataChoices.setAttribute("role", "radiogroup"); metadataChoices.setAttribute("aria-labelledby", metadataHeading.id);
+  const metadataNames = {mdl: copy.metadataMdl, tmdb: copy.metadataTmdb};
+  for (const provider of ["mdl", "tmdb"] as const) {
+    const label = node("label", "prefMetadataChoice"), radio = node("input");
+    radio.type = "radio"; radio.name = "metadataProvider"; radio.value = provider; radio.checked = prefs.metadataProvider === provider;
+    radio.onchange = () => {if (radio.checked) {prefs.metadataProvider = provider; save();}};
+    const text = node("span"), title = node("strong", "", metadataNames[provider]);
+    if (provider === "mdl") title.append(node("small", "", copy.metadataDefault));
+    text.append(title, paragraph(provider === "mdl" ? copy.metadataMdlDescription : copy.metadataTmdbDescription));
+    label.append(radio, text); metadataChoices.append(label);
+  }
+  metadata.append(metadataHeading, metadataChoices); stack.append(metadata);
+
   const posters = {card: node("section", "panel prefPanel")};
   const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter};
   let artworkTab: "ratings" | "better" = "ratings";
@@ -187,6 +203,7 @@ export function installPreferencesUI(api: {
     for(const [label, value] of [[copy.reviewsTitle, prefs.reviews], [copy.hideUnreleased, prefs.hideUnreleased], [copy.hideCompleted, !!api.user() && prefs.hideCompleted]] as const) {
       const row = node("div", "prefSummaryRow"); row.append(node("span", "", label), node("span", "", value ? copy.enabled : copy.disabled)); pCard.append(row);
     }
+    const metadataSummary = node("div", "prefSummaryRow"); metadataSummary.append(node("span", "", copy.metadataProvider), node("span", "", metadataNames[prefs.metadataProvider])); pCard.append(metadataSummary);
     const artworkSummary = node("div", "prefSummaryRow"); artworkSummary.append(node("span", "", copy.posterArtwork), node("span", "", artworkNames[artworkMode()])); pCard.append(artworkSummary);
     if(artworkMode()==="ratings") pCard.append(paragraph(prefs.ratings.map(s => ratingNames[s]).join(" · "), "prefHelp"));
     s.append(pCard);
