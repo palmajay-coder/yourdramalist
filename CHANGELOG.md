@@ -2,7 +2,7 @@
 
 ## 1.0.5
 
-- Added language support for 17 languages when selecting TMDB for Metadata, catalogs and titles now display a user's desired language. 
+- Added support for 17 languages when selecting TMDB for Metadata, catalogs and titles now display a user's desired language. 
 - Apply the selected language to TMDB metadata requests and keep cached results separate by language.
 
 ## 1.0.4
