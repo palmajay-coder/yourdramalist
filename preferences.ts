@@ -1,7 +1,7 @@
 /** Public preference data only. Keys deliberately never enter this shape. */
 export const RATING_SOURCES = ["letterboxd", "tomatoes", "imdb"] as const;
 export type RatingSource = typeof RATING_SOURCES[number];
-export type MetadataProvider = "mdl" | "tmdb-mdl" | "tmdb-only";
+export type MetadataProvider = "mdl" | "tmdb";
 export interface Preferences {
   metadataProvider: MetadataProvider;
   reviews: boolean;
