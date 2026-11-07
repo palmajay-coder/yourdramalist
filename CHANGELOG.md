@@ -2,7 +2,7 @@
 
 ## 1.0.4
 
-- Restore the 1.0.3 metadata choices: MyDramaList, or TMDB with MyDramaList filling in missing details.
+- Revamped the Poster settings in Preferences to include drop downs list of different providers (i.e TMDB Posters (Default), Easy Posters, Better Posters. more providers to come.) 
 
 ## 1.0.3
 
