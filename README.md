@@ -15,15 +15,15 @@ A FREE and unofficial add-on for Asian dramas and movies using MDL database.
 
 - Search dramas, actors, and directors to view synopses, bios, ratings, and related lists.
 
-- Save any actor or director's complete filmography as a custom catalog.
+- Save any actor or director's complete filmography as a catalog.
 
-- Discover new titles with weekly curated recommendation lists.
+- Discover new titles with weekly curated lists.
 
-- Filter popular and top-rated shows and movies by country.
+- Filter the most popular and top-rated shows and movies by country.
 
-- View MyDramaList ratings, user reviews, and overall consensus directly in-app.
+- View MyDramaList ratings, user reviews, and overall consensus directly in Nuvio (have to press the play button first on a title to access, manual play must be selected to view this feature)
 
-- Enable optional IMDb, Rotten Tomatoes, and Letterboxd poster badges (requires TMDB and MDBList APIs).
+- Enable optional badges for catalog posters from IMDb, Rotten Tomatoes, and Letterboxd (requires TMDB and MDBList APIs).
 
 ## Set up
 
