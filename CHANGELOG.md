@@ -12,6 +12,8 @@
 
 - Fill missing Community watchlist thumbnails with matched artwork from titles in the list.
 
+- Recover missing catalog release years from matched metadata or the exact MyDramaList title page.
+
 ## 1.0.2
 
 - Fix manifest issue for built-in user watchlists. 

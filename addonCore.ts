@@ -1,3 +1,5 @@
+import {normalizeTitle} from "./collections.ts";
+
 import {
   MDL_TEXT,
   $e,
@@ -401,6 +403,17 @@ async function Pz(t, k) {
   return (O.set("pp:" + t, { value: v, expires: Date.now() + (v ? 864e5 : 216e5) }), v);
 }
 
+export async function catalogReleaseYear(item, match, fetchPage = _) {
+  if (item.year) return item.year;
+  if (match?.year && match.name && normalizeTitle(match.name) === normalizeTitle(item.title)) return match.year;
+  if (!match || !/^\d+-[a-z0-9-]+$/i.test(item.slug)) return null;
+  return D(`catalog-year:${item.slug}`, pe, async () => {
+    const html = await fetchPage(item.slug);
+    const title = h(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
+    return Number(title.match(/\(((?:19|20)\d{2})\)\s*[-–—]\s*MyDramaList\s*$/i)?.[1]) || null;
+  }).catch(() => null);
+}
+
 async function Ee(t, e, n, X1) {
   const w = new Promise((r) => setTimeout(() => r(null), 6e3));
   return It(t, 10, async (s) => {
@@ -410,13 +423,14 @@ async function Ee(t, e, n, X1) {
       ),
       w,
     ]);
+    const year = await Promise.race([catalogReleaseYear(s, a), w]);
     return {
       id: a ? a.id : `mdl:${s.slug}`,
       type: e,
       name: s.title,
       poster: (a && Ae(n, a.id)) || s.image || a?.poster,
       posterShape: "poster",
-      releaseInfo: s.year ? String(s.year) : void 0,
+      releaseInfo: year ? String(year) : void 0,
       description: Ft(s),
     };
   });

@@ -1,6 +1,6 @@
 import {normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon} from './addon.ts';
 import {parseModernWatchlist,profileWatchlistCards} from './addonScrape.ts';
-import {Ge,Sz,Xe} from './addonCore.ts';
+import {Ge,Sz,Xe,catalogReleaseYear} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
 let passed=0;const assert=(v:any,m:string)=>{if(!v)throw Error(m)};async function test(name:string,fn:()=>any){await fn();passed++;console.log('PASS '+name)};
 const body={catalogs:[{name:'My community list',url:'https://mydramalist.com/list/q1XvK6w3'}],preferences:{reviews:true},user:'TestUser'};
@@ -101,6 +101,13 @@ await test("watchlist previews fall back to artwork for actual list titles", asy
  },async item=>"poster:"+item.title);
  assert(cards[0].posters.join(",")==="poster:First,poster:Second","missing fallback posters");
  assert(cards[1].posters.join(",")==="existing" && !cards[2].posters.length,"existing or empty artwork changed");
+});
+
+await test("catalog year uses the watchlist year or an exact metadata match and preserves sequel years",async()=>{
+ const unexpected=()=>{throw Error("unexpected fetch")};
+ assert(await catalogReleaseYear({title:"Drama",year:2025},{name:"Drama",year:2024},unexpected)===2025,"watchlist year lost");
+ assert(await catalogReleaseYear({title:"Drama"},{name:"Drama",year:2024},unexpected)===2024,"matched year missing");
+ assert(await catalogReleaseYear({slug:"123-drama-season-2",title:"Drama Season 2"},{name:"Drama",year:2024},async()=>"<title>Drama Season 2 (2026) - MyDramaList</title>")===2026,"sequel inherited base year");
 });
 
 console.log(JSON.stringify({passed}));
