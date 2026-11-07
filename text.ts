@@ -1,5 +1,5 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.0-beta.3";
+export const APP_VERSION = "1.0.0";
 export const DISPLAY_VERSION = "1.0.0 BETA";
 
 export const TEXT = {

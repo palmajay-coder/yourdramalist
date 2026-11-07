@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0
+
+First stable release of YourDramaList.
+
+- Browse country catalogs and weekly collections, and add actor and director filmographies.
+- Cycle through Featured, Recent Activity and Trending lists in the setup banner. The banner refreshes at midnight Pacific, and weekly collections refresh on Mondays at midnight Pacific.
+
 ## 1.0.0-beta.3
 
 - Actor/director filmographies use five-poster shelves, arrow navigation, mobile swiping and title details.

@@ -1,9 +1,9 @@
 {
   "source": "Niwa710/YourDramaList",
   "recorded": "2026-11-06",
-  "appVersion": "1.0.0-beta.3",
-  "manifestVersion": "1.0.0-beta.3",
-  "release": "1.0.0-beta.3",
+  "appVersion": "1.0.0",
+  "manifestVersion": "1.0.0",
+  "release": "1.0.0",
   "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded.",
   "files": [
     {
@@ -358,8 +358,8 @@
     },
     {
       "path": "text.ts",
-      "sha256": "20b0f809037c384b615df3688841f8b987680a86aefd4b41f1ffbe82c83129fe",
-      "version": 381,
+      "sha256": "4a760af42590b3ac7e3c6406eda0b72f4a0670598b51c3fca4bf5f6b0f6a2c1e",
+      "version": 384,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -407,5 +407,5 @@
     }
   ],
   "displayVersion": "V.1.0.0 BETA",
-  "productionValVersion": 381
+  "productionValVersion": 384
 }
