@@ -2,12 +2,11 @@
 
 ## 1.0.4
 
-- Update the app and addon manifest version to 1.0.4.
+- Add three metadata variations: MyDramaList only, TMDB / MyDramaList (TMDB titles with MyDramaList descriptions), and TMDB only. Existing TMDB installs keep their previous fallback behavior.
 
 ## 1.0.3
 
-- Let users import watchlists.
-- Organized watchlists and personal lists into their own tabs. 
+- Let users import watchlists and organized watchlists and personal lists into their own tabs.
 - Added a Select all button to add all catalogs at once.
 - Added poster ratings toggle and put BetterPosters into it's own tab.
 - Prefer TMDB artwork for standard posters when an IMDb match provides it for to solve blurry and low-res poster issues.
