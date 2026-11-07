@@ -49,8 +49,8 @@ export function installPreferencesUI(api: {
 
   const metadata = node("section", "panel prefPanel");
   const metadataHeading = node("h2", "", copy.metadataProvider); metadataHeading.id = "prefMetadataHeading";
-  const metadataNames: Record<MetadataProvider, string> = {mdl: copy.metadataMdl, "tmdb-mdl": copy.metadataTmdbMdl, "tmdb-only": copy.metadataTmdbOnly};
-  const metadataDescriptions: Record<MetadataProvider, string> = {mdl: copy.metadataMdlDescription, "tmdb-mdl": copy.metadataTmdbMdlDescription, "tmdb-only": copy.metadataTmdbOnlyDescription};
+  const metadataNames: Record<MetadataProvider, string> = {mdl: copy.metadataMdl, tmdb: copy.metadataTmdb};
+  const metadataDescriptions: Record<MetadataProvider, string> = {mdl: copy.metadataMdlDescription, tmdb: copy.metadataTmdbDescription};
   const metadataSelect = node("select", "prefSelect"); metadataSelect.id = "prefMetadataProvider";
   for (const provider of ["mdl", "tmdb-mdl", "tmdb-only"] as const) {
     const option = node("option", "", metadataNames[provider]); option.value = provider; metadataSelect.append(option);
