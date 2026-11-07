@@ -2,7 +2,7 @@
 
 ![YourDramaList landing page](docs/images/landing-page.png)
 
-**beta version** · MyDramaList brought to Nuvio.
+**beta version** · MyDramaList brought to Nuvio, Desktop and Mobile friendly. 
 
 A FREE and unofficial add-on for Asian dramas and movies using MDL database.
 
@@ -10,13 +10,19 @@ A FREE and unofficial add-on for Asian dramas and movies using MDL database.
 
 ## Features
 
-- Add any list (User created, explore lists) from MyDramaList into a catalog, by copying and pasting a user profile link or search by username.
-- Universal and dynamic search bar that lets you search any drama, actor and director and view story descriptions, title rating, actor and director bios. View lists related to each drama/title/person.
-- Have a favorite Actor or director? Add their entire filmography as a catalog. 
-- Curated Recommendation Lists that refreshes every week, so you'll always have something new to look forward to. 
-- Filter by most popular and top rated shows by country as a catalog list. (i.e Most Popular Shows (South Korea), Top Movies (Japan) etc.)
-- View ratings from MyDramaList, reviews from other users and overall consensus on each title in the Nuvio app. 
-- Optional IMDb, Rotten Tomatoes and Letterboxd poster badges, (must need a TMDB and MDBList API to work.)
+- Import MyDramaList catalogs via username or profile link.
+
+- Search dramas, actors, and directors to view synopses, bios, ratings, and related lists.
+
+- Save any actor or director's complete filmography as a custom catalog.
+
+- Discover new titles with weekly curated recommendation lists.
+
+- Filter popular and top-rated shows and movies by country.
+
+- View MyDramaList ratings, user reviews, and overall consensus directly in-app.
+
+- Enable optional IMDb, Rotten Tomatoes, and Letterboxd poster badges (requires TMDB and MDBList APIs).
 
 ## Set up
 
