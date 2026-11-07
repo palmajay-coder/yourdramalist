@@ -67,8 +67,7 @@ Object.defineProperty(globalThis,"localStorage",{value:{getItem:()=>null,setItem
 let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const chooseArtwork = (value: string) => {
-  (document.getElementById(value === "better" ? "prefBetterTab" : "prefRatingsTab") as HTMLButtonElement).click();
-  if (value !== "better") change($("prefPosters"), value === "ratings");
+  const select = $("prefPosterStyle"); select.value = value; select.dispatchEvent(new window.Event("change"));
 };
 const change = (input: HTMLInputElement, checked: boolean) => {input.checked = checked; input.dispatchEvent(new window.Event("change"));};
 await test("review preview follows its switch", () => {
@@ -76,7 +75,7 @@ await test("review preview follows its switch", () => {
   assert(!$("prefReviewPreview").hidden, "preview missing");
 });
 await test("poster options and individual badges follow switches", () => {
-  chooseArtwork("ratings"); assert(!$("prefPosterOptions").hidden, "poster options missing");
+  chooseArtwork("ratings"); assert(!$("prefRatingsPanel").hidden, "poster options missing");
   const checkbox = document.querySelector('[data-rating="tomatoes"]') as HTMLInputElement;
   change(checkbox, false); assert((document.querySelector('[data-badge="tomatoes"]') as HTMLElement).hidden, "badge remains visible");
   assert(!(document.querySelector('[data-badge="imdb"]') as HTMLElement).hidden, "other badge hidden");
@@ -119,15 +118,14 @@ await test("Confirm shows the server diagnostic code and a separate connection e
   }
 });
 await test("BetterPosters validates its URL and sends it without rating keys", async () => {
-  const mdl=document.querySelector<HTMLInputElement>('input[name="metadataProvider"][value="mdl"]')!;
-  assert(mdl.checked,"MyDramaList is the default metadata provider");
-  const tmdb=document.querySelector<HTMLInputElement>('input[name="metadataProvider"][value="tmdb"]')!;
-  change(tmdb,true);
+  const metadata=$("prefMetadataProvider");
+  assert(metadata.value==="mdl","MyDramaList is the default metadata provider");
+  metadata.value="tmdb-only"; metadata.dispatchEvent(new window.Event("change"));
   chooseArtwork("better");
   const next = document.querySelector(".prefActions button") as HTMLButtonElement;
   page = "";
   next.click();
-  assert(page === "confirm", "optional BetterPosters URL blocked setup");
+  assert(page !== "confirm", "missing BetterPosters URL was accepted");
   page = "";
   $("prefBetterPosters").value = "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg";
   next.click();
@@ -139,7 +137,7 @@ await test("BetterPosters validates its URL and sends it without rating keys", a
     ui.show("confirm");
     await new Promise(resolve => setTimeout(resolve, 0));
     assert(payload.betterPosters === $("prefBetterPosters").value && !payload.preferences.posters, "poster preference missing");
-    assert(payload.preferences.metadataProvider==="tmdb" && !payload.keys.tmdb && !payload.keys.mdblist, "metadata provider requires no user keys");
+    assert(payload.preferences.metadataProvider==="tmdb-only" && !payload.keys.tmdb && !payload.keys.mdblist, "metadata provider requires no user keys");
   } finally {
     globalThis.fetch = originalFetch;
   }

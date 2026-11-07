@@ -1,11 +1,20 @@
 # Changelog
 
 ## 1.0.3
-- Separate user imported watchlists and personalized lists into  tabs. 
-- Added a Select all button to add all catalogs at once. 
-- Added poster ratings toggle and put BetterPosters into it's own tab.
-- Prefer TMDB artwork for standard posters when an IMDb match provides it for to solve blurry and low-res poster issues.
-- Added a Metadata sections for users to MyDramaList as their metadata provider or TMDB (i.e localization). TMDB will fall back to MyDramaList when metadata is missing.
+
+- Show individual public watchlist categories before custom lists in Community. Connect accepts usernames, profile URLs, and drama-list URLs.
+- Simplify poster artwork preferences into one Poster Style selector for TMDB posters, EasyPosters and BetterPosters. Show only the settings for the selected style.
+- Prefer TMDB artwork for standard catalog posters when an IMDb match provides it.
+- Keep watchlist cards aligned with a thumbnail placeholder and remove their generated descriptions.
+- Separate Community profile results into Watchlists and Custom lists tabs with shared selections. The optional All Dramas & Films catalog appears first, and Select all adds the selectable catalogs in the current tab.
+
+- Distinguish empty watchlists from missing poster artwork.
+
+- Fill missing Community watchlist thumbnails with matched artwork from titles in the list.
+
+- Recover missing catalog release years from matched metadata or the exact MyDramaList title page.
+
+- Add three metadata choices: MyDramaList only, TMDB / MyDramaList (TMDB titles with MyDramaList descriptions), and TMDB only. Existing TMDB-first install links keep their previous fallback behavior.
 
 ## 1.0.2
 

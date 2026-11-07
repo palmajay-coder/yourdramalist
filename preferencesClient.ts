@@ -1,6 +1,6 @@
 import {TEXT as copy} from "./text.ts";
 import {betterPostersPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences} from "./preferences.ts";
-import type {RatingSource} from "./preferences.ts";
+import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
 export function installPreferencesUI(api: {
@@ -49,38 +49,30 @@ export function installPreferencesUI(api: {
 
   const metadata = node("section", "panel prefPanel");
   const metadataHeading = node("h2", "", copy.metadataProvider); metadataHeading.id = "prefMetadataHeading";
-  const metadataChoices = node("div", "prefMetadataChoices");
-  metadataChoices.setAttribute("role", "radiogroup"); metadataChoices.setAttribute("aria-labelledby", metadataHeading.id);
-  const metadataNames = {mdl: copy.metadataMdl, tmdb: copy.metadataTmdb};
-  for (const provider of ["mdl", "tmdb"] as const) {
-    const label = node("label", "prefMetadataChoice"), radio = node("input");
-    radio.type = "radio"; radio.name = "metadataProvider"; radio.value = provider; radio.checked = prefs.metadataProvider === provider;
-    radio.onchange = () => {if (radio.checked) {prefs.metadataProvider = provider; save();}};
-    const text = node("span"), title = node("strong", "", metadataNames[provider]);
-    if (provider === "mdl") title.append(node("small", "", copy.metadataDefault));
-    text.append(title, paragraph(provider === "mdl" ? copy.metadataMdlDescription : copy.metadataTmdbDescription));
-    label.append(radio, text); metadataChoices.append(label);
+  const metadataNames: Record<MetadataProvider, string> = {mdl: copy.metadataMdl, "tmdb-mdl": copy.metadataTmdbMdl, "tmdb-only": copy.metadataTmdbOnly};
+  const metadataDescriptions: Record<MetadataProvider, string> = {mdl: copy.metadataMdlDescription, "tmdb-mdl": copy.metadataTmdbMdlDescription, "tmdb-only": copy.metadataTmdbOnlyDescription};
+  const metadataSelect = node("select", "prefSelect"); metadataSelect.id = "prefMetadataProvider";
+  for (const provider of ["mdl", "tmdb-mdl", "tmdb-only"] as const) {
+    const option = node("option", "", metadataNames[provider]); option.value = provider; metadataSelect.append(option);
   }
-  metadata.append(metadataHeading, metadataChoices); stack.append(metadata);
+  metadataSelect.value = prefs.metadataProvider;
+  const metadataDescription = paragraph(metadataDescriptions[prefs.metadataProvider], "prefHelp");
+  metadataSelect.onchange = () => {prefs.metadataProvider = metadataSelect.value as MetadataProvider; metadataDescription.textContent = metadataDescriptions[prefs.metadataProvider]; save();};
+  metadata.append(metadataHeading, metadataSelect, metadataDescription); stack.append(metadata);
 
   const posters = {card: node("section", "panel prefPanel")};
   const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter};
-  let artworkTab: "ratings" | "better" = "ratings";
-  const artworkMode = () => artworkTab === "better" && betterInput.value.trim() ? "better" : artworkTab === "ratings" && prefs.posters ? "ratings" : "standard";
-  const artwork = node("div", "prefArtworkTabs");
-  artwork.setAttribute("role", "group"); artwork.setAttribute("aria-label", copy.posterArtwork);
-  const ratingsTab = button(copy.posterRatingsTitle, "prefArtworkTab");
-  const betterTab = button(copy.posterBetter, "prefArtworkTab");
-  ratingsTab.id = "prefRatingsTab"; betterTab.id = "prefBetterTab";
+  let posterStyle: "standard" | "ratings" | "better" = prefs.posters ? "ratings" : "standard";
+  const artworkMode = () => posterStyle;
+  const artworkLabel = node("label", "", copy.posterArtwork); artworkLabel.htmlFor = "prefPosterStyle";
+  const artwork = node("select", "prefSelect"); artwork.id = artworkLabel.htmlFor;
+  for (const [value, label] of [["standard", copy.posterStandard], ["ratings", copy.posterRatingsTitle], ["better", copy.posterBetter]] as const) {
+    const option = node("option", "", label); option.value = value; artwork.append(option);
+  }
+  artwork.value = posterStyle;
   const ratingsPanel = node("div"); ratingsPanel.id = "prefRatingsPanel";
-  const ratingsToggle = node("input", "prefSwitch"); ratingsToggle.type = "checkbox"; ratingsToggle.id = "prefPosters"; ratingsToggle.checked = prefs.posters;
-  ratingsToggle.setAttribute("aria-label", copy.posterRatingsTitle);
-  const ratingsSetting = node("label", "prefSetting");
-  ratingsSetting.append(paragraph(copy.posterRatingsDescription), ratingsToggle);
-  ratingsPanel.append(ratingsSetting);
-  artwork.append(ratingsTab, betterTab);
+  ratingsPanel.append(paragraph(copy.posterRatingsDescription, "prefHelp"));
   const betterOptions = node("div"); betterOptions.id = "prefBetterPanel";
-  ratingsTab.setAttribute("aria-controls", ratingsPanel.id); betterTab.setAttribute("aria-controls", betterOptions.id);
   const betterFields = node("div", "prefKeyField"); betterOptions.append(betterFields);
   const betterLabel = node("label", "", copy.posterBetterUrl); betterLabel.htmlFor = "prefBetterPosters";
   const betterInput = node("input"); betterInput.id = betterLabel.htmlFor;
@@ -89,7 +81,7 @@ export function installPreferencesUI(api: {
   const betterLink = node("a", "", copy.posterBetterLink);
   betterLink.href = "https://btttr.cc/configure"; betterLink.target = "_blank"; betterLink.rel = "noopener noreferrer";
   betterFields.append(betterLabel, betterInput, paragraph(copy.posterBetterHelp, "prefHelp"), betterLink);
-  posters.card.append(node("h2", "", copy.posterArtwork), artwork, ratingsPanel, betterOptions); stack.append(posters.card);
+  posters.card.append(node("h2", "", copy.posterArtwork), paragraph(copy.posterArtworkDescription), artworkLabel, artwork, ratingsPanel, betterOptions); stack.append(posters.card);
   const posterOptions = node("div", "prefPosterOptions"); posterOptions.id = "prefPosterOptions";
   const keyFields = node("div", "prefKeys");
   const note = paragraph("", "prefKeysNote"); note.append(node("strong", "", copy.optionalLabel), document.createTextNode(" " + copy.posterKeysNote)); keyFields.append(note);
@@ -145,13 +137,10 @@ export function installPreferencesUI(api: {
   }
   function render() {
     reviewPreview.hidden = !prefs.reviews; reviews.toggle.setAttribute("aria-expanded", String(prefs.reviews)); reviews.toggle.setAttribute("aria-controls", reviewPreview.id);
-    posterOptions.hidden = !prefs.posters;
-    ratingsPanel.hidden = artworkTab !== "ratings"; betterOptions.hidden = artworkTab !== "better";
-    ratingsTab.setAttribute("aria-pressed", String(artworkTab === "ratings"));
-    betterTab.setAttribute("aria-pressed", String(artworkTab === "better"));
-    shade.hidden = !!objectUrl; badges.hidden = !!objectUrl;
+    ratingsPanel.hidden = posterStyle !== "ratings"; betterOptions.hidden = posterStyle !== "better";
+    shade.hidden = posterStyle !== "ratings" || !!objectUrl; badges.hidden = posterStyle !== "ratings" || !!objectUrl;
     for(const [source, element] of badgeElements) element.hidden = !prefs.ratings.includes(source);
-    frame.setAttribute("aria-label", copy.posterPreviewLabel + ": " + copy.posterPreviewTitle + ". " + (prefs.ratings.length ? prefs.ratings.map(s => ratingNames[s]).join(", ") : copy.posterPreviewNoBadges));
+    frame.setAttribute("aria-label", copy.posterPreviewLabel + ": " + copy.posterPreviewTitle + ". " + (posterStyle === "ratings" && prefs.ratings.length ? prefs.ratings.map(s => ratingNames[s]).join(", ") : posterStyle === "ratings" ? copy.posterPreviewNoBadges : artworkNames[posterStyle]));
     const hasAccount = !!api.user(); completed.disabled = !hasAccount; completedHelp.hidden = hasAccount;
     completed.checked = hasAccount && prefs.hideCompleted;
   }
@@ -174,14 +163,13 @@ export function installPreferencesUI(api: {
   }
   for(const input of [tmdb, mdblist]) {input.oninput = () => {error.textContent = ""; invalidatePreview();}; input.onchange = () => schedulePreview();}
   reviews.toggle.onchange = () => {prefs.reviews = reviews.toggle.checked; save();};
-  function showArtwork(tab: "ratings" | "better") {
-    artworkTab = tab; error.textContent = ""; invalidatePreview(); schedulePreview();
-  }
-  ratingsTab.onclick = () => showArtwork("ratings");
-  betterTab.onclick = () => showArtwork("better");
-  ratingsToggle.onchange = () => {prefs.posters = ratingsToggle.checked; save(); invalidatePreview(); schedulePreview();};
+  artwork.onchange = () => {
+    posterStyle = artwork.value as typeof posterStyle;
+    prefs.posters = posterStyle === "ratings";
+    error.textContent = ""; save(); invalidatePreview(); schedulePreview();
+  };
   betterInput.oninput = () => {error.textContent = "";};
-  const pattern = () => artworkMode() === "better" ? betterPostersPattern(betterInput.value) : "";
+  const pattern = () => artworkMode() === "better" && betterInput.value.trim() ? betterPostersPattern(betterInput.value) : "";
   const invalidPattern = () => artworkMode() === "better" && !pattern();
   unreleased.onchange = () => {prefs.hideUnreleased = unreleased.checked; save();};
   completed.onchange = () => {prefs.hideCompleted = !!api.user() && completed.checked; save();};

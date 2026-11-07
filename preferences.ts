@@ -1,8 +1,9 @@
 /** Public preference data only. Keys deliberately never enter this shape. */
 export const RATING_SOURCES = ["letterboxd", "tomatoes", "imdb"] as const;
 export type RatingSource = typeof RATING_SOURCES[number];
+export type MetadataProvider = "mdl" | "tmdb-mdl" | "tmdb-only";
 export interface Preferences {
-  metadataProvider: "mdl" | "tmdb";
+  metadataProvider: MetadataProvider;
   reviews: boolean;
   posters: boolean;
   ratings: RatingSource[];
@@ -14,7 +15,10 @@ export function normalizePreferences(value: unknown): Preferences {
   const v = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const ratings = Array.isArray(v.ratings) ? v.ratings : null;
   return {
-    metadataProvider: v.metadataProvider === "tmdb" ? "tmdb" : "mdl",
+    // `tmdb` was the original TMDB-first option. Preserve its intent when
+    // loading saved preferences by mapping it to the new TMDB/MDL hybrid.
+    metadataProvider: v.metadataProvider === "tmdb-only" ? "tmdb-only"
+      : v.metadataProvider === "tmdb-mdl" || v.metadataProvider === "tmdb" ? "tmdb-mdl" : "mdl",
     reviews: v.reviews === true,
     posters: v.posters === true,
     ratings: ratings
