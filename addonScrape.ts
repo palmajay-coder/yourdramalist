@@ -534,6 +534,8 @@ export const Ct = /^[A-Za-z0-9]{4,20}$/,
     3: "Plan to Watch",
     4: "On Hold",
     5: "Dropped",
+    6: "Undecided",
+    7: "Not Interested",
   },
   ge = (t) =>
     btoa(unescape(encodeURIComponent(t)))
@@ -782,6 +784,47 @@ export function parseModernWatchlist(html, section = 0) {
     });
   }
   return sections;
+}
+
+export const WATCHLIST_CARDS = [
+  ["watching", "Currently Watching", "is currently watching"],
+  ["completed", "Completed", "has completed"],
+  ["on_hold", "On Hold", "has put on hold"],
+  ["dropped", "Dropped", "has dropped"],
+  ["plan_to_watch", "Plan to Watch", "plans to watch"],
+  ["undecided", "Undecided", "is undecided about"],
+  ["not_interested", "Not Interested", "is not interested in"],
+];
+
+export function loadWatchlistCategory(username, status) {
+  const section = WATCHLIST_SECTIONS.indexOf(status) + 1;
+  if (!section) throw Error("Unknown watchlist category");
+  return D(`watchlist-category:${username.toLowerCase()}:${status}`, H, async () => {
+    const path = `dramalist/${encodeURIComponent(username)}/${status}`;
+    const items = [], seen = new Set();
+    for (let page = 1; page <= Math.min(kt, 5); page++) {
+      const html = await _(path + (page === 1 ? "" : "?page="+page));
+      if (/This (?:list|dramalist|watchlist) is private/i.test(html)) throw Object.assign(Error("Private watchlist"), {code:"PRIVATE"});
+      const rows = parseModernWatchlist(html, section)[section] || zt(html)[section] || [];
+      const next = rows.filter(item => item.slug && !seen.has(item.slug) && seen.add(item.slug));
+      items.push(...next);
+      if (!next.length || !/"load_more":\s*true/.test(html)) break;
+    }
+    return items;
+  });
+}
+
+export async function profileWatchlistCards(username, name, load = loadWatchlistCategory) {
+  const cards = await It(WATCHLIST_CARDS, 2, async ([status, label, description]) => {
+    const items = await Promise.resolve().then(() => load(username, status)).catch(() => []);
+    if (!items.length) return null;
+    return {
+      kind:"watchlist", name:`${name}’s ${label}`, description:`Titles ${name} ${description}.`,
+      url:`${T}/dramalist/${username.toLowerCase()}/${status}`,
+      posters:[...new Set(items.map(item => item.image).filter(Boolean))].slice(0,5),
+    };
+  });
+  return cards.filter(Boolean);
 }
 
 export function loadWatchlist(username) {

@@ -1,5 +1,5 @@
 import {normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon} from './addon.ts';
-import {parseModernWatchlist} from './addonScrape.ts';
+import {parseModernWatchlist,profileWatchlistCards} from './addonScrape.ts';
 import {Ge,Sz,Xe} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
 let passed=0;const assert=(v:any,m:string)=>{if(!v)throw Error(m)};async function test(name:string,fn:()=>any){await fn();passed++;console.log('PASS '+name)};
@@ -76,6 +76,20 @@ await test('BetterPosters supports encoded patterns and applies to normal and we
     let rejected=false;try{normalizeAddon({...body,betterPosters:bad})}catch{rejected=true}
     assert(rejected,"invalid pattern accepted");
   }
+});
+
+await test("watchlist cards keep MDL order and skip empty categories", async () => {
+ const cards=await profileWatchlistCards("Sample","Sample",async (_user,status)=>["completed","on_hold","plan_to_watch","not_interested"].includes(status)?[{image:"poster"}]:[]);
+ assert(cards.map(card=>card.url.split("/").pop()).join(",")==="completed,on_hold,plan_to_watch,not_interested","category order");
+ assert(cards[2].description==="Titles Sample plans to watch.","watchlist description");
+ const config=normalizeAddon({...body,catalogs:cards,preferences:{hideCompleted:true}});
+ const metas=await loadCatalog(config,0,0,"https://test",{
+  watchlistCategory:async (user,status)=>{assert(user==="sample"&&status==="completed","wrong status");return [{slug:"1-title",type:"Drama"}]},
+  hidden:()=>{throw Error("completed catalog would be hidden")},
+  map:async()=>[{id:"tt123",type:"series",poster:"original"}],
+  standardArtwork:async items=>items.map(item=>({...item,poster:"tmdb"})),
+ } as any);
+ assert(metas.metas[0].poster==="tmdb","standard poster not upgraded");
 });
 
 console.log(JSON.stringify({passed}));

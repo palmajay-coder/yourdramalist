@@ -61,12 +61,35 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   const poster=await memo("art:"+item.url,7*86400000,async()=>{const data=await request("search/"+kind,{query:item.name,include_adult:"false",language:"en-US"});return matchArtwork(item,data.results||[],kind,country)}).catch(()=>null);
   return poster?{...item,poster,posterSource:"TMDB"}:item;
  }
+ async function standardArtwork(items:any[]){
+  if(!keyFor()||!items.length)return items;
+  const result=items.slice();
+  let cursor=0, timer:ReturnType<typeof setTimeout>|undefined;
+  let expired=false;
+  async function worker(){
+   while(!expired&&cursor<items.length){
+    const i=cursor++, item=items[i];
+    if(/^https:\/\/image\.tmdb\.org\/t\/p\/w780\//.test(item.poster||""))continue;
+    const kind=item.type==="movie"?"movie":"tv";
+    const poster=await memo("poster-by-imdb:"+kind+":"+item.id,7*86400000,async()=>{
+     const data=await request("find/"+item.id,{external_source:"imdb_id"});
+     const matches=kind==="movie"?data.movie_results:data.tv_results;
+     return matches?.length===1?posterUrl(matches[0].poster_path):null;
+    }).catch(()=>null);
+    if(poster&&!expired)result[i]={...item,poster};
+   }
+  }
+  try{
+   await Promise.race([Promise.all([worker(),worker(),worker()]),new Promise<void>(resolve=>{timer=setTimeout(()=>{expired=true;resolve()},3500)})]);
+   return result;
+  }finally{clearTimeout(timer)}
+ }
  async function metas(items:any[],base:string,ratings:boolean){
   const result:any[]=Array(items.length);let cursor=0;
   async function worker(){while(cursor<items.length){const i=cursor++,item=items[i];try{const ids=await memo("imdb:"+item.kind+":"+item.id,30*86400000,()=>request(item.kind+"/"+item.id+"/external_ids"));if(!/^tt\d+$/.test(ids.imdb_id||""))continue;result[i]={id:ids.imdb_id,type:item.kind==="tv"?"series":"movie",name:item.name,poster:ratings?base+"/poster/"+ids.imdb_id+".jpg":item.poster,posterShape:"poster",releaseInfo:item.date.slice(0,4),description:item.overview};}catch{}}}
   await Promise.all([worker(),worker(),worker()]);return result.filter(Boolean).filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i);
  }
- return{weekly,artwork,metas};
+ return{weekly,artwork,metas,standardArtwork};
 }
 export const collections=createCollectionService({load:()=>blob.getJSON("catalog-collections:v1"),save:v=>blob.setJSON("catalog-collections:v1",v)},()=>Deno.env.get("TMDB_API_KEY"));
 const explore=createExploreService({load:()=>blob.getJSON("explore:v1"),save:v=>blob.setJSON("explore:v1",v)});

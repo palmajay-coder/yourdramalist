@@ -67,9 +67,8 @@ Object.defineProperty(globalThis,"localStorage",{value:{getItem:()=>null,setItem
 let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const chooseArtwork = (value: string) => {
-  const select = document.getElementById("prefArtwork") as HTMLSelectElement;
-  Object.defineProperty(select, "value", {value, configurable:true});
-  select.dispatchEvent(new window.Event("change"));
+  (document.getElementById(value === "better" ? "prefBetterTab" : "prefRatingsTab") as HTMLButtonElement).click();
+  if (value !== "better") change($("prefPosters"), value === "ratings");
 };
 const change = (input: HTMLInputElement, checked: boolean) => {input.checked = checked; input.dispatchEvent(new window.Event("change"));};
 await test("review preview follows its switch", () => {
@@ -124,7 +123,8 @@ await test("BetterPosters validates its URL and sends it without rating keys", a
   const next = document.querySelector(".prefActions button") as HTMLButtonElement;
   page = "";
   next.click();
-  assert(page === "" && document.querySelector('[role="alert"]')?.textContent === TEXT.posterBetterInvalid, "missing URL accepted");
+  assert(page === "confirm", "optional BetterPosters URL blocked setup");
+  page = "";
   $("prefBetterPosters").value = "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg";
   next.click();
   assert(page === "confirm", "valid URL did not advance");

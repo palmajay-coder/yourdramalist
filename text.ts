@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.2";
-export const DISPLAY_VERSION = "1.0.2 BETA";
+export const APP_VERSION = "1.0.3";
+export const DISPLAY_VERSION = "1.0.3 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -116,8 +116,8 @@ export const TEXT = {
   connectTitle: "Bring your lists.",
   connectDescription:
     "Enter your MyDramaList username or explore without an account.",
-  usernameLabel: "MyDramaList username",
-  usernamePlaceholder: "Enter your username",
+  usernameLabel: "MyDramaList username or profile URL",
+  usernamePlaceholder: "Enter your username or profile URL",
   findLists: "Find My Lists →",
   or: "OR",
   skipAccount: "Continue without an account →",
@@ -146,7 +146,7 @@ export const TEXT = {
   disclaimer: "",
   lightMode: "☀ Light mode",
   darkMode: "☾ Dark mode",
-  invalidUsername: "Enter a valid MyDramaList username (not a URL).",
+  invalidUsername: "Enter a valid MyDramaList username or profile URL.",
   invalidProfile:
     "Please enter a valid MyDramaList username, profile URL, or list URL.",
   loadingLists: "Loading lists…",
