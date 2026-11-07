@@ -35,7 +35,7 @@ TMDB and MDBList keys are **optional**, needed only for poster ratings. No MDL p
 
 ## Privacy
 
-API keys are encrypted into your install URL and used with ERDB. Keep that URL private. Read the [privacy details](PRIVACY.md).
+API keys are encrypted into your install URL and used with ERDB. Read the [privacy details](PRIVACY.md).
 
 ## Project
 
