@@ -1,5 +1,5 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.0-beta.2";
+export const APP_VERSION = "1.0.0-beta.3";
 export const DISPLAY_VERSION = "1.0.0 BETA";
 
 export const TEXT = {
@@ -24,6 +24,13 @@ export const TEXT = {
   catalogSaved: "Showing saved MyDramaList titles.",
   catalogDetailsUnavailable: "Details are temporarily unavailable.",
   catalogArtworkCredit: "Catalog rankings from MyDramaList. Weekly collections and matched artwork use TMDB.",
+  viewFilmography: "View titles",
+  selectFilmography: "Select filmography",
+  addFilmography: "+ Add filmography",
+  actorFilmographyDescription: "Explore dramas and films featuring {name}.",
+  directorFilmographyDescription: "Explore films directed by {name}.",
+  filmographyTitles: "{count} titles",
+  filmographyBack: "Back",
   siteName: "YourDramaList",
   subtitle: "Bring your favorite lists from MyDramaList to Nuvio.",
   getStarted: "Get Started →",

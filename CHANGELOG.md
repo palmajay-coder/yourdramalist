@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0-beta.3
+
+- Actor/director filmographies use five-poster shelves, arrow navigation, mobile swiping and title details.
+- Filmstrip marks actor title counts; Movie Camera marks director counts.
+- Matched TMDB w780 artwork is loaded in five-credit batches, with original MDL artwork retained for uncertain matches and provider failures.
+- Shared selection controls add the entire filmography and stay synchronized with sidebar removal and Clear selection.
+- Actor/director subtitles live in `text.ts`; director copy is “Explore films directed by {name}.”
+
+
 ## 1.0.0-beta.2
 
 - Five-poster country shelves under “More from MyDramaList,” with title previews and Add/Remove controls.

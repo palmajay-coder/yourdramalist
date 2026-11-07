@@ -1,9 +1,9 @@
 {
   "source": "Niwa710/YourDramaList",
   "recorded": "2026-11-06",
-  "appVersion": "1.0.0-beta.2",
-  "manifestVersion": "1.0.0-beta.2",
-  "release": "1.0.0-beta.2",
+  "appVersion": "1.0.0-beta.3",
+  "manifestVersion": "1.0.0-beta.3",
+  "release": "1.0.0-beta.3",
   "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded.",
   "files": [
     {
@@ -50,22 +50,22 @@
     },
     {
       "path": "app.ts",
-      "sha256": "e8ffea7896cbdbd9e7ea9fd0321e84d735f3a300c718a067b24187331c882e23",
-      "version": 374,
+      "sha256": "c2cfee1f0169c35a0e0b51388f8e627145ff86fcf8a414a8ca83d60ae6dd8421",
+      "version": 376,
       "type": "http",
       "publicationAdaptation": "deployment source"
     },
     {
       "path": "catalogShelves.css",
-      "sha256": "8bf4a1fb65b9d67c65d02d18736721f4ec9b3df71a23f81a87b59df70855d15f",
-      "version": 375,
+      "sha256": "006b4a33b01ccd0738a5d84969805657258129aeba748ef411ea581b5506a9c7",
+      "version": 376,
       "type": "file",
       "publicationAdaptation": "deployment source"
     },
     {
       "path": "collectionService.ts",
-      "sha256": "3fe5d9ec8188d410823207c8cf6af859fab9c471412020b9cb2d49b445465def",
-      "version": 374,
+      "sha256": "4a2ea62b5fa7a6769f6630d510e8347a21f081be5818928d19f837c4d59dae8c",
+      "version": 376,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -78,8 +78,8 @@
     },
     {
       "path": "collections.ts",
-      "sha256": "08de49709cdb9361842c86bf0de9590757007631107ad95e91eb60fa9f3d521a",
-      "version": 374,
+      "sha256": "31b565b4562639caef88873d0256369c61a1d74610208a834941fbe782169e0c",
+      "version": 376,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -182,6 +182,13 @@
       "publicationAdaptation": "deployment source"
     },
     {
+      "path": "filmography.test.ts",
+      "sha256": "8b02befe2a5d0bfab2fc2a9eff1124527703de7bf72b1c75e9ddc7cef5c03d76",
+      "version": 377,
+      "type": "script",
+      "publicationAdaptation": "deployment source"
+    },
+    {
       "path": "goblinFixture.ts",
       "sha256": "c431a3d7a5933831bba9dd504f8a0732c239f72da358176fcbe010ffa8514d38",
       "version": 79,
@@ -218,22 +225,22 @@
     },
     {
       "path": "people.ts",
-      "sha256": "f6bf56cbc8726d11881db8d6f56755735c3cc8408987e4462a8990bb029bf31c",
-      "version": 188,
+      "sha256": "0cce099e5371ab45f4d5b9c548f9f08be399808d0cafb8a23aae0ed82c754a07",
+      "version": 376,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
     {
       "path": "peopleApi.ts",
-      "sha256": "9f67fb7259d9f32cedfcdf27b148e4c19ed5b819dd809bf637ae12d23203e23a",
-      "version": 178,
+      "sha256": "4e5254bd0af1abc454be4886cf2136a6a443beadfc0b3876811a7f9650430f7f",
+      "version": 376,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
     {
       "path": "peopleClient.ts",
-      "sha256": "594b3b043992dcddc208750a727c88570f04b984c6c9e2a774465463b2ea445c",
-      "version": 366,
+      "sha256": "f3f5e1876d6e30a7f274ad545640e909eceb46a4662a5f7bd2c80c7eb609ad6f",
+      "version": 376,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -344,8 +351,8 @@
     },
     {
       "path": "text.ts",
-      "sha256": "ba24371212a5989e75e42687176a6f5036ce67a4f792e0d549c3641947f12a80",
-      "version": 374,
+      "sha256": "da8bc6517bb196d49e1c2bebd25e5006cb1d16e8732150be5b5bd0b88209337f",
+      "version": 376,
       "type": "script",
       "publicationAdaptation": "deployment source"
     },
@@ -393,5 +400,5 @@
     }
   ],
   "displayVersion": "V.1.0.0 BETA",
-  "productionValVersion": 375
+  "productionValVersion": 377
 }

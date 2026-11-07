@@ -21,8 +21,8 @@ export function weeklyCatalog(country:string,slot:number){
 }
 export function posterUrl(path:unknown){return typeof path==="string"&&/^\/[a-zA-Z0-9]+\.(jpg|png|webp)$/.test(path)?"https://image.tmdb.org/t/p/w780"+path:null;}
 export function normalizeTitle(value:string){return value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu,"");}
-export function matchArtwork(item:any,results:any[],kind:string,country:string){
+export function matchArtwork(item:any,results:any[],kind:string,country=""){
  const year=String(item.details||"").match(/\b(19|20)\d{2}\b/)?.[0];if(!year)return null;
- const matches=results.filter(r=>!r.adult&&posterUrl(r.poster_path)&&String(r.first_air_date||r.release_date||"").slice(0,4)===year&&[r.name,r.title,r.original_name,r.original_title].some(n=>n&&normalizeTitle(n)===normalizeTitle(item.name))&&(kind!=="tv"||r.origin_country?.includes(COLLECTION_COUNTRIES[country])));
+ const matches=results.filter(r=>!r.adult&&posterUrl(r.poster_path)&&String(r.first_air_date||r.release_date||"").slice(0,4)===year&&[r.name,r.title,r.original_name,r.original_title].some(n=>n&&normalizeTitle(n)===normalizeTitle(item.name))&&(kind!=="tv"||(country?r.origin_country?.includes(COLLECTION_COUNTRIES[country]):r.origin_country?.some((c:string)=>["KR","JP","CN","TW","TH","HK"].includes(c)))));
  return matches.length===1?posterUrl(matches[0].poster_path):null;
 }

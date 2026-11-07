@@ -1,3 +1,4 @@
+import {TEXT} from './text.ts';
 import { load } from 'npm:cheerio@1.0.0';
 const origin='https://mydramalist.com';
 const clean=(s:string)=>s.replace(/\s+/g,' ').trim();
@@ -47,7 +48,7 @@ export function makeFilmography(person:Person,mode:Mode){
  const items=person.filmographies[mode];const id='ydl-filmography:'+mode+':'+person.id;
  const endpoint='/api/mdl/filmography?mode='+mode+'&url='+encodeURIComponent(person.url);
  const catalog={id,name:person.name+'’s Filmography',sourceType:'filmography',personId:person.id,mode,sort:'release-desc',sortPrecision:'year',endpoint};
- return {catalog,items,sectionFound:person.sections[mode]>0,list:{kind:'filmography',url:id,catalogId:id,name:catalog.name,personId:person.id,personName:person.name,personDisplayName:person.displayName,personUrl:person.url,mode,sort:'release-desc',catalogEndpoint:endpoint,profileAvatar:person.poster,posters:items.map(x=>x.poster).filter((x):x is string=>!!x).slice(0,5),count:items.length,description:person.name+'’s screen credits, newest first.'}};
+ return {catalog,items,sectionFound:person.sections[mode]>0,list:{kind:'filmography',url:id,catalogId:id,name:catalog.name,personId:person.id,personName:person.name,personDisplayName:person.displayName,personUrl:person.url,mode,sort:'release-desc',catalogEndpoint:endpoint,profileAvatar:person.poster,posters:items.map(x=>x.poster).filter((x):x is string=>!!x).slice(0,5),count:items.length,description:(mode==='director'?TEXT.directorFilmographyDescription:TEXT.actorFilmographyDescription).replace('{name}',person.name)}};
 }
 export function extractPeopleSearch(html:string,target:URL){
  const $=load(html);if(!/Search results/i.test($('title').text()))throw Error('MyDramaList did not return a people search page.');

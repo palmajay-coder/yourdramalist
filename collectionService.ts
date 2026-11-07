@@ -55,9 +55,9 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
    return {...window,themes:undefined,collections,status:"live"};
   })}catch{const old=cache.get(key)?.data||previous[0]?.[1].data;if(old&&now()-Date.parse(old.week)<21*86400000)return{...old,status:"stale",warning:"Showing saved collections. Live refresh is temporarily unavailable."};throw Error("Weekly collections are temporarily unavailable.")}
  }
- async function artwork(item:any,country:string){
+ async function artwork(item:any,country=""){
   if(!keyFor())return item;
-  const kind=/movie/i.test(item.details||"")?"movie":"tv";
+  const kind=/movie|special/i.test(item.details||"")?"movie":"tv";
   const poster=await memo("art:"+item.url,7*86400000,async()=>{const data=await request("search/"+kind,{query:item.name,include_adult:"false",language:"en-US"});return matchArtwork(item,data.results||[],kind,country)}).catch(()=>null);
   return poster?{...item,poster,posterSource:"TMDB"}:item;
  }

@@ -1,3 +1,4 @@
+import {collections} from './collectionService.ts';
 import {blob} from 'https://esm.town/v/std/blob/main.ts';
 import {personUrl,extractPerson,personSummary,extractPeopleSearch,makeFilmography,type Mode} from './people.ts';
 type Entry={data:any;at:number;expires:number;error?:string};
@@ -43,7 +44,14 @@ export async function handlePeople(req:Request){
  if(!search&&!personUrl(raw))return fail('Enter a valid HTTPS MyDramaList person link.');
  try{
   if(search){const result=await service.search(query,Number(page));return Response.json({...result.data,query,page:Number(page),mode,status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}})}
+  const offset=u.searchParams.get('offset')||'0';
+  if(u.pathname==='/api/mdl/filmography-artwork'&&!/^(?:0|[1-9]\d{0,2})$/.test(offset))return fail('Choose a valid filmography offset.');
   const result=await service.person(raw);
+  if(u.pathname==='/api/mdl/filmography-artwork'){
+   const data=makeFilmography(result.data,mode as Mode);
+   const items=await Promise.all(data.items.slice(Number(offset),Number(offset)+5).map(item=>collections.artwork({...item,details:item.type+' - '+(item.year||'')})));
+   return Response.json({items:items.map(({id,poster,posterSource})=>({id,poster,posterSource:posterSource||'MyDramaList'}))},{headers:{'cache-control':'no-store'}});
+  }
   if(u.pathname==='/api/mdl/filmography')return Response.json({...makeFilmography(result.data,mode as Mode),person:personSummary(result.data),status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}});
   return Response.json({person:personSummary(result.data),status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}});
  }catch(e){return fail(e instanceof Error?e.message:'Unable to load MyDramaList.',502)}
