@@ -66,13 +66,18 @@ Object.assign(globalThis, {document});
 Object.defineProperty(globalThis,"localStorage",{value:{getItem:()=>null,setItem:()=>{}},writable:true,configurable:true});
 let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
+const chooseArtwork = (value: string) => {
+  const select = document.getElementById("prefArtwork") as HTMLSelectElement;
+  Object.defineProperty(select, "value", {value, configurable:true});
+  select.dispatchEvent(new window.Event("change"));
+};
 const change = (input: HTMLInputElement, checked: boolean) => {input.checked = checked; input.dispatchEvent(new window.Event("change"));};
 await test("review preview follows its switch", () => {
   assert($("prefReviewPreview").hidden, "reviews default on"); change($("prefReviews"), true);
   assert(!$("prefReviewPreview").hidden, "preview missing");
 });
 await test("poster options and individual badges follow switches", () => {
-  change($("prefPosters"), true); assert(!$("prefPosterOptions").hidden, "poster options missing");
+  chooseArtwork("ratings"); assert(!$("prefPosterOptions").hidden, "poster options missing");
   const checkbox = document.querySelector('[data-rating="tomatoes"]') as HTMLInputElement;
   change(checkbox, false); assert((document.querySelector('[data-badge="tomatoes"]') as HTMLElement).hidden, "badge remains visible");
   assert(!(document.querySelector('[data-badge="imdb"]') as HTMLElement).hidden, "other badge hidden");
@@ -91,7 +96,7 @@ await test("completed filter is available only for a connected username", () => 
 await test("Continue validates enabled posters and permits skipping keys", () => {
   const next = document.querySelector(".prefActions button") as HTMLButtonElement;
   next.click(); assert(page === "" && document.querySelector('[role="alert"]')?.textContent === TEXT.preferencesKeysRequired, "missing key not caught");
-  change($("prefPosters"), false); next.click(); assert(page === "confirm", "optional keys required");
+  chooseArtwork("standard"); next.click(); assert(page === "confirm", "optional keys required");
 });
 await test("Confirm summarizes lists and choices without credentials", () => {
   ui.show("confirm"); const summary = document.getElementById("confirm")!;
@@ -110,6 +115,27 @@ await test("Confirm shows the server diagnostic code and a separate connection e
     ui.show("confirm");
     await new Promise(resolve => setTimeout(resolve, 0));
     assert(status() === TEXT.manifestConnectionFailed, "connection failure was not identified");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+await test("BetterPosters validates its URL and sends it without rating keys", async () => {
+  chooseArtwork("better");
+  const next = document.querySelector(".prefActions button") as HTMLButtonElement;
+  page = "";
+  next.click();
+  assert(page === "" && document.querySelector('[role="alert"]')?.textContent === TEXT.posterBetterInvalid, "missing URL accepted");
+  $("prefBetterPosters").value = "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg";
+  next.click();
+  assert(page === "confirm", "valid URL did not advance");
+  const originalFetch = globalThis.fetch;
+  try {
+    let payload: any;
+    globalThis.fetch = async (_url, options) => {payload = JSON.parse(String(options?.body)); return Response.json({}, {status:400});};
+    ui.show("confirm");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert(payload.betterPosters === $("prefBetterPosters").value && !payload.preferences.posters, "poster preference missing");
+    assert(!payload.keys.tmdb && !payload.keys.mdblist, "rating keys sent");
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -16,6 +16,10 @@ Confirm sends selected catalog identities/names, optional MDL username, preferen
 
 To disable compromised provider credentials, revoke/rotate them at TMDB/MDBList. Replacing the deployment encryption secret invalidates all old configuration links, not only one user's link.
 
+## BetterPosters
+
+If selected, the BetterPosters URL pattern is kept in the setup page until Confirm sends it to the same-origin configuration endpoint. It is encrypted in the install link and is not saved to browser storage or diagnostic logs. Catalog responses include the rendered poster URL so Nuvio can request the image from BetterPosters. The provider receives the IMDb title ID and any options included in the pattern.
+
 ## Manifest diagnostics
 
 When manifest setup fails on the server, YourDramaList shows a diagnostic code and logs the code, timestamp, and failure category in Val Town. The diagnostic entry contains no username, selected catalogs, provider keys, or install URL. You can share the code when reporting a problem.

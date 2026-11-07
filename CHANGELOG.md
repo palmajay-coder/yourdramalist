@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Fix manifest generation for built-in MyDramaList watchlists selected through Community.
+- Add BetterPosters as an optional artwork provider for YDL catalogs. Paste a BetterPosters poster URL pattern in Preferences and generate a new install link.
+
 ## 1.0.1
 
 - Show a diagnostic code when the server rejects a manifest request. The matching server log records only the code, time, and failure category.

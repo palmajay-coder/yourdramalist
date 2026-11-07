@@ -1,4 +1,5 @@
 import {normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon} from './addon.ts';
+import {parseModernWatchlist} from './addonScrape.ts';
 import {Ge,Sz,Xe} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
 let passed=0;const assert=(v:any,m:string)=>{if(!v)throw Error(m)};async function test(name:string,fn:()=>any){await fn();passed++;console.log('PASS '+name)};
@@ -31,6 +32,49 @@ await test('manifest diagnostics correlate safe logs with rejected requests', as
     assert(Object.keys(log).sort().join(',') === 'category,diagnosticCode,timestamp', 'unexpected diagnostic data');
   } finally {
     console.warn = warn;
+  }
+});
+
+await test('modern MyDramaList watchlist rows retain title, status, type and artwork', () => {
+  const html = '<tr id="ml123"><td><div class="msv2-item--cover"><img data-src="https://i.mydramalist.com/example_4t.jpg"></div><a class="title" href="/123-title"><span>Sample &amp; Title</span></a></td><td class="msv2-i-status">Completed</td><td class="msv2-i-type">Movie</td><td class="msv2-i-year">2024</td></tr>';
+  const item = parseModernWatchlist(html)[2][0];
+  assert(item.slug === "123-title" && item.title === "Sample & Title" && item.type === "Movie" && item.year === 2024, "modern row fields");
+  assert(item.image === "https://i.mydramalist.com/example_4c.jpg", "missing watchlist artwork");
+});
+
+await test('Community watchlist URLs load the account watchlist and retain filters', async () => {
+  const config = normalizeAddon({...body, catalogs:[{name:"Watchlist",url:"https://mydramalist.com/dramalist/Example/"}], preferences:{hideUnreleased:true}});
+  assert(config.entries[0].watchlist === "example", "watchlist identity");
+  const title = (slug:string, type:string, year:number) => ({slug,title:slug,type,year});
+  const first = title("1-first","Drama",2020);
+  const result = await loadCatalog(config,0,0,"https://test",{
+    source:()=>{throw Error("watchlist sent to custom list loader");},
+    hidden:async()=>new Set(),
+    watchlistSections:async(username:string)=>{
+      assert(username==="example","wrong watchlist owner");
+      return {1:[first],2:[first,title("2-second","Movie",2021),title("3-future","Drama",2999)]};
+    },
+    map:async(items:any[],type:string)=>items.map(x=>({id:"tt"+x.slug.split("-")[0],name:x.title,type,poster:"https://image.test/poster.jpg"})),
+  } as any);
+  assert(result.metas.map(x=>x.id).join(",")==="tt1,tt2","watchlist order, deduplication, or filtering changed");
+});
+
+await test('BetterPosters supports encoded patterns and applies to normal and weekly rows', async () => {
+  const pattern="https://btttr.cc/poster-a/imdb/poster-default/%7Bimdb_id%7D.jpg?lang=ko";
+  const expected="https://btttr.cc/poster-a/imdb/poster-default/tt123.jpg?lang=ko";
+  const regular = normalizeAddon({...body,betterPosters:pattern});
+  const weekly = normalizeAddon({...body,betterPosters:pattern,catalogs:[{kind:"weekly",country:"3",slot:0,name:"Weekly"}]});
+  const meta={id:"tt123",poster:"https://image.test/poster.jpg"};
+  const deps={
+    source:async()=>({items:[{type:"Drama"}]}),hidden:async()=>new Set(),map:async()=>[meta],
+    weekly:async()=>({collections:[{items:[]}]}),weeklyMetas:async()=>[meta],
+  } as any;
+  assert((await loadCatalog(regular,0,0,"https://test",deps)).metas[0].poster===expected,"regular artwork");
+  assert((await loadCatalog(weekly,0,0,"https://test",deps)).metas[0].poster===expected,"weekly artwork");
+  assert(meta.poster==="https://image.test/poster.jpg","mutated source metadata");
+  for(const bad of [pattern.replace("btttr.cc","example.com"), pattern.replace("%7Bimdb_id%7D","tt123")]){
+    let rejected=false;try{normalizeAddon({...body,betterPosters:bad})}catch{rejected=true}
+    assert(rejected,"invalid pattern accepted");
   }
 });
 

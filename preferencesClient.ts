@@ -1,5 +1,5 @@
 import {TEXT as copy} from "./text.ts";
-import {loadPreferences, normalizePreferences, preferenceIssue, savePreferences} from "./preferences.ts";
+import {betterPostersPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences} from "./preferences.ts";
 import type {RatingSource} from "./preferences.ts";
 
 /** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
@@ -47,7 +47,25 @@ export function installPreferencesUI(api: {
   close.onclick = () => dialog.close();
   dialog.addEventListener("click", e => {if(e.target === dialog) {const r = dialog.getBoundingClientRect(); const m = e as MouseEvent; if(m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) dialog.close();}});
 
-  const posters = panel(copy.posterRatingsTitle, copy.posterRatingsDescription, prefs.posters, "prefPosters");
+  const posters = {card: node("section", "panel prefPanel")};
+  const artworkLabel = node("label", "prefFilterRow", copy.posterArtwork);
+  const artwork = node("select"); artwork.id = "prefArtwork"; artworkLabel.htmlFor = artwork.id;
+  const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter};
+  let artworkMode: keyof typeof artworkNames = prefs.posters ? "ratings" : "standard";
+  for (const [value, name] of Object.entries(artworkNames)) {
+    const option = node("option", "", name); option.value = value; option.selected = value === artworkMode; artwork.append(option);
+  }
+  artworkLabel.append(artwork);
+  const betterOptions = node("div");
+  const betterFields = node("div", "prefKeyField"); betterOptions.append(betterFields);
+  const betterLabel = node("label", "", copy.posterBetterUrl); betterLabel.htmlFor = "prefBetterPosters";
+  const betterInput = node("input"); betterInput.id = betterLabel.htmlFor;
+  betterInput.type = "url"; betterInput.autocomplete = "off"; betterInput.spellcheck = false; betterInput.maxLength = 1200;
+  betterInput.placeholder = "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg";
+  const betterLink = node("a", "", copy.posterBetterLink);
+  betterLink.href = "https://btttr.cc/configure"; betterLink.target = "_blank"; betterLink.rel = "noopener noreferrer";
+  betterFields.append(betterLabel, betterInput, paragraph(copy.posterBetterHelp, "prefHelp"), betterLink);
+  posters.card.append(artworkLabel, betterOptions); stack.append(posters.card);
   const posterOptions = node("div", "prefPosterOptions"); posterOptions.id = "prefPosterOptions";
   const keyFields = node("div", "prefKeys");
   const note = paragraph("", "prefKeysNote"); note.append(node("strong", "", copy.optionalLabel), document.createTextNode(" " + copy.posterKeysNote)); keyFields.append(note);
@@ -103,7 +121,7 @@ export function installPreferencesUI(api: {
   }
   function render() {
     reviewPreview.hidden = !prefs.reviews; reviews.toggle.setAttribute("aria-expanded", String(prefs.reviews)); reviews.toggle.setAttribute("aria-controls", reviewPreview.id);
-    posterOptions.hidden = !prefs.posters; posters.toggle.setAttribute("aria-expanded", String(prefs.posters)); posters.toggle.setAttribute("aria-controls", posterOptions.id);
+    posterOptions.hidden = !prefs.posters; betterOptions.hidden = artworkMode !== "better";
     shade.hidden = !!objectUrl; badges.hidden = !!objectUrl;
     for(const [source, element] of badgeElements) element.hidden = !prefs.ratings.includes(source);
     frame.setAttribute("aria-label", copy.posterPreviewLabel + ": " + copy.posterPreviewTitle + ". " + (prefs.ratings.length ? prefs.ratings.map(s => ratingNames[s]).join(", ") : copy.posterPreviewNoBadges));
@@ -129,10 +147,14 @@ export function installPreferencesUI(api: {
   }
   for(const input of [tmdb, mdblist]) {input.oninput = () => {error.textContent = ""; invalidatePreview();}; input.onchange = () => schedulePreview();}
   reviews.toggle.onchange = () => {prefs.reviews = reviews.toggle.checked; save();};
-  posters.toggle.onchange = () => {prefs.posters = posters.toggle.checked; save(); invalidatePreview(); schedulePreview();};
+  artwork.onchange = () => {artworkMode = artwork.value as keyof typeof artworkNames; prefs.posters = artworkMode === "ratings"; save(); invalidatePreview(); schedulePreview();};
+  betterInput.oninput = () => {error.textContent = "";};
+  const pattern = () => artworkMode === "better" ? betterPostersPattern(betterInput.value) : "";
+  const invalidPattern = () => artworkMode === "better" && !pattern();
   unreleased.onchange = () => {prefs.hideUnreleased = unreleased.checked; save();};
   completed.onchange = () => {prefs.hideCompleted = !!api.user() && completed.checked; save();};
   next.onclick = () => {
+    if (invalidPattern()) {error.textContent = copy.posterBetterInvalid; betterInput.focus(); return;}
     const issue = preferenceIssue(prefs, keys());
     if(issue) {error.textContent = issue === "keys" ? copy.preferencesKeysRequired : copy.preferencesBadgesRequired; (issue === "keys" ? tmdb : choices.querySelector("input")!).focus(); return;}
     save(); api.navigate("confirm");
@@ -146,9 +168,10 @@ export function installPreferencesUI(api: {
     const list = node("ol", "prefConfirmList"); for(const item of api.selection()) list.append(node("li", "", item.name)); listCard.append(listHeading, list); s.append(listCard);
     const pCard = node("section", "panel prefPanel"), pHeading = node("div", "prefConfirmHeading"), editPrefs = button(copy.editPreferences);
     pHeading.append(node("h2", "", copy.confirmPreferences), editPrefs); editPrefs.onclick = () => api.navigate("preferences"); pCard.append(pHeading);
-    for(const [label, value] of [[copy.reviewsTitle, prefs.reviews], [copy.posterRatingsTitle, prefs.posters], [copy.hideUnreleased, prefs.hideUnreleased], [copy.hideCompleted, !!api.user() && prefs.hideCompleted]] as const) {
+    for(const [label, value] of [[copy.reviewsTitle, prefs.reviews], [copy.hideUnreleased, prefs.hideUnreleased], [copy.hideCompleted, !!api.user() && prefs.hideCompleted]] as const) {
       const row = node("div", "prefSummaryRow"); row.append(node("span", "", label), node("span", "", value ? copy.enabled : copy.disabled)); pCard.append(row);
     }
+    const artworkSummary = node("div", "prefSummaryRow"); artworkSummary.append(node("span", "", copy.posterArtwork), node("span", "", artworkNames[artworkMode])); pCard.append(artworkSummary);
     if(prefs.posters) pCard.append(paragraph(prefs.ratings.map(s => ratingNames[s]).join(" · "), "prefHelp"));
     s.append(pCard);
     const manifest=node("section","prefManifest"),label=node("label","",copy.manifestUrl);label.htmlFor="manifestUrl";
@@ -156,11 +179,13 @@ export function installPreferencesUI(api: {
     const install=node("a","primary prefInstall",copy.installNuvio);install.setAttribute("aria-disabled","true");
     const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
-    if(prefs.posters)manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));confirm.append(manifest);
-    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),hideCompleted:!!api.user()&&prefs.hideCompleted},keys:prefs.posters?keys():{tmdb:"",mdblist:""}};
+    if(prefs.posters)manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
+    if(artworkMode==="better")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));confirm.append(manifest);
+    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),keys:prefs.posters?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");}
     async function prepare(){retry.hidden=true;status.textContent="";try{
+      if(invalidPattern()){status.textContent=copy.posterBetterInvalid;return;}
       if(preferenceIssue(prefs,keys()))throw Error("keys");
       if(signature===manifestSignature&&manifestValue){apply(manifestValue);return;}
       const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"}).catch(()=>null);

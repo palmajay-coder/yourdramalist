@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.1";
-export const DISPLAY_VERSION = "1.0.1 BETA";
+export const APP_VERSION = "1.0.2";
+export const DISPLAY_VERSION = "1.0.2 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -58,6 +58,13 @@ export const TEXT = {
   reviewsFullExample: "See full Nuvio example ↗",
   reviewsScreenshotAlt: "Nuvio showing MyDramaList ratings, viewer verdict and review cards for Dead-End Job",
   closePreview: "Close ×",
+  posterArtwork: "Poster artwork",
+  posterStandard: "Standard posters",
+  posterBetter: "BetterPosters",
+  posterBetterUrl: "BetterPosters URL",
+  posterBetterLink: "Configure BetterPosters",
+  posterBetterHelp: "Paste your BetterPosters URL pattern. It stays in your encrypted install link.",
+  posterBetterInvalid: "Enter a BetterPosters poster URL with {imdb_id}.",
   posterRatingsTitle: "Poster ratings",
   posterRatingsDescription: "Your favorite ratings, right on the poster.",
   posterKeysNote: "TMDB and MDBList keys are only required for poster ratings. You can continue without them.",
@@ -100,6 +107,7 @@ export const TEXT = {
   manifestFailed: "Unable to prepare your manifest. Please try again.",
   retryManifest: "Try again",
   manifestSelectToCopy: "Select and copy the URL above.",
+  manifestBetterPrivacy: "Your BetterPosters URL is encrypted in this install link. Keep the link private.",
   manifestKeyPrivacy: "With poster ratings enabled, your keys are encrypted in this install link and used by ERDB. Keep the link private.",
   editLists: "Edit lists",
   editPreferences: "Edit preferences",

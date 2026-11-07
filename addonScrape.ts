@@ -763,6 +763,66 @@ export function zt(t) {
   );
 }
 
+const WATCHLIST_SECTIONS = ["watching", "completed", "plan_to_watch", "on_hold", "dropped", "undecided", "not_interested"];
+
+export function parseModernWatchlist(html, section = 0) {
+  const sections = {};
+  for (const [, row] of html.matchAll(/<tr\b[^>]*\bid=["']ml\d+["'][^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const anchor = (row.match(/<a\b[^>]*class=["'][^"']*\btitle\b[^"']*["'][^>]*>[\s\S]*?<\/a>/i) || [])[0];
+    if (!anchor) continue;
+    const link = N($(anchor, "href"));
+    const slug = V(link);
+    if (!/^\d+-[a-z0-9-]+$/i.test(slug)) continue;
+    const image = row.match(/msv2-item--cover[^>]*>\s*<img[^>]*(?:data-src|src)=["']([^"']+)/i)?.[1];
+    const status = Z(row, "msv2-i-status").toLowerCase();
+    const statusIndex = ["watching", "completed", "plan to watch", "on hold", "dropped", "undecided", "not interested"].indexOf(status) + 1;
+    (sections[section || statusIndex || 0] ??= []).push({
+      slug, link, title: h(anchor), image: image ? N(image).replace(/[st]\.jpg$/, "c.jpg") : "",
+      type: Z(row, "msv2-i-type") || null, year: Pt(Z(row, "msv2-i-year")),
+    });
+  }
+  return sections;
+}
+
+export function loadWatchlist(username) {
+  return D(`public-watchlist:${username.toLowerCase()}`, H, async () => {
+    const path = `dramalist/${encodeURIComponent(username)}`;
+    async function read(suffix = "") {
+      const html = await _(path + suffix);
+      if (/This (?:list|dramalist|watchlist) is private/i.test(html)) {
+        throw Object.assign(new Error("This MyDramaList watchlist is private."), {code: "PRIVATE"});
+      }
+      return html;
+    }
+    const html = await read();
+    const legacy = zt(html);
+    if (Object.keys(legacy).length) return legacy;
+    if (!/msv2-(?:style|content|table)/i.test(html)) throw new Error("MyDramaList did not return a readable watchlist.");
+    const initialSection = Number(html.match(/"filters":\s*\{[^}]*"list":\s*"(\d+)"/)?.[1]) || 0;
+    const sections = parseModernWatchlist(html, initialSection);
+    if (initialSection) {
+      const links = WATCHLIST_SECTIONS.map((name, index) => ({name, id:index+1}))
+        .filter(({name,id}) => id !== initialSection && html.includes(`/${name}"`));
+      const loaded = await It(links, 2, async ({name,id}) => parseModernWatchlist(await read("/"+name), id));
+      for (const group of loaded) Object.assign(sections, group);
+    } else if (/"load_more":\s*true/.test(html)) {
+      const seen = new Set(Object.values(sections).flat().map(item => item.slug));
+      for (let page = 2; page <= Math.min(kt, 5); page++) {
+        const next = parseModernWatchlist(await read("?page="+page));
+        let added = false;
+        for (const [id,items] of Object.entries(next)) for (const item of items) {
+          if (seen.has(item.slug)) continue;
+          seen.add(item.slug);
+          (sections[id] ??= []).push(item);
+          added = true;
+        }
+        if (!added) break;
+      }
+    }
+    return sections;
+  });
+}
+
 export function G(t) {
   return D(`dl:${t.toLowerCase()}`, H, async () => {
     let e = null;
