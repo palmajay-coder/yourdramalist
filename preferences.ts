@@ -2,8 +2,18 @@
 export const RATING_SOURCES = ["letterboxd", "tomatoes", "imdb"] as const;
 export type RatingSource = typeof RATING_SOURCES[number];
 export type MetadataProvider = "mdl" | "tmdb";
+export const TMDB_LANGUAGES = [
+  ["en-US", "English"], ["es-ES", "Spanish"], ["fr-FR", "French"],
+  ["de-DE", "German"], ["it-IT", "Italian"], ["pt-BR", "Portuguese"],
+  ["nl-NL", "Dutch"], ["pl-PL", "Polish"], ["tr-TR", "Turkish"],
+  ["ru-RU", "Russian"], ["uk-UA", "Ukrainian"], ["ar-SA", "Arabic"],
+  ["he-IL", "Hebrew"], ["hi-IN", "Hindi"], ["ja-JP", "Japanese"],
+  ["ko-KR", "Korean"], ["zh-CN", "Chinese"],
+] as const;
+export type TmdbLanguage = typeof TMDB_LANGUAGES[number][0];
 export interface Preferences {
   metadataProvider: MetadataProvider;
+  tmdbLanguage: TmdbLanguage;
   reviews: boolean;
   posters: boolean;
   ratings: RatingSource[];
@@ -17,6 +27,8 @@ export function normalizePreferences(value: unknown): Preferences {
   return {
     // Keep older saved TMDB choices on the original TMDB-first, MDL-fallback behavior.
     metadataProvider: ["tmdb", "tmdb-mdl", "tmdb-only"].includes(String(v.metadataProvider)) ? "tmdb" : "mdl",
+    tmdbLanguage: TMDB_LANGUAGES.some(([code]) => code === v.tmdbLanguage)
+      ? v.tmdbLanguage as TmdbLanguage : "en-US",
     reviews: v.reviews === true,
     posters: v.posters === true,
     ratings: ratings
