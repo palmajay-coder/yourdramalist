@@ -156,6 +156,8 @@ export const TEXT = {
   discoveryPending: "Live discovery is coming in Milestone 3.",
   untitledList: "Untitled list",
   remove: "Remove ",
+  emptyWatchlist: "User has not added any titles yet",
+  watchlistArtworkUnavailable: "Poster preview unavailable",
   dramaPoster: "Drama poster",
   searchDramas: "Try searching 'Our Sticky Love', 'Marry my Husband' etc..",
   searchActors: "Try searching 'Son Ye Jin', 'Takuya Kimura' etc..",

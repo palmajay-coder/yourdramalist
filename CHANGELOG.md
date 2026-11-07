@@ -8,6 +8,8 @@
 - Keep watchlist cards aligned with a thumbnail placeholder and remove their generated descriptions.
 - Restore the account-wide watchlist as the first Community card when available.
 
+- Distinguish empty watchlists from missing poster artwork.
+
 ## 1.0.2
 
 - Fix manifest issue for built-in user watchlists. 

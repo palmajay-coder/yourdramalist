@@ -78,11 +78,11 @@ await test('BetterPosters supports encoded patterns and applies to normal and we
   }
 });
 
-await test("watchlist cards keep MDL order and skip empty categories", async () => {
- const cards=await profileWatchlistCards("Sample","Sample",async (_user,status)=>["completed","on_hold","plan_to_watch","not_interested"].includes(status)?[{image:"poster"}]:[]);
- assert(cards.map(card=>card.url.split("/").pop()).join(",")==="completed,on_hold,plan_to_watch,not_interested","category order");
- assert(cards[2].name==="Sample’s Plan to Watch" && !("description" in cards[2]),"watchlist card copy");
- const config=normalizeAddon({...body,catalogs:cards,preferences:{hideCompleted:true}});
+await test("watchlist cards keep MDL order and distinguish empty from unreadable categories", async () => {
+ const cards=await profileWatchlistCards("Sample","Sample",async (_user,status)=>{if(status==="watching")return [];if(["completed","on_hold","plan_to_watch","not_interested"].includes(status))return [{image:"poster"}];throw Error("unreadable");});
+ assert(cards.map(card=>card.url.split("/").pop()).join(",")==="watching,completed,on_hold,plan_to_watch,not_interested","category order");
+ assert(cards[0].empty && cards[3].name==="Sample’s Plan to Watch" && !("description" in cards[3]),"watchlist card copy");
+ const config=normalizeAddon({...body,catalogs:cards.filter(card=>!card.empty),preferences:{hideCompleted:true}});
  const metas=await loadCatalog(config,0,0,"https://test",{
   watchlistCategory:async (user,status)=>{assert(user==="sample"&&status==="completed","wrong status");return [{slug:"1-title",type:"Drama"}]},
   hidden:()=>{throw Error("completed catalog would be hidden")},
