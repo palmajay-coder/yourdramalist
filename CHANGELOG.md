@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- Update the app and addon manifest version to 1.0.4.
+
 ## 1.0.3
 
 - Let users import watchlists.
