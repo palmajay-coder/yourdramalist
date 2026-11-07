@@ -8,22 +8,26 @@ import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 type Entry={id:string;name:string;type:'series'|'movie';weekly?:{country:string;slot:number};person?:string;mode?:'actor'|'director'};
+type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
+class InvalidConfig extends Error {
+ constructor(readonly issue: ConfigIssue) { super(issue); }
+}
 export function normalizeAddon(body:any){
- if(!body||!Array.isArray(body.catalogs)||!body.catalogs.length||body.catalogs.length>40)throw Error('catalogs');
+ if(!body||!Array.isArray(body.catalogs)||!body.catalogs.length||body.catalogs.length>40)throw new InvalidConfig('catalog-count');
  const preferences=normalizePreferences(body.preferences),user=/^[a-zA-Z0-9_-]{1,60}$/.test(body.user||'')?body.user:'';
  const keys={tmdb:String(body.keys?.tmdb||'').trim(),mdblist:String(body.keys?.mdblist||'').trim()};
- if(preferenceIssue(preferences,keys))throw Error('preferences');
+ if(preferenceIssue(preferences,keys))throw new InvalidConfig('preferences');
  const entries:Entry[]=body.catalogs.map((item:any)=>{
-  const name=String(item.name||'').trim().slice(0,180);if(!name)throw Error('catalogs');
+  const name=String(item.name||'').trim().slice(0,180);if(!name)throw new InvalidConfig('catalog-entry');
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return{id:catalog.url,name,type:catalog.types[0]};}
-  if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw Error('catalogs');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
+  if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
   const source=String(item.url||'');let id='';
   if(/^d\.[1-5]\.[a-zA-Z0-9_-]{1,60}$/.test(source))id=source;
-  else{let u:URL;try{u=new URL(source)}catch{throw Error('catalogs')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw Error('catalogs');const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw Error('catalogs');}
+  else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
   return{id,name,type:'series'};
  });
- if(new Set(entries.map(x=>x.id)).size!==entries.length)throw Error('catalogs');
+ if(new Set(entries.map(x=>x.id)).size!==entries.length)throw new InvalidConfig('duplicate-catalog');
  return{entries,user,preferences,keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
 }
 export type AddonConfig=ReturnType<typeof normalizeAddon>;
@@ -60,16 +64,31 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  return{metas:metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&x.poster&&a.findIndex(y=>y?.id===x.id)===i)};
 }
 let active=0,created:number[]=[];
-async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw Error('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}
+async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw RangeError('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}
 export async function handleAddon(req:Request){
  const u=new URL(req.url),headers={'cache-control':'no-store','referrer-policy':'no-referrer'},fail=(error:string,status=400)=>Response.json({error},{status,headers});
  if(u.pathname==='/api/addon/configure'){
-  if(req.method!=='POST')return fail('method',405);
-  if(req.headers.get('origin')!==u.origin)return fail('origin',403);
-  if(!req.headers.get('content-type')?.startsWith('application/json'))return fail('format',415);
-  created=created.filter(t=>t>Date.now()-60000);if(created.length>=30)return fail('limit',429);
-  if(Number(req.headers.get('content-length'))>32000)return fail('size',413);
-  try{const text=new TextDecoder().decode(await readLimited(req.body,32000));const config=normalizeAddon(JSON.parse(text));created.push(Date.now());const token=await tokens().seal(config);return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});}catch{return fail('configuration');}
+  const diagnose=(error:string,status:number,category:string=error)=>{
+   const diagnosticCode='YDL-'+crypto.randomUUID().slice(0,8).toUpperCase();
+   console.warn(JSON.stringify({diagnosticCode,timestamp:new Date().toISOString(),category}));
+   return Response.json({error,diagnosticCode},{status,headers});
+  };
+  if(req.method!=='POST')return diagnose('method',405);
+  if(req.headers.get('origin')!==u.origin)return diagnose('origin',403);
+  if(!req.headers.get('content-type')?.startsWith('application/json'))return diagnose('format',415);
+  created=created.filter(t=>t>Date.now()-60000);if(created.length>=30)return diagnose('limit',429,'rate-limit');
+  if(Number(req.headers.get('content-length'))>32000)return diagnose('size',413,'request-too-large');
+  let body:unknown;
+  try{body=JSON.parse(new TextDecoder().decode(await readLimited(req.body,32000)));}
+  catch(error){return error instanceof RangeError?diagnose('size',413,'request-too-large'):diagnose('configuration',400,'invalid-request-body');}
+  let config:AddonConfig;
+  try{config=normalizeAddon(body);}
+  catch(error){return diagnose('configuration',400,error instanceof InvalidConfig?error.issue:'catalog-entry');}
+  created.push(Date.now());
+  try{
+   const token=await tokens().seal(config);
+   return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});
+  }catch{return diagnose('configuration',400,'manifest-generation');}
  }
  if(req.method==='OPTIONS')return new Response(null,{status:204});
  if(req.method!=='GET'&&req.method!=='HEAD')return fail('method',405);

@@ -98,4 +98,20 @@ await test("Confirm summarizes lists and choices without credentials", () => {
   assert(summary.textContent?.includes("Sample user's list") && summary.textContent.includes(TEXT.reviewsTitle), "summary missing");
   assert(!summary.textContent?.includes(sampleKeys.tmdb), "summary key leak");
 });
+await test("Confirm shows the server diagnostic code and a separate connection error", async () => {
+  const originalFetch = globalThis.fetch;
+  const status = () => document.querySelector("#confirm [role=status]")?.textContent;
+  try {
+    globalThis.fetch = async () => Response.json({diagnosticCode: "YDL-A1B2C3D4"}, {status: 400});
+    ui.show("confirm");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert(status()?.includes("YDL-A1B2C3D4"), "server diagnostic was not displayed");
+    globalThis.fetch = async () => {throw Error("offline");};
+    ui.show("confirm");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert(status() === TEXT.manifestConnectionFailed, "connection failure was not identified");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 console.log(JSON.stringify({passed}));

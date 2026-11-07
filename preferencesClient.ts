@@ -163,8 +163,15 @@ export function installPreferencesUI(api: {
     async function prepare(){retry.hidden=true;status.textContent="";try{
       if(preferenceIssue(prefs,keys()))throw Error("keys");
       if(signature===manifestSignature&&manifestValue){apply(manifestValue);return;}
-      const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"});
-      if(!response.ok)throw Error("manifest");const result=await response.json();if(id!==manifestRequest)return;
+      const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"}).catch(()=>null);
+      if(!response){if(id===manifestRequest){status.textContent=copy.manifestConnectionFailed;retry.hidden=false;}return;}
+      const result=await response.json();if(id!==manifestRequest)return;
+      if(!response.ok){
+        const code=result?.diagnosticCode;
+        status.textContent=copy.manifestFailed+(typeof code==="string"&&/^YDL-[0-9A-F]{8}$/.test(code)?" "+copy.manifestDiagnosticCode+" "+code:"");
+        retry.hidden=false;
+        return;
+      }
       const url=new URL(result.url);if(url.origin!==location.origin||!url.pathname.startsWith("/addon/")||!url.pathname.endsWith("/manifest.json"))throw Error("url");
       manifestSignature=signature;manifestValue=url.href;apply(url.href);
     }catch{if(id===manifestRequest){status.textContent=preferenceIssue(prefs,keys())?copy.preferencesKeysRequired:copy.manifestFailed;retry.hidden=false;}}}

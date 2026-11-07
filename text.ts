@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.0";
-export const DISPLAY_VERSION = "1.0.0 BETA";
+export const APP_VERSION = "1.0.1";
+export const DISPLAY_VERSION = "1.0.1 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -95,6 +95,8 @@ export const TEXT = {
   copyManifest: "Copy",
   copiedManifest: "Copied",
   installNuvio: "Install in Nuvio ↗",
+  manifestDiagnosticCode: "Diagnostic code",
+  manifestConnectionFailed: "Could not reach YourDramaList. Check your connection and try again.",
   manifestFailed: "Unable to prepare your manifest. Please try again.",
   retryManifest: "Try again",
   manifestSelectToCopy: "Select and copy the URL above.",

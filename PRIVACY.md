@@ -16,6 +16,10 @@ Confirm sends selected catalog identities/names, optional MDL username, preferen
 
 To disable compromised provider credentials, revoke/rotate them at TMDB/MDBList. Replacing the deployment encryption secret invalidates all old configuration links, not only one user's link.
 
+## Manifest diagnostics
+
+When manifest setup fails on the server, YourDramaList shows a diagnostic code and logs the code, timestamp, and failure category in Val Town. The diagnostic entry contains no username, selected catalogs, provider keys, or install URL. You can share the code when reporting a problem.
+
 ## Providers
 
 | Service | What the implementation sends/uses |
