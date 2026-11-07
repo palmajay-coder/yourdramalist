@@ -61,7 +61,7 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   const poster=await memo("art:"+item.url,7*86400000,async()=>{const data=await request("search/"+kind,{query:item.name,include_adult:"false",language:"en-US"});return matchArtwork(item,data.results||[],kind,country)}).catch(()=>null);
   return poster?{...item,poster,posterSource:"TMDB"}:item;
  }
- async function standardArtwork(items:any[],{metadata=false,poster:usePoster=true,descriptionSource="tmdb",clearMissingMetadata=false}={}){
+ async function standardArtwork(items:any[],{metadata=false,poster:usePoster=true,descriptionSource="tmdb",clearMissingMetadata=false,language="en-US"}={}){
   if(!items.length)return items;
   const clearUnavailable=(item:any)=>clearMissingMetadata?{...item,description:"",releaseInfo:""}:item;
   if(!keyFor())return items.map(clearUnavailable);
@@ -75,8 +75,8 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
     if(!needsPoster&&!metadata)continue;
     if(!/^tt\d+$/.test(item.id))continue;
     const kind=item.type==="movie"?"movie":"tv";
-    const match=await memo("catalog-tmdb:"+kind+":"+item.id,7*86400000,async()=>{
-     const data=await request("find/"+item.id,{external_source:"imdb_id",language:"en-US"});
+    const match=await memo("catalog-tmdb:"+kind+":"+language+":"+item.id,7*86400000,async()=>{
+     const data=await request("find/"+item.id,{external_source:"imdb_id",language});
      const matches=kind==="movie"?data.movie_results:data.tv_results;
      if(matches?.length!==1)return null;
      const match=matches[0];
