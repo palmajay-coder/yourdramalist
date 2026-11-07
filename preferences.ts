@@ -15,10 +15,8 @@ export function normalizePreferences(value: unknown): Preferences {
   const v = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const ratings = Array.isArray(v.ratings) ? v.ratings : null;
   return {
-    // `tmdb` was the original TMDB-first option. Preserve its intent when
-    // loading saved preferences by mapping it to the new TMDB/MDL hybrid.
-    metadataProvider: v.metadataProvider === "tmdb-only" ? "tmdb-only"
-      : v.metadataProvider === "tmdb-mdl" || v.metadataProvider === "tmdb" ? "tmdb-mdl" : "mdl",
+    // Keep older saved TMDB choices on the original TMDB-first, MDL-fallback behavior.
+    metadataProvider: ["tmdb", "tmdb-mdl", "tmdb-only"].includes(String(v.metadataProvider)) ? "tmdb" : "mdl",
     reviews: v.reviews === true,
     posters: v.posters === true,
     ratings: ratings
