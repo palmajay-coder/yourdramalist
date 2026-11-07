@@ -2,13 +2,14 @@
 
 ![YourDramaList landing page](docs/images/landing-page.png)
 
-**beta version** · MyDramaList brought to Nuvio, Desktop and Mobile friendly. 
-
+**beta version** · MyDramaList brought to Nuvio.
 A FREE and unofficial add-on for Asian dramas and movies using MDL database.
 
 **[ENTER THE MAIN SITE HERE](https://yourdramalist.val.run/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md)
 
 ## Features
+
+- Site is best viewed in Desktop but is also designed for Mobile users as well.
 
 - Import MyDramaList catalogs via username or profile link.
 
