@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.4";
-export const DISPLAY_VERSION = "1.0.4 BETA";
+export const APP_VERSION = "1.0.5";
+export const DISPLAY_VERSION = "1.0.5 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -63,6 +63,8 @@ export const TEXT = {
   metadataTmdb: "TMDB",
   metadataMdlDescription: "Prioritize MyDramaList for metadata.",
   metadataTmdbDescription: "Prioritize TMDB metadata for localization; use MyDramaList to fill in missing details.",
+  tmdbLanguageLabel: "TMDB language",
+  tmdbLanguageDescription: "Set the language YDL requests for catalog titles and descriptions.",
   posterArtwork: "Poster style",
   posterArtworkDescription: "Choose how posters appear in your catalogs.",
   posterStandard: "TMDB posters (default)",
