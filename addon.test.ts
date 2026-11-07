@@ -81,7 +81,7 @@ await test('BetterPosters supports encoded patterns and applies to normal and we
 await test("watchlist cards keep MDL order and skip empty categories", async () => {
  const cards=await profileWatchlistCards("Sample","Sample",async (_user,status)=>["completed","on_hold","plan_to_watch","not_interested"].includes(status)?[{image:"poster"}]:[]);
  assert(cards.map(card=>card.url.split("/").pop()).join(",")==="completed,on_hold,plan_to_watch,not_interested","category order");
- assert(cards[2].description==="Titles Sample plans to watch.","watchlist description");
+ assert(cards[2].name==="Sample’s Plan to Watch" && !("description" in cards[2]),"watchlist card copy");
  const config=normalizeAddon({...body,catalogs:cards,preferences:{hideCompleted:true}});
  const metas=await loadCatalog(config,0,0,"https://test",{
   watchlistCategory:async (user,status)=>{assert(user==="sample"&&status==="completed","wrong status");return [{slug:"1-title",type:"Drama"}]},

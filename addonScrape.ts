@@ -787,13 +787,13 @@ export function parseModernWatchlist(html, section = 0) {
 }
 
 export const WATCHLIST_CARDS = [
-  ["watching", "Currently Watching", "is currently watching"],
-  ["completed", "Completed", "has completed"],
-  ["on_hold", "On Hold", "has put on hold"],
-  ["dropped", "Dropped", "has dropped"],
-  ["plan_to_watch", "Plan to Watch", "plans to watch"],
-  ["undecided", "Undecided", "is undecided about"],
-  ["not_interested", "Not Interested", "is not interested in"],
+  ["watching", "Currently Watching"],
+  ["completed", "Completed"],
+  ["on_hold", "On Hold"],
+  ["dropped", "Dropped"],
+  ["plan_to_watch", "Plan to Watch"],
+  ["undecided", "Undecided"],
+  ["not_interested", "Not Interested"],
 ];
 
 export function loadWatchlistCategory(username, status) {
@@ -815,11 +815,11 @@ export function loadWatchlistCategory(username, status) {
 }
 
 export async function profileWatchlistCards(username, name, load = loadWatchlistCategory) {
-  const cards = await It(WATCHLIST_CARDS, 2, async ([status, label, description]) => {
+  const cards = await It(WATCHLIST_CARDS, 2, async ([status, label]) => {
     const items = await Promise.resolve().then(() => load(username, status)).catch(() => []);
     if (!items.length) return null;
     return {
-      kind:"watchlist", name:`${name}’s ${label}`, description:`Titles ${name} ${description}.`,
+      kind:"watchlist", name:`${name}’s ${label}`,
       url:`${T}/dramalist/${username.toLowerCase()}/${status}`,
       posters:[...new Set(items.map(item => item.image).filter(Boolean))].slice(0,5),
     };

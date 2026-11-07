@@ -5,6 +5,7 @@
 - Show individual public watchlist categories before custom lists in Community. Connect accepts usernames, profile URLs, and drama-list URLs.
 - Restore the poster ratings toggle and preview in a dedicated tab alongside BetterPosters.
 - Prefer TMDB artwork for standard catalog posters when an IMDb match provides it.
+- Keep watchlist cards aligned with a thumbnail placeholder and remove their generated descriptions.
 
 ## 1.0.2
 
