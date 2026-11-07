@@ -2,7 +2,7 @@
 
 ## 1.0.4
 
-- Add three metadata variations: MyDramaList only, TMDB / MyDramaList (TMDB titles with MyDramaList descriptions), and TMDB only. Existing TMDB installs keep their previous fallback behavior.
+- Restore the 1.0.3 metadata choices: MyDramaList, or TMDB with MyDramaList filling in missing details.
 
 ## 1.0.3
 
