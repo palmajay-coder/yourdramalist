@@ -1,5 +1,5 @@
 import {TEXT as copy} from "./text.ts";
-import {betterPostersPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences} from "./preferences.ts";
+import {betterPostersPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
@@ -47,18 +47,36 @@ export function installPreferencesUI(api: {
   close.onclick = () => dialog.close();
   dialog.addEventListener("click", e => {if(e.target === dialog) {const r = dialog.getBoundingClientRect(); const m = e as MouseEvent; if(m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) dialog.close();}});
 
-  const metadata = node("section", "panel prefPanel");
+  const metadata = node("section", "panel prefPanel prefMetadataCard"); metadata.style.display = "block"; metadata.style.width = "100%";
   const metadataHeading = node("h2", "", copy.metadataProvider); metadataHeading.id = "prefMetadataHeading";
   const metadataNames: Record<MetadataProvider, string> = {mdl: copy.metadataMdl, tmdb: copy.metadataTmdb};
-  const metadataDescriptions: Record<MetadataProvider, string> = {mdl: copy.metadataMdlDescription, tmdb: copy.metadataTmdbDescription};
-  const metadataSelect = node("select", "prefSelect"); metadataSelect.id = "prefMetadataProvider";
+  const metadataChoices = node("div", "prefMetadataChoices"); metadataChoices.style.display = "block"; metadataChoices.style.width = "100%";
+  metadataChoices.setAttribute("role", "group"); metadataChoices.setAttribute("aria-labelledby", metadataHeading.id);
+  const metadataToggles: HTMLInputElement[] = [];
   for (const provider of ["mdl", "tmdb"] as const) {
-    const option = node("option", "", metadataNames[provider]); option.value = provider; metadataSelect.append(option);
+    const label = node("label", "prefSetting prefMetadataChoice"), text = node("span"), title = node("strong", "", metadataNames[provider]);
+    if (provider === "mdl") title.append(node("small", "", copy.metadataDefault));
+    text.append(title, paragraph(provider === "mdl" ? copy.metadataMdlDescription : copy.metadataTmdbDescription));
+    const toggle = node("input", "prefSwitch"); toggle.type = "checkbox"; toggle.value = provider; toggle.checked = prefs.metadataProvider === provider;
+    toggle.setAttribute("role", "switch"); toggle.setAttribute("aria-label", metadataNames[provider]); toggle.setAttribute("aria-checked", String(toggle.checked));
+    toggle.onchange = () => {
+      if (!toggle.checked) {toggle.checked = true; toggle.setAttribute("aria-checked", "true"); return;}
+      prefs.metadataProvider = provider;
+      for (const choice of metadataToggles) {choice.checked = choice.value === provider; choice.setAttribute("aria-checked", String(choice.checked));}
+      save();
+    };
+    metadataToggles.push(toggle); label.append(text, toggle); metadataChoices.append(label);
   }
-  metadataSelect.value = prefs.metadataProvider;
-  const metadataDescription = paragraph(metadataDescriptions[prefs.metadataProvider], "prefHelp");
-  metadataSelect.onchange = () => {prefs.metadataProvider = metadataSelect.value as MetadataProvider; metadataDescription.textContent = metadataDescriptions[prefs.metadataProvider]; save();};
-  metadata.append(metadataHeading, metadataSelect, metadataDescription); stack.append(metadata);
+  const languageField = node("div", "prefTmdbLanguage");
+  const languageLabel = node("label", "", copy.tmdbLanguageLabel); languageLabel.htmlFor = "prefTmdbLanguage";
+  const languageSelect = node("select", "prefSelect"); languageSelect.id = languageLabel.htmlFor;
+  for (const [code, label] of TMDB_LANGUAGES) {
+    const option = node("option", "", label); option.value = code; languageSelect.append(option);
+  }
+  languageSelect.value = prefs.tmdbLanguage;
+  languageField.append(languageLabel, languageSelect, paragraph(copy.tmdbLanguageDescription, "prefHelp"));
+  languageSelect.onchange = () => {prefs.tmdbLanguage = languageSelect.value as typeof prefs.tmdbLanguage; save();};
+  metadata.append(metadataHeading, metadataChoices, languageField); stack.append(metadata);
 
   const posters = {card: node("section", "panel prefPanel")};
   const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter};
@@ -136,6 +154,7 @@ export function installPreferencesUI(api: {
     image.src = samplePoster; posterCaption.textContent = copy.posterIllustrative; previewStatus.textContent = ""; render();
   }
   function render() {
+    languageField.hidden = prefs.metadataProvider !== "tmdb";
     reviewPreview.hidden = !prefs.reviews; reviews.toggle.setAttribute("aria-expanded", String(prefs.reviews)); reviews.toggle.setAttribute("aria-controls", reviewPreview.id);
     ratingsPanel.hidden = posterStyle !== "ratings"; betterOptions.hidden = posterStyle !== "better";
     shade.hidden = posterStyle !== "ratings" || !!objectUrl; badges.hidden = posterStyle !== "ratings" || !!objectUrl;
@@ -192,6 +211,7 @@ export function installPreferencesUI(api: {
       const row = node("div", "prefSummaryRow"); row.append(node("span", "", label), node("span", "", value ? copy.enabled : copy.disabled)); pCard.append(row);
     }
     const metadataSummary = node("div", "prefSummaryRow"); metadataSummary.append(node("span", "", copy.metadataProvider), node("span", "", metadataNames[prefs.metadataProvider])); pCard.append(metadataSummary);
+    if (prefs.metadataProvider === "tmdb") {const languageSummary = node("div", "prefSummaryRow"); languageSummary.append(node("span", "", copy.tmdbLanguageLabel), node("span", "", TMDB_LANGUAGES.find(([code]) => code === prefs.tmdbLanguage)?.[1] || "English")); pCard.append(languageSummary);}
     const artworkSummary = node("div", "prefSummaryRow"); artworkSummary.append(node("span", "", copy.posterArtwork), node("span", "", artworkNames[artworkMode()])); pCard.append(artworkSummary);
     if(artworkMode()==="ratings") pCard.append(paragraph(prefs.ratings.map(s => ratingNames[s]).join(" · "), "prefHelp"));
     s.append(pCard);
