@@ -1,4 +1,4 @@
-import {betterPostersPattern,posterPlusPattern,posterPlusImageUrl,normalizePreferences,preferenceIssue} from './preferences.ts';
+import {betterPostersPattern,posterPlusPattern,posterPlusImageUrl,rpdbApiKey,rpdbPosterUrl,normalizePreferences,preferenceIssue} from './preferences.ts';
 import {normalizeTitle,weeklyCatalog} from './collections.ts';
 import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
@@ -20,7 +20,8 @@ export function normalizeAddon(body:any){
  const keys={tmdb:String(body.keys?.tmdb||'').trim(),mdblist:String(body.keys?.mdblist||'').trim()};
  const betterPosters=betterPostersPattern(body.betterPosters);
  const posterPlus=posterPlusPattern(body.posterPlus);
- if((body.betterPosters && (!betterPosters || preferences.posters || posterPlus)) || (body.posterPlus && (!posterPlus || preferences.posters || betterPosters)) || preferenceIssue(preferences,keys))throw new InvalidConfig('preferences');
+ const rpdb = body.rpdb && typeof body.rpdb === 'object' ? rpdbApiKey(body.rpdb.apiKey) : '';
+ if((body.betterPosters && (!betterPosters || preferences.posters || posterPlus || rpdb)) || (body.posterPlus && (!posterPlus || preferences.posters || betterPosters || rpdb)) || (body.rpdb && (!rpdb || preferences.posters || betterPosters || posterPlus)) || preferenceIssue(preferences,keys))throw new InvalidConfig('preferences');
  const entries:Entry[]=body.catalogs.map((item:any)=>{
   const name=String(item.name||'').trim().slice(0,180);if(!name)throw new InvalidConfig('catalog-entry');
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
@@ -32,7 +33,7 @@ export function normalizeAddon(body:any){
   return{id,name,type:'series'};
  });
  if(new Set(entries.map(x=>x.id)).size!==entries.length)throw new InvalidConfig('duplicate-catalog');
- return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),...(posterPlus?{posterPlus}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
+ return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),...(posterPlus?{posterPlus}:{}),...(rpdb?{rpdb:{apiKey:rpdb}}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
 }
 export type AddonConfig=ReturnType<typeof normalizeAddon>;
 const encode=(value:Uint8Array)=>btoa(String.fromCharCode(...value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -48,7 +49,7 @@ export function makeManifest(config:AddonConfig){const language=config.preferenc
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
- const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus);
+ const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus),rpdbKey=rpdbApiKey((config as any).rpdb?.apiKey);
  // TMDB remains primary, with MDL filling in metadata TMDB does not provide.
  const metadataProvider=String((config.preferences as any).metadataProvider||"mdl");
  const tmdbMetadata=metadataProvider!=="mdl";
@@ -57,6 +58,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(!/^tt\d+$/.test(meta.id))return meta;
   if(pattern)return {...meta,poster:pattern.replace("{imdb_id}",meta.id)};
   if(plusPattern)return {...meta,poster:posterPlusImageUrl(plusPattern,meta)};
+  if(rpdbKey)return {...meta,poster:rpdbPosterUrl(rpdbKey,meta.id)};
   return meta;
  }
  if(entry.weekly){
@@ -87,7 +89,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  const selected=pool.slice(skip,skip+30),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg';metas[group[i].i]=meta;});}));
  const matched=metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&a.findIndex(y=>y?.id===x.id)===i);
- const standardPoster=!pattern&&!plusPattern&&!runtime.erdb;
+ const standardPoster=!pattern&&!plusPattern&&!rpdbKey&&!runtime.erdb;
  const artwork=deps.standardArtwork&&(standardPoster||tmdbMetadata)?await deps.standardArtwork(matched,{...artworkMetadata,metadata:tmdbMetadata,poster:standardPoster}):matched;
  return{metas:artwork.map(applyExternalPoster).filter(x=>x.poster)};
 }
