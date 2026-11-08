@@ -1,5 +1,5 @@
 import {TEXT as copy} from "./text.ts";
-import {betterPostersPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
+import {betterPostersPattern, posterPlusPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
@@ -79,28 +79,31 @@ export function installPreferencesUI(api: {
   metadata.append(metadataHeading, metadataChoices, languageField); stack.append(metadata);
 
   const posters = {card: node("section", "panel prefPanel")};
-  const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter};
-  let posterStyle: "standard" | "ratings" | "better" = prefs.posters ? "ratings" : "standard";
+  const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter, posterplus: copy.posterPlus};
+  let posterStyle: "standard" | "ratings" | "better" | "posterplus" = prefs.posters ? "ratings" : "standard";
   const artworkMode = () => posterStyle;
-  const artworkLabel = node("label", "", copy.posterArtwork); artworkLabel.htmlFor = "prefPosterStyle";
-  const artwork = node("select", "prefSelect"); artwork.id = artworkLabel.htmlFor;
-  for (const [value, label] of [["standard", copy.posterStandard], ["ratings", copy.posterRatingsTitle], ["better", copy.posterBetter]] as const) {
+  const artwork = node("select", "prefSelect"); artwork.id = "prefPosterStyle"; artwork.setAttribute("aria-label", copy.posterArtwork);
+  for (const [value, label] of [["standard", copy.posterStandard], ["ratings", copy.posterRatingsTitle], ["better", copy.posterBetter], ["posterplus", copy.posterPlus]] as const) {
     const option = node("option", "", label); option.value = value; artwork.append(option);
   }
   artwork.value = posterStyle;
   const ratingsPanel = node("div"); ratingsPanel.id = "prefRatingsPanel";
   ratingsPanel.append(paragraph(copy.posterRatingsDescription, "prefHelp"));
   const betterOptions = node("div"); betterOptions.id = "prefBetterPanel";
-  const betterFields = node("div", "prefKeyField"); betterOptions.append(betterFields);
-  const betterLabel = node("label", "", copy.posterBetterUrl); betterLabel.htmlFor = "prefBetterPosters";
-  const betterInput = node("input"); betterInput.id = betterLabel.htmlFor;
-  betterInput.type = "url"; betterInput.autocomplete = "off"; betterInput.spellcheck = false; betterInput.maxLength = 1200;
-  betterInput.placeholder = "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg";
-  const betterLink = node("a", "", copy.posterBetterLink);
-  betterLink.href = "https://btttr.cc/configure"; betterLink.target = "_blank"; betterLink.rel = "noopener noreferrer";
-  betterFields.append(betterLabel, betterInput, paragraph(copy.posterBetterHelp, "prefHelp"), betterLink);
-  posters.card.append(node("h2", "", copy.posterArtwork), paragraph(copy.posterArtworkDescription), artworkLabel, artwork, ratingsPanel, betterOptions); stack.append(posters.card);
-  const posterOptions = node("div", "prefPosterOptions"); posterOptions.id = "prefPosterOptions";
+  const posterPlusOptions = node("div"); posterPlusOptions.id = "prefPosterPlusPanel";
+  function providerUrlField(panel: HTMLElement, id: string, labelText: string, placeholder: string, helpText: string, configUrl: string) {
+    const field = node("div", "prefKeyField"), label = node("label", "", labelText); label.htmlFor = id;
+    const row = node("div", "prefProviderUrlRow"), input = node("input"); input.id = id; input.type = "url"; input.autocomplete = "off"; input.spellcheck = false; input.maxLength = 1200; input.placeholder = placeholder;
+    const config = button("⚙ " + copy.posterProviderConfig, "prefProviderConfig"); config.setAttribute("aria-label", copy.posterProviderConfig + " · " + labelText); config.onclick = () => window.open(configUrl, "_blank", "noopener,noreferrer");
+    const verify = button(copy.verifyPosterProvider, "secondary prefVerifyButton");
+    const status = paragraph("", "prefVerifyStatus"); status.setAttribute("role", "status");
+    field.append(label, row); row.append(input, config, verify); field.append(paragraph(helpText, "prefHelp"), status); panel.append(field);
+    return {input, verify, status};
+  }
+  const betterField = providerUrlField(betterOptions, "prefBetterPosters", copy.posterBetterUrl, "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg", copy.posterBetterHelp, "https://btttr.cc/configure");
+  const posterPlusField = providerUrlField(posterPlusOptions, "prefPosterPlus", copy.posterPlusUrl, "https://postersplus.stremio.ru/poster?tmdb_id={tmdb_id?}&imdb_id={imdb_id?}&stremio_id={id}&type={type}&shape={shape}&pc=stremio_tv_nuvio&tg=medium&bp=top_left&fti=1&mw=lb:.99,tk:.01&tw=tk:.8,rt:.2&fbs=photoreal&slr=1.20&shr=0.135&bdm=7&bms=5", copy.posterPlusHelp, "https://postersplus.stremio.ru/");
+  const posterStylePanels = node("div", "prefPosterStylePanels"); posterStylePanels.append(ratingsPanel, betterOptions, posterPlusOptions);
+  posters.card.append(node("h2", "", copy.posterArtwork), paragraph(copy.posterArtworkDescription), artwork, posterStylePanels); stack.append(posters.card);
   const keyFields = node("div", "prefKeys");
   const note = paragraph("", "prefKeysNote"); note.append(node("strong", "", copy.optionalLabel), document.createTextNode(" " + copy.posterKeysNote)); keyFields.append(note);
   function keyField(id: string, labelText: string, placeholder: string, href: string) {
@@ -116,6 +119,9 @@ export function installPreferencesUI(api: {
   }
   const tmdb = keyField("prefTmdb", copy.tmdbKeyLabel, copy.tmdbKeyPlaceholder, "https://www.themoviedb.org/settings/api");
   const mdblist = keyField("prefMdblist", copy.mdblistKeyLabel, copy.mdblistKeyPlaceholder, "https://mdblist.com/preferences/");
+  const ratingsVerify = button(copy.verifyPosterProvider, "secondary prefVerifyButton"); ratingsVerify.classList.add("prefRatingsVerify");
+  const ratingsStatus = paragraph("", "prefVerifyStatus"); ratingsStatus.setAttribute("role", "status");
+  ratingsPanel.append(keyFields, ratingsVerify, ratingsStatus);
   const posterContent = node("div", "prefPosterContent"), posterColumn = node("div"), frame = node("div", "prefPosterFrame");
   const image = node("img");
   const samplePoster = "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg";
@@ -137,8 +143,7 @@ export function installPreferencesUI(api: {
     label.append(input, document.createTextNode(ratingNames[source])); choices.append(label);
   }
   posterContent.append(posterColumn, choices);
-  const previewStatus = paragraph("", "prefHelp"); previewStatus.setAttribute("role", "status");
-  posterOptions.append(keyFields, posterContent, previewStatus); ratingsPanel.append(posterOptions);
+  posterStylePanels.append(posterContent);
   const filterCard = node("section", "panel prefPanel"); filterCard.append(node("h2", "", copy.titleFiltersTitle), paragraph(copy.titleFiltersDescription)); stack.append(filterCard);
   function filter(text: string, id: string, checked: boolean) {const label = node("label", "prefFilterRow"), input = node("input", "prefSwitch"); input.type = "checkbox"; input.id = id; input.checked = checked; label.append(node("span", "", text), input); filterCard.append(label); return input;}
   const unreleased = filter(copy.hideUnreleased, "prefUnreleased", prefs.hideUnreleased);
@@ -149,14 +154,46 @@ export function installPreferencesUI(api: {
   const keys = () => ({tmdb: tmdb.value.trim(), mdblist: mdblist.value.trim()});
   let request = 0, abort: AbortController | undefined, timer: ReturnType<typeof setTimeout> | undefined, objectUrl = "";
   function save() {try {savePreferences(localStorage, prefs);} catch {} error.textContent = ""; render();}
+  function setStatus(element: HTMLElement, text: string, state: "success" | "error" | "neutral") {
+    element.textContent = text; element.classList.remove("is-success", "is-error", "is-neutral"); element.classList.add("is-" + state);
+  }
+  function statusForFailure(element: HTMLElement, result: any) {
+    const code = typeof result?.diagnosticCode === "string" && /^YDL-[A-F0-9]{8}$/.test(result.diagnosticCode) ? result.diagnosticCode : "";
+    setStatus(element, copy.posterVerifyFailed + (code ? " " + copy.diagnosticCode + " " + code : ""), "error");
+  }
+  async function verifyProvider(provider: "ratings" | "better" | "posterplus") {
+    const field = provider === "better" ? betterField : provider === "posterplus" ? posterPlusField : null;
+    const status = field?.status || ratingsStatus, verify = field?.verify || ratingsVerify;
+    const pattern = provider === "better" ? betterPostersPattern(betterField.input.value) : provider === "posterplus" ? posterPlusPattern(posterPlusField.input.value) : "";
+    if(provider !== "ratings" && !pattern) {setStatus(status, provider === "better" ? copy.posterBetterInvalid : copy.posterPlusInvalid, "error"); (field as NonNullable<typeof field>).input.focus(); return;}
+    if(provider === "ratings" && preferenceIssue({...prefs,posters:true},keys())) {setStatus(status, copy.posterPreviewKeysInvalid, "error"); return;}
+    verify.disabled = true; setStatus(status, copy.posterVerifyChecking, "neutral");
+    request++; abort?.abort(); abort = new AbortController(); const current = request;
+    try {
+      const body = provider === "ratings" ? {provider, ...keys(), ratings:prefs.ratings} : {provider, pattern};
+      const response = await fetch("/api/preferences/poster-preview", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:abort.signal,cache:"no-store"});
+      if(current !== request) return;
+      if(!response.ok) {statusForFailure(status, await response.json().catch(()=>({}))); return;}
+      const blob = await response.blob(); if(current !== request) return;
+      if(objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = URL.createObjectURL(blob); image.src = objectUrl; posterCaption.textContent = copy.posterLivePreview;
+      setStatus(status, copy.posterVerifySuccess, "success"); render();
+    } catch(e) {
+      if(current !== request || (e as Error).name === "AbortError") return;
+      setStatus(status, copy.posterVerifyFailed, "error");
+    } finally {if(current === request) verify.disabled = false;}
+  }
   function invalidatePreview() {
     request++; abort?.abort(); clearTimeout(timer); if (objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = "";
-    image.src = samplePoster; posterCaption.textContent = copy.posterIllustrative; previewStatus.textContent = ""; render();
+    image.src = samplePoster; posterCaption.textContent = copy.posterIllustrative;
+    for(const status of [ratingsStatus,betterField.status,posterPlusField.status]) {status.textContent="";status.classList.remove("is-success","is-error","is-neutral");}
+    render();
   }
   function render() {
     languageField.hidden = prefs.metadataProvider !== "tmdb";
     reviewPreview.hidden = !prefs.reviews; reviews.toggle.setAttribute("aria-expanded", String(prefs.reviews)); reviews.toggle.setAttribute("aria-controls", reviewPreview.id);
-    ratingsPanel.hidden = posterStyle !== "ratings"; betterOptions.hidden = posterStyle !== "better";
+    ratingsPanel.hidden = posterStyle !== "ratings"; betterOptions.hidden = posterStyle !== "better"; posterPlusOptions.hidden = posterStyle !== "posterplus";
+    posterContent.hidden = posterStyle === "standard";
+    choices.hidden = posterStyle !== "ratings";
     shade.hidden = posterStyle !== "ratings" || !!objectUrl; badges.hidden = posterStyle !== "ratings" || !!objectUrl;
     for(const [source, element] of badgeElements) element.hidden = !prefs.ratings.includes(source);
     frame.setAttribute("aria-label", copy.posterPreviewLabel + ": " + copy.posterPreviewTitle + ". " + (posterStyle === "ratings" && prefs.ratings.length ? prefs.ratings.map(s => ratingNames[s]).join(", ") : posterStyle === "ratings" ? copy.posterPreviewNoBadges : artworkNames[posterStyle]));
@@ -168,15 +205,14 @@ export function installPreferencesUI(api: {
     timer = setTimeout(async () => {
       const id = ++request; abort?.abort(); abort = new AbortController();
       try {
-        const r = await fetch("/api/preferences/poster-preview", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({...keys(), ratings: prefs.ratings}), signal: abort.signal, cache: "no-store"});
+        const r = await fetch("/api/preferences/poster-preview", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({provider:"ratings",...keys(), ratings: prefs.ratings}), signal: abort.signal, cache: "no-store"});
         if (id !== request) return;
-        if (!r.ok) {const data = await r.json().catch(() => ({})); throw Object.assign(Error("preview"), {code: data.code});}
+        if (!r.ok) {const data = await r.json().catch(() => ({})); statusForFailure(ratingsStatus,data); return;}
         const blob = await r.blob(); if(id !== request) return;
-        objectUrl = URL.createObjectURL(blob); image.src = objectUrl; posterCaption.textContent = copy.posterLivePreview; render();
+        if(objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = URL.createObjectURL(blob); image.src = objectUrl; posterCaption.textContent = copy.posterLivePreview; setStatus(ratingsStatus,copy.posterVerifySuccess,"success"); render();
       } catch (e) {
         if(id !== request || (e as Error).name === "AbortError") return;
-        const code = (e as {code?: string}).code;
-        previewStatus.textContent = code === "keys" ? copy.posterPreviewKeysInvalid : code === "limit" ? copy.posterPreviewRateLimit : copy.posterPreviewUnavailable;
+        setStatus(ratingsStatus,copy.posterVerifyFailed,"error");
       }
     }, 650);
   }
@@ -187,13 +223,15 @@ export function installPreferencesUI(api: {
     prefs.posters = posterStyle === "ratings";
     error.textContent = ""; save(); invalidatePreview(); schedulePreview();
   };
-  betterInput.oninput = () => {error.textContent = "";};
-  const pattern = () => artworkMode() === "better" && betterInput.value.trim() ? betterPostersPattern(betterInput.value) : "";
-  const invalidPattern = () => artworkMode() === "better" && !pattern();
+  for(const input of [betterField.input,posterPlusField.input]) input.oninput = () => {error.textContent = ""; invalidatePreview();};
+  betterField.verify.onclick = () => verifyProvider("better"); posterPlusField.verify.onclick = () => verifyProvider("posterplus"); ratingsVerify.onclick = () => verifyProvider("ratings");
+  const pattern = () => artworkMode() === "better" && betterField.input.value.trim() ? betterPostersPattern(betterField.input.value) : "";
+  const plusPattern = () => artworkMode() === "posterplus" && posterPlusField.input.value.trim() ? posterPlusPattern(posterPlusField.input.value) : "";
+  const invalidPattern = () => artworkMode() === "better" ? !pattern() : artworkMode() === "posterplus" ? !plusPattern() : false;
   unreleased.onchange = () => {prefs.hideUnreleased = unreleased.checked; save();};
   completed.onchange = () => {prefs.hideCompleted = !!api.user() && completed.checked; save();};
   next.onclick = () => {
-    if (invalidPattern()) {error.textContent = copy.posterBetterInvalid; betterInput.focus(); return;}
+    if (invalidPattern()) {error.textContent = artworkMode()==="posterplus"?copy.posterPlusInvalid:copy.posterBetterInvalid; (artworkMode()==="posterplus"?posterPlusField.input:betterField.input).focus(); return;}
     const issue = preferenceIssue({...prefs, posters: artworkMode() === "ratings"}, keys());
     if(issue) {error.textContent = issue === "keys" ? copy.preferencesKeysRequired : copy.preferencesBadgesRequired; (issue === "keys" ? tmdb : choices.querySelector("input")!).focus(); return;}
     save(); api.navigate("confirm");
@@ -221,12 +259,12 @@ export function installPreferencesUI(api: {
     const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
-    if(artworkMode()==="better")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));confirm.append(manifest);
-    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
+    if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));confirm.append(manifest);
+    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");}
     async function prepare(){retry.hidden=true;status.textContent="";try{
-      if(invalidPattern()){status.textContent=copy.posterBetterInvalid;return;}
+      if(invalidPattern()){status.textContent=artworkMode()==="posterplus"?copy.posterPlusInvalid:copy.posterBetterInvalid;return;}
       if(preferenceIssue(data.preferences,keys()))throw Error("keys");
       if(signature===manifestSignature&&manifestValue){apply(manifestValue);return;}
       const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"}).catch(()=>null);
