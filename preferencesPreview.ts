@@ -1,4 +1,4 @@
-import {betterPostersPattern, posterPlusPattern, posterPlusImageUrl} from "./preferences.ts";
+import {betterPostersPattern, posterPlusPattern, posterPlusImageUrl, rpdbApiKey, rpdbPosterUrl} from "./preferences.ts";
 
 /** Stateless poster check. Credentials and patterns are never persisted or logged. */
 const SOURCES = ["letterboxd", "tomatoes", "imdb"];
@@ -6,7 +6,8 @@ const SAMPLE_IMDB_ID = "tt6751668"; // Parasite, also used by the EasyPosters pr
 type PreviewInput =
   | {provider: "ratings"; tmdb: string; mdblist: string; ratings: string[]}
   | {provider: "better"; pattern: string}
-  | {provider: "posterplus"; pattern: string};
+  | {provider: "posterplus"; pattern: string}
+  | {provider: "rpdb"; apiKey: string};
 
 export function parsePreviewInput(v: unknown): PreviewInput | null {
   if(!v || typeof v !== "object") return null;
@@ -25,6 +26,10 @@ export function parsePreviewInput(v: unknown): PreviewInput | null {
   if(b.provider === "posterplus") {
     const pattern = posterPlusPattern(b.pattern);
     return pattern ? {provider: "posterplus", pattern} : null;
+  }
+  if(b.provider === "rpdb") {
+    const apiKey = rpdbApiKey(b.apiKey);
+    return apiKey ? {provider: "rpdb", apiKey} : null;
   }
   return null;
 }
@@ -94,10 +99,16 @@ export function createPreviewHandler(fetcher: typeof fetch = fetch, now = Date.n
         if(!type) return diagnostic(input.provider, "not-an-image");
         return new Response(bytes, {headers: {...headers, "content-type": type, "x-ydl-poster-verified": "true"}});
       }
+      if(input.provider === "rpdb") {
+        const validation = await fetcher(`https://api.ratingposterdb.com/${input.apiKey}/isValid`, {signal: AbortSignal.timeout(10000), redirect: "error", headers: {Accept: "application/json"}, cache: "no-store"});
+        if(!validation.ok) {const status=validation.status; await validation.body?.cancel(); return diagnostic(input.provider, status === 403 ? "credentials-rejected" : status === 429 ? "provider-rate-limit" : "provider-response");}
+        await validation.body?.cancel();
+      }
       const url = input.provider === "better"
         ? input.pattern.replace("{imdb_id}", SAMPLE_IMDB_ID)
-        : posterPlusImageUrl(input.pattern, {id:SAMPLE_IMDB_ID,type:"movie",posterShape:"poster"});
-      const hosts = input.provider === "better" ? ["btttr.cc"] : ["postersplus.stremio.ru", "postersplus.elfhosted.com", "postersplus-assets.elfhosted.com"];
+        : input.provider === "posterplus" ? posterPlusImageUrl(input.pattern, {id:SAMPLE_IMDB_ID,type:"movie",posterShape:"poster"})
+        : rpdbPosterUrl(input.apiKey, SAMPLE_IMDB_ID);
+      const hosts = input.provider === "better" ? ["btttr.cc"] : input.provider === "posterplus" ? ["postersplus.stremio.ru", "postersplus.elfhosted.com", "postersplus-assets.elfhosted.com"] : ["api.ratingposterdb.com"];
       try {
         const {bytes,type} = await fetchImage(url, hosts, fetcher);
         return new Response(bytes, {headers: {...headers, "content-type": type, "x-ydl-poster-verified": "true"}});
