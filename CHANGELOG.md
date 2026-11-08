@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.8
+
+### What’s new
+
+- Swapped trending lists with seasonal lists. Featured lists will now curate based on the current season. Fall will have fall themed watchlists, winter will have winter themed etc.
+- Added dynamic themes to website. The site will now automatically change color themes based on what season it is. November will be fall colors, winter will be winter colors, spring will be green etc.
+
 ## 1.0.7
 
 ### What’s new
