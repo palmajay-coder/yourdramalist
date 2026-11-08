@@ -124,7 +124,7 @@ const pageForPath=${pageForPath.toString()};
 function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser});return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
 function navigate(page,push=true){
 if(['preferences','confirm'].includes(page)&&!state.selection.length)page='selection';
-currentPage=page;if(page==='selection')loadFeaturedBanner();document.body.dataset.page=page;$('landingFooter').hidden=page!=='landing';$('buildFooter').hidden=page==='landing';posterWall.update(page);requestAnimationFrame(alignSelection);
+currentPage=page;if(page==='selection')loadFeaturedBanner();document.body.dataset.page=page;$('landingFooter').hidden=page!=='connect';$('buildFooter').hidden=page==='landing';$('tmdb-attribution').hidden=page!=='landing';posterWall.update(page);requestAnimationFrame(alignSelection);
 $('landing').classList.toggle('hidden',page!=='landing');$('setup').classList.toggle('hidden',page==='landing');
 for(const id of ['connect','selection','preferences','confirm'])$(id).classList.toggle('hidden',page!==id);
 const order=['connect','selection','preferences','confirm'],index=order.indexOf(page);
