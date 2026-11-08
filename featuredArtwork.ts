@@ -29,7 +29,7 @@ async function enrichCard(card: FeaturedBannerData["featured"]) {
     return await Promise.race([
       (async () => {
         const list = await St(card.id, 1);
-        const items = list.items.slice(0, 3);
+        const items = list.items.slice(0, 5);
         const images = await Promise.all(items.map(async (item, index) => {
           const mdlImage = safeMdlPoster(item.image) || fallback[index] || "";
           if (!item.title || !Number.isInteger(item.year)) return mdlImage;
@@ -41,8 +41,11 @@ async function enrichCard(card: FeaturedBannerData["featured"]) {
           });
           return safeTmdbPoster(match.posterSource === "TMDB" ? match.poster : "") || mdlImage;
         }));
-        while (images.length < 3 && fallback[images.length]) images.push(fallback[images.length]);
-        return {...card, images: images.filter(Boolean).slice(0, 3)};
+        for (const image of fallback) {
+          if (images.filter(Boolean).length >= 5) break;
+          if (!images.includes(image)) images.push(image);
+        }
+        return {...card, images: images.filter(Boolean).slice(0, 5)};
       })(),
       new Promise<typeof original>(resolve => {
         timer = setTimeout(() => resolve(original), 10000);
