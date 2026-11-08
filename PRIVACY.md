@@ -26,7 +26,7 @@ When manifest setup fails on the server, YourDramaList shows a diagnostic code a
 
 ## Aggregate usage analytics
 
-YourDramaList stores daily aggregate counts for successful manifest generations, setup errors grouped by fixed category, selected built-in catalogs, and features included in generated manifests. These totals are not linked to individual visitors. The analytics data excludes search text, usernames, personal list URLs, API keys, manifest URLs, and visitor-level histories. Only the site owner can view the dashboard. Counts are retained for up to 180 days and use the America/Los_Angeles calendar day.
+YourDramaList stores daily aggregate counts for successful manifest generations, setup errors grouped by fixed category, selected built-in catalogs, and features included in generated manifests. These totals are not linked to individual visitors. The analytics data excludes search text, usernames, personal list URLs, API keys, manifest URLs, and visitor-level histories. Only the site owner can view the dashboard. Counts use the America/Los_Angeles calendar day; entries older than 180 days are cleared when analytics are next updated or viewed.
 
 Val Town may separately process request information to host and secure the service. This analytics dashboard does not include or replace hosting-platform request logs.
 
