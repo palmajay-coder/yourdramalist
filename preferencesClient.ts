@@ -1,5 +1,5 @@
 import {TEXT as copy} from "./text.ts";
-import {betterPostersPattern, posterPlusPattern, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
+import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
@@ -79,11 +79,11 @@ export function installPreferencesUI(api: {
   metadata.append(metadataHeading, metadataChoices, languageField); stack.append(metadata);
 
   const posters = {card: node("section", "panel prefPanel")};
-  const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter, posterplus: copy.posterPlus};
-  let posterStyle: "standard" | "ratings" | "better" | "posterplus" = prefs.posters ? "ratings" : "standard";
+  const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter, posterplus: copy.posterPlus, rpdb: copy.posterRpdb};
+  let posterStyle: "standard" | "ratings" | "better" | "posterplus" | "rpdb" = prefs.posters ? "ratings" : "standard";
   const artworkMode = () => posterStyle;
   const artwork = node("select", "prefSelect"); artwork.id = "prefPosterStyle"; artwork.setAttribute("aria-label", copy.posterArtwork);
-  for (const [value, label] of [["standard", copy.posterStandard], ["ratings", copy.posterRatingsTitle], ["better", copy.posterBetter], ["posterplus", copy.posterPlus]] as const) {
+  for (const [value, label] of [["standard", copy.posterStandard], ["ratings", copy.posterRatingsTitle], ["better", copy.posterBetter], ["posterplus", copy.posterPlus], ["rpdb", copy.posterRpdb]] as const) {
     const option = node("option", "", label); option.value = value; artwork.append(option);
   }
   artwork.value = posterStyle;
@@ -91,6 +91,7 @@ export function installPreferencesUI(api: {
   ratingsPanel.append(paragraph(copy.posterRatingsDescription, "prefHelp"));
   const betterOptions = node("div"); betterOptions.id = "prefBetterPanel";
   const posterPlusOptions = node("div"); posterPlusOptions.id = "prefPosterPlusPanel";
+  const rpdbOptions = node("div"); rpdbOptions.id = "prefRpdbPanel";
   function providerUrlField(panel: HTMLElement, id: string, labelText: string, placeholder: string, helpText: string, configUrl: string) {
     const field = node("div", "prefKeyField"), label = node("label", "", labelText); label.htmlFor = id;
     const row = node("div", "prefProviderUrlRow"), input = node("input"); input.id = id; input.type = "url"; input.autocomplete = "off"; input.spellcheck = false; input.maxLength = 1200; input.placeholder = placeholder;
@@ -102,7 +103,12 @@ export function installPreferencesUI(api: {
   }
   const betterField = providerUrlField(betterOptions, "prefBetterPosters", copy.posterBetterUrl, "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg", copy.posterBetterHelp, "https://btttr.cc/configure");
   const posterPlusField = providerUrlField(posterPlusOptions, "prefPosterPlus", copy.posterPlusUrl, "https://postersplus.stremio.ru/poster?tmdb_id={tmdb_id?}&imdb_id={imdb_id?}&stremio_id={id}&type={type}&shape={shape}&pc=stremio_tv_nuvio&tg=medium&bp=top_left&fti=1&mw=lb:.99,tk:.01&tw=tk:.8,rt:.2&fbs=photoreal&slr=1.20&shr=0.135&bdm=7&bms=5", copy.posterPlusHelp, "https://postersplus.stremio.ru/");
-  const posterStylePanels = node("div", "prefPosterStylePanels"); posterStylePanels.append(ratingsPanel, betterOptions, posterPlusOptions);
+  const rpdbFieldWrap = node("div", "prefKeyField"), rpdbHeading = node("div", "prefKeyHeading"), rpdbLabel = node("label", "", copy.posterRpdbKey), rpdbLink = node("a", "", copy.getApiKey);
+  rpdbLabel.htmlFor = "prefRpdbKey"; rpdbLink.href = "https://ratingposterdb.com/"; rpdbLink.target = "_blank"; rpdbLink.rel = "noopener noreferrer";
+  const rpdbRow = node("div", "prefProviderUrlRow"), rpdbInput = node("input"); rpdbInput.id = "prefRpdbKey"; rpdbInput.type = "password"; rpdbInput.autocomplete = "off"; rpdbInput.spellcheck = false; rpdbInput.maxLength = 200; rpdbInput.placeholder = copy.posterRpdbPlaceholder; rpdbInput.setAttribute("autocapitalize", "none");
+  const rpdbVerify = button(copy.verifyPosterProvider, "secondary prefVerifyButton"), rpdbStatus = paragraph("", "prefVerifyStatus"); rpdbStatus.setAttribute("role", "status");
+  rpdbHeading.append(rpdbLabel, rpdbLink); rpdbRow.append(rpdbInput, rpdbVerify); rpdbFieldWrap.append(rpdbHeading, rpdbRow, rpdbStatus); rpdbOptions.append(rpdbFieldWrap);
+  const posterStylePanels = node("div", "prefPosterStylePanels"); posterStylePanels.append(ratingsPanel, betterOptions, posterPlusOptions, rpdbOptions);
   posters.card.append(node("h2", "", copy.posterArtwork), paragraph(copy.posterArtworkDescription), artwork, posterStylePanels); stack.append(posters.card);
   const keyFields = node("div", "prefKeys");
   const note = paragraph("", "prefKeysNote"); note.append(node("strong", "", copy.optionalLabel), document.createTextNode(" " + copy.posterKeysNote)); keyFields.append(note);
@@ -161,16 +167,17 @@ export function installPreferencesUI(api: {
     const code = typeof result?.diagnosticCode === "string" && /^YDL-[A-F0-9]{8}$/.test(result.diagnosticCode) ? result.diagnosticCode : "";
     setStatus(element, copy.posterVerifyFailed + (code ? " " + copy.diagnosticCode + " " + code : ""), "error");
   }
-  async function verifyProvider(provider: "ratings" | "better" | "posterplus") {
-    const field = provider === "better" ? betterField : provider === "posterplus" ? posterPlusField : null;
+  async function verifyProvider(provider: "ratings" | "better" | "posterplus" | "rpdb") {
+    const field = provider === "better" ? betterField : provider === "posterplus" ? posterPlusField : provider === "rpdb" ? {input:rpdbInput,verify:rpdbVerify,status:rpdbStatus} : null;
     const status = field?.status || ratingsStatus, verify = field?.verify || ratingsVerify;
     const pattern = provider === "better" ? betterPostersPattern(betterField.input.value) : provider === "posterplus" ? posterPlusPattern(posterPlusField.input.value) : "";
-    if(provider !== "ratings" && !pattern) {setStatus(status, provider === "better" ? copy.posterBetterInvalid : copy.posterPlusInvalid, "error"); (field as NonNullable<typeof field>).input.focus(); return;}
+    if(provider === "rpdb" && !rpdbApiKey(rpdbInput.value)) {setStatus(status, copy.posterRpdbInvalid, "error"); rpdbInput.focus(); return;}
+    if(provider !== "ratings" && provider !== "rpdb" && !pattern) {setStatus(status, provider === "better" ? copy.posterBetterInvalid : copy.posterPlusInvalid, "error"); (field as NonNullable<typeof field>).input.focus(); return;}
     if(provider === "ratings" && preferenceIssue({...prefs,posters:true},keys())) {setStatus(status, copy.posterPreviewKeysInvalid, "error"); return;}
     verify.disabled = true; setStatus(status, copy.posterVerifyChecking, "neutral");
     request++; abort?.abort(); abort = new AbortController(); const current = request;
     try {
-      const body = provider === "ratings" ? {provider, ...keys(), ratings:prefs.ratings} : {provider, pattern};
+      const body = provider === "ratings" ? {provider, ...keys(), ratings:prefs.ratings} : provider === "rpdb" ? {provider, apiKey:rpdbApiKey(rpdbInput.value)} : {provider, pattern};
       const response = await fetch("/api/preferences/poster-preview", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:abort.signal,cache:"no-store"});
       if(current !== request) return;
       if(!response.ok) {statusForFailure(status, await response.json().catch(()=>({}))); return;}
@@ -185,13 +192,13 @@ export function installPreferencesUI(api: {
   function invalidatePreview() {
     request++; abort?.abort(); clearTimeout(timer); if (objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = "";
     image.src = samplePoster; posterCaption.textContent = copy.posterIllustrative;
-    for(const status of [ratingsStatus,betterField.status,posterPlusField.status]) {status.textContent="";status.classList.remove("is-success","is-error","is-neutral");}
+    for(const status of [ratingsStatus,betterField.status,posterPlusField.status,rpdbStatus]) {status.textContent="";status.classList.remove("is-success","is-error","is-neutral");}
     render();
   }
   function render() {
     languageField.hidden = prefs.metadataProvider !== "tmdb";
     reviewPreview.hidden = !prefs.reviews; reviews.toggle.setAttribute("aria-expanded", String(prefs.reviews)); reviews.toggle.setAttribute("aria-controls", reviewPreview.id);
-    ratingsPanel.hidden = posterStyle !== "ratings"; betterOptions.hidden = posterStyle !== "better"; posterPlusOptions.hidden = posterStyle !== "posterplus";
+    ratingsPanel.hidden = posterStyle !== "ratings"; betterOptions.hidden = posterStyle !== "better"; posterPlusOptions.hidden = posterStyle !== "posterplus"; rpdbOptions.hidden = posterStyle !== "rpdb";
     posterContent.hidden = posterStyle === "standard";
     choices.hidden = posterStyle !== "ratings";
     shade.hidden = posterStyle !== "ratings" || !!objectUrl; badges.hidden = posterStyle !== "ratings" || !!objectUrl;
@@ -223,15 +230,16 @@ export function installPreferencesUI(api: {
     prefs.posters = posterStyle === "ratings";
     error.textContent = ""; save(); invalidatePreview(); schedulePreview();
   };
-  for(const input of [betterField.input,posterPlusField.input]) input.oninput = () => {error.textContent = ""; invalidatePreview();};
-  betterField.verify.onclick = () => verifyProvider("better"); posterPlusField.verify.onclick = () => verifyProvider("posterplus"); ratingsVerify.onclick = () => verifyProvider("ratings");
+  for(const input of [betterField.input,posterPlusField.input,rpdbInput]) input.oninput = () => {error.textContent = ""; invalidatePreview();};
+  betterField.verify.onclick = () => verifyProvider("better"); posterPlusField.verify.onclick = () => verifyProvider("posterplus"); rpdbVerify.onclick = () => verifyProvider("rpdb"); ratingsVerify.onclick = () => verifyProvider("ratings");
   const pattern = () => artworkMode() === "better" && betterField.input.value.trim() ? betterPostersPattern(betterField.input.value) : "";
   const plusPattern = () => artworkMode() === "posterplus" && posterPlusField.input.value.trim() ? posterPlusPattern(posterPlusField.input.value) : "";
-  const invalidPattern = () => artworkMode() === "better" ? !pattern() : artworkMode() === "posterplus" ? !plusPattern() : false;
+  const rpdbKey = () => artworkMode() === "rpdb" ? rpdbApiKey(rpdbInput.value) : "";
+  const invalidPattern = () => artworkMode() === "better" ? !pattern() : artworkMode() === "posterplus" ? !plusPattern() : artworkMode() === "rpdb" ? !rpdbKey() : false;
   unreleased.onchange = () => {prefs.hideUnreleased = unreleased.checked; save();};
   completed.onchange = () => {prefs.hideCompleted = !!api.user() && completed.checked; save();};
   next.onclick = () => {
-    if (invalidPattern()) {error.textContent = artworkMode()==="posterplus"?copy.posterPlusInvalid:copy.posterBetterInvalid; (artworkMode()==="posterplus"?posterPlusField.input:betterField.input).focus(); return;}
+    if (invalidPattern()) {error.textContent = artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid; (artworkMode()==="posterplus"?posterPlusField.input:artworkMode()==="rpdb"?rpdbInput:betterField.input).focus(); return;}
     const issue = preferenceIssue({...prefs, posters: artworkMode() === "ratings"}, keys());
     if(issue) {error.textContent = issue === "keys" ? copy.preferencesKeysRequired : copy.preferencesBadgesRequired; (issue === "keys" ? tmdb : choices.querySelector("input")!).focus(); return;}
     save(); api.navigate("confirm");
@@ -259,12 +267,13 @@ export function installPreferencesUI(api: {
     const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
-    if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));confirm.append(manifest);
-    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
+    if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));
+    if(artworkMode()==="rpdb")manifest.append(paragraph(copy.posterRpdbPrivacy,"prefHelp"));confirm.append(manifest);
+    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl})=>({name,url,kind,category,country,slot,mode,personUrl})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),rpdb:artworkMode()==="rpdb"?{apiKey:rpdbKey()}:undefined,keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");}
     async function prepare(){retry.hidden=true;status.textContent="";try{
-      if(invalidPattern()){status.textContent=artworkMode()==="posterplus"?copy.posterPlusInvalid:copy.posterBetterInvalid;return;}
+      if(invalidPattern()){status.textContent=artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid;return;}
       if(preferenceIssue(data.preferences,keys()))throw Error("keys");
       if(signature===manifestSignature&&manifestValue){apply(manifestValue);return;}
       const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"}).catch(()=>null);
