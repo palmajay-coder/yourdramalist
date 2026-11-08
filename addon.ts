@@ -1,4 +1,4 @@
-import {betterPostersPattern,normalizePreferences,preferenceIssue} from './preferences.ts';
+import {betterPostersPattern,posterPlusPattern,posterPlusImageUrl,normalizePreferences,preferenceIssue} from './preferences.ts';
 import {normalizeTitle,weeklyCatalog} from './collections.ts';
 import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
@@ -19,7 +19,8 @@ export function normalizeAddon(body:any){
  const preferences=normalizePreferences(body.preferences),user=/^[a-zA-Z0-9_-]{1,60}$/.test(body.user||'')?body.user:'';
  const keys={tmdb:String(body.keys?.tmdb||'').trim(),mdblist:String(body.keys?.mdblist||'').trim()};
  const betterPosters=betterPostersPattern(body.betterPosters);
- if((body.betterPosters && (!betterPosters || preferences.posters)) || preferenceIssue(preferences,keys))throw new InvalidConfig('preferences');
+ const posterPlus=posterPlusPattern(body.posterPlus);
+ if((body.betterPosters && (!betterPosters || preferences.posters || posterPlus)) || (body.posterPlus && (!posterPlus || preferences.posters || betterPosters)) || preferenceIssue(preferences,keys))throw new InvalidConfig('preferences');
  const entries:Entry[]=body.catalogs.map((item:any)=>{
   const name=String(item.name||'').trim().slice(0,180);if(!name)throw new InvalidConfig('catalog-entry');
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
@@ -31,7 +32,7 @@ export function normalizeAddon(body:any){
   return{id,name,type:'series'};
  });
  if(new Set(entries.map(x=>x.id)).size!==entries.length)throw new InvalidConfig('duplicate-catalog');
- return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
+ return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),...(posterPlus?{posterPlus}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
 }
 export type AddonConfig=ReturnType<typeof normalizeAddon>;
 const encode=(value:Uint8Array)=>btoa(String.fromCharCode(...value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -47,13 +48,16 @@ export function makeManifest(config:AddonConfig){const language=config.preferenc
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
- const pattern=betterPostersPattern(config.betterPosters);
+ const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus);
  // TMDB remains primary, with MDL filling in metadata TMDB does not provide.
  const metadataProvider=String((config.preferences as any).metadataProvider||"mdl");
  const tmdbMetadata=metadataProvider!=="mdl";
  const artworkMetadata={metadata:true,poster:false,descriptionSource:"tmdb",clearMissingMetadata:false,language:config.preferences.tmdbLanguage};
- function applyBetter<T extends {id:string;poster?:string}>(meta:T):T {
-  return pattern && /^tt\d+$/.test(meta.id) ? {...meta,poster:pattern.replace("{imdb_id}",meta.id)} : meta;
+ function applyExternalPoster<T extends {id:string;poster?:string;type?:string}>(meta:T):T {
+  if(!/^tt\d+$/.test(meta.id))return meta;
+  if(pattern)return {...meta,poster:pattern.replace("{imdb_id}",meta.id)};
+  if(plusPattern)return {...meta,poster:posterPlusImageUrl(plusPattern,meta)};
+  return meta;
  }
  if(entry.weekly){
   const data=await (deps as any).weekly?.(entry.weekly.country)??await collections.weekly(entry.weekly.country);
@@ -63,7 +67,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
    const hidden=[...(watched[2]||[]),...(watched[5]||[])];
    items=items.filter((item:any)=>!hidden.some((x:any)=>x.title&&normalizeTitle(x.title)===normalizeTitle(item.name)&&(!x.year||String(x.year)===item.date.slice(0,4))));
   }
-  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyBetter);
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  let pool:any[];
@@ -83,9 +87,9 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  const selected=pool.slice(skip,skip+30),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg';metas[group[i].i]=meta;});}));
  const matched=metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&a.findIndex(y=>y?.id===x.id)===i);
- const standardPoster=!pattern&&!runtime.erdb;
+ const standardPoster=!pattern&&!plusPattern&&!runtime.erdb;
  const artwork=deps.standardArtwork&&(standardPoster||tmdbMetadata)?await deps.standardArtwork(matched,{...artworkMetadata,metadata:tmdbMetadata,poster:standardPoster}):matched;
- return{metas:artwork.map(applyBetter).filter(x=>x.poster)};
+ return{metas:artwork.map(applyExternalPoster).filter(x=>x.poster)};
 }
 let active=0,created:number[]=[];
 async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw RangeError('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}
