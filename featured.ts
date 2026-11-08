@@ -82,9 +82,12 @@ function extractBanners(html: string, previous: Record<string, {lineup: string; 
   return {featured, picks, slides: [featured, ...Object.values(picks).map(pick => pick.card)]};
 }
 
+export type FeaturedBannerData = ReturnType<typeof extractBanners>;
+
 export function createFeaturedService(
   storage?: {load: () => Promise<any>; save: (value: any) => Promise<any>},
   fetcher: typeof fetch = fetch, now = Date.now, random = Math.random,
+  enrich: (data: FeaturedBannerData) => Promise<FeaturedBannerData> = async data => data,
 ) {
   let entry: any = null;
   let ready: Promise<void> | undefined;
@@ -141,7 +144,8 @@ export function createFeaturedService(
           html += decoder.decode();
         } finally { await reader.cancel().catch(() => {}); }
         if (/cf-chl-|Just a moment|\/cdn-cgi\/challenge-platform/i.test(html)) throw Error("MDL access restricted.");
-        const data = extractBanners(html, old?.picks, random);
+        let data = extractBanners(html, old?.picks, random);
+        try { data = await enrich(data); } catch { /* Keep the original MyDramaList banner art. */ }
         entry = {data: data.featured, slides: data.slides, picks: data.picks, at: now(), expires};
       } catch {
         entry = {data: old?.data ?? null, slides: old?.slides ?? (old?.data ? [old.data] : []),
