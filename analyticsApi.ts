@@ -31,7 +31,8 @@ async function ready(){
     day TEXT NOT NULL, metric TEXT NOT NULL, category TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY(day, metric, category)
   )`).then(()=>{});
-  await schema;
+  try{await schema}catch(error){schema=undefined;throw error;}
+  await sqlite.execute({sql:"DELETE FROM ydl_daily_analytics WHERE day < ?",args:[shiftDay(dayKey(),-180)]});
 }
 function dayKey(now=Date.now()){
   return pacificDate(now).date.toISOString().slice(0,10);
@@ -56,8 +57,6 @@ export async function recordAnalyticsBatch(items:Array<[AnalyticsMetric,string,n
     const day=dayKey();
     await sqlite.batch([...counts.values()].map(({metric,category,count})=>({sql:`INSERT INTO ydl_daily_analytics(day,metric,category,count) VALUES(?,?,?,?)
       ON CONFLICT(day,metric,category) DO UPDATE SET count=count+excluded.count`,args:[day,metric,category,count]})));
-    const cutoff=shiftDay(day,-180);
-    await sqlite.execute({sql:"DELETE FROM ydl_daily_analytics WHERE day < ?",args:[cutoff]});
   }catch{/* Analytics storage must never prevent a manifest or UI request from succeeding. */}
 }
 
