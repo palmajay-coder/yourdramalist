@@ -9,6 +9,7 @@ import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
+import {recordAnalytics,recordAnalyticsBatch,type AnalyticsMetric} from './analyticsApi.ts';
 type Entry={id:string;name:string;type:'series'|'movie';watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
@@ -98,8 +99,9 @@ async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if
 export async function handleAddon(req:Request){
  const u=new URL(req.url),headers={'cache-control':'no-store','referrer-policy':'no-referrer'},fail=(error:string,status=400)=>Response.json({error},{status,headers});
  if(u.pathname==='/api/addon/configure'){
-  const diagnose=(error:string,status:number,category:string=error)=>{
+  const diagnose=async(error:string,status:number,category:string=error)=>{
    const diagnosticCode='YDL-'+crypto.randomUUID().slice(0,8).toUpperCase();
+   await recordAnalytics('manifest.error',category);
    console.warn(JSON.stringify({diagnosticCode,timestamp:new Date().toISOString(),category}));
    return Response.json({error,diagnosticCode},{status,headers});
   };
@@ -117,6 +119,20 @@ export async function handleAddon(req:Request){
   created.push(Date.now());
   try{
    const token=await tokens().seal(config);
+   const counts:Array<[AnalyticsMetric,string,number]>=[['manifest.generated','all',1]];
+   for(const entry of config.entries){
+    if(entry.weekly)counts.push(['catalog.selected',`weekly:${entry.weekly.slot}`,1]);
+    else if(entry.explore)counts.push(['catalog.selected',`explore:${entry.explore.category}:${entry.explore.country||'all'}`,1]);
+    else if(entry.person)counts.push(['feature.selected',entry.mode==='director'?'director-filmography':'actor-filmography',1]);
+    else if(entry.watchlist)counts.push(['feature.selected',entry.watchlistAll?'community-combined-watchlist':'community-watchlist',1]);
+    else counts.push(['feature.selected','community-public-list',1]);
+   }
+   const prefs=config.preferences as any;
+   counts.push(['feature.selected',prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl',1]);
+   const posterStyle=config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb';
+   counts.push(['feature.selected',posterStyle,1]);
+   for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)counts.push(['feature.selected',category,1]);}
+   await recordAnalyticsBatch(counts);
    return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});
   }catch{return diagnose('configuration',400,'manifest-generation');}
  }
