@@ -1,13 +1,21 @@
 # Changelog
 
+## 1.0.6
+
+### Fixes and improvements
+
+- Fixed a issue where manifest url for Posters+ was not working for https://postersplus.stremio.ru/
+
 ## 1.0.5
 
-- Added support for 17 languages when selecting TMDB for Metadata, catalogs and titles now display a user's desired language. 
-- Apply the selected language to TMDB metadata requests and keep cached results separate by language.
+- Add a TMDB language preference so catalog rows can match the language selected in Nuvio.
+- Apply the selected language to TMDB catalog metadata requests and keep cached results separate by language.
+- Localize generated weekly catalog names and country labels with the selected TMDB language.
+- Localize generated Explore, country, watchlist, and filmography catalog names too; keep user-authored MyDramaList list names unchanged.
 
 ## 1.0.4
 
-- Revamped the Poster settings in Preferences to include drop downs list of different providers (i.e TMDB Posters (Default), Easy Posters, Better Posters. more providers to come.) 
+- Restore the 1.0.3 metadata choices: MyDramaList, or TMDB with MyDramaList filling in missing details.
 
 ## 1.0.3
 
