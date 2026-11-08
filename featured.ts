@@ -22,7 +22,7 @@ function posters($: CheerioAPI, box: Cheerio<AnyNode>) {
       const url = new URL(img.attr("data-src") || img.attr("src") || "", origin);
       if (url.origin === "https://i.mydramalist.com" && !url.username && !url.password) images.add(url.href);
     } catch { /* Ignore invalid poster links. */ }
-    if (images.size === 3) break;
+    if (images.size === 5) break;
   }
   return [...images];
 }
