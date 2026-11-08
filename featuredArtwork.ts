@@ -1,6 +1,6 @@
 import {St} from "./addonScrape.ts";
 import {collections} from "./collectionService.ts";
-import type {FeaturedBannerData} from "./featured.ts";
+import type {BannerCard, FeaturedBannerData} from "./featured.ts";
 
 function safeMdlPoster(value: unknown): string {
   if (typeof value !== "string") return "";
@@ -21,7 +21,7 @@ function safeTmdbPoster(value: unknown): string {
   } catch { return ""; }
 }
 
-async function enrichCard(card: FeaturedBannerData["featured"]) {
+async function enrichCard(card: BannerCard): Promise<BannerCard> {
   const fallback = card.images.map(safeMdlPoster).filter(Boolean);
   const original = {...card, images: fallback.length ? fallback : card.images};
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -62,10 +62,6 @@ async function enrichCard(card: FeaturedBannerData["featured"]) {
 export async function enrichFeaturedArtwork(data: FeaturedBannerData): Promise<FeaturedBannerData> {
   const enhanced = await Promise.all(data.slides.map(enrichCard));
   const byId = new Map(enhanced.map(card => [card.id, card]));
-  const featured = byId.get(data.featured.id) || data.featured;
-  const picks = Object.fromEntries(Object.entries(data.picks).map(([key, pick]) => [key, {
-    ...pick,
-    card: byId.get(pick.card.id) || pick.card,
-  }]));
-  return {featured, picks, slides: data.slides.map(card => byId.get(card.id) || card)};
+  const slides = data.slides.map(card => byId.get(card.id) || card);
+  return {...data, featured: slides[0] || null, slides};
 }
