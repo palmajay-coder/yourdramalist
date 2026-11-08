@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7
+
+### What’s new
+
+- Added RPDB as a poster style. Enter and verify an API key, then preview the RPDB poster.
+
 ## 1.0.6
 
 ### Fixes and improvements
