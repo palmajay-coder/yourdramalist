@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.7";
-export const DISPLAY_VERSION = "1.0.7 BETA";
+export const APP_VERSION = "1.0.8";
+export const DISPLAY_VERSION = "1.0.8 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -144,8 +144,17 @@ export const TEXT = {
   findLists: "Find My Lists →",
   or: "OR",
   skipAccount: "Continue without an account →",
-  listsTitle: "Choose your lists",
-  listsDescription: "Explore MyDramaList and start building your catalog.",
+  listsTitle: "Fall is here.",
+  listsDescription: "Your sweater-weather lineup is ready.",
+  seasonalBannerCopy: {
+    fall: {title: "Fall is here.", description: "Your sweater-weather lineup is ready."},
+    winter: {title: "Snowed In. Feelings Out.", description: "Snow outside. Be in your feels inside."},
+    spring: {title: "Spring Has Sprung. So Have the Feelings.", description: "Cherry blossoms, gentle breezes, and love blossoming."},
+    summer: {title: "Hot Weather. Hotter Messes.", description: "Your summer plans can wait. The next episode can’t."},
+  },
+  featuredListLabel: "Featured List",
+  featuredListAdd: "Add list to selection",
+  featuredListAdded: "Added to selection",
   profilesTab: "Community",
   communityListTypes: "Community list types",
   communityWatchlists: "Watchlists",
