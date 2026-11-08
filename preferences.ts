@@ -105,6 +105,17 @@ export function posterPlusImageUrl(value: unknown, meta: {id: string; type?: str
   }
   return url.href;
 }
+export function rpdbApiKey(value: unknown): string {
+  if (typeof value !== "string" || value.length > 200) return "";
+  const key = value.trim();
+  return /^[a-zA-Z0-9_-]{8,200}$/.test(key) ? key : "";
+}
+export function rpdbPosterUrl(key: unknown, id: string): string {
+  const apiKey = rpdbApiKey(key);
+  return apiKey && /^tt\d+$/.test(id)
+    ? `https://api.ratingposterdb.com/${apiKey}/imdb/poster-default/${id}.jpg?fallback=true`
+    : "";
+}
 export function pageForPath(path: string) {
   return path === "/setup/preferences" ? "preferences"
     : path === "/setup/confirm" ? "confirm"
