@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.6";
-export const DISPLAY_VERSION = "1.0.6 BETA";
+export const APP_VERSION = "1.0.7";
+export const DISPLAY_VERSION = "1.0.7 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -71,6 +71,11 @@ export const TEXT = {
   posterBetter: "BetterPosters",
   posterBetterUrl: "BetterPosters URL",
   posterPlus: "Poster+",
+  posterRpdb: "RPDB",
+  posterRpdbKey: "RPDB API key",
+  posterRpdbPlaceholder: "Enter your RPDB key",
+  posterRpdbInvalid: "Enter a valid RPDB API key.",
+  posterRpdbPrivacy: "Your RPDB key is included in poster URLs sent to Nuvio.",
   posterPlusUrl: "Poster+ URL",
   posterPlusHelp: "Paste a Poster+ URL pattern. Keep its type, shape, and ID placeholders.",
   posterPlusInvalid: "Enter a Poster+ URL pattern with type, shape, and an IMDb or TMDB ID placeholder.",
