@@ -2,7 +2,7 @@ import {TEXT as copy} from "./text.ts";
 import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
-/** Keys live only in these inputs/closures, never storage, URLs, summaries or logs. */
+/** Keys are never saved to browser storage or logs. RPDB keys are included in its poster URLs. */
 export function installPreferencesUI(api: {
   navigate: (page: string) => void;
   selection: () => {name: string; [key: string]: unknown}[];
