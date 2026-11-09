@@ -11,13 +11,16 @@
 - Genres come from TMDB. Romance, Thriller, Horror and Historical are filled in from TMDB's tags for dramas, since TMDB's TV genres leave them out.
 - Added an Errors section to the admin page. Paste a diagnostic code a user sends you to see what went wrong and how to fix it. Setup and poster check errors now live in one place, with a guide to every error type and a "Needs your attention" alert for errors only the site owner can fix.
 
-### Fixes and improvements
+### Bug fixes
 
 - Fixed an issue where some older movies opened the wrong title in Nuvio when an upcoming movie shared the same name (for example Pulse (2001), City on Fire (1987) and From Me to You (2010)). Titles now match the release year from MyDramaList, and TMDB is checked when the years disagree.
 - Fixed an issue where adding more than 40 catalogs from Discover or the weekly picks would fail at the last step with an "Unable to prepare your manifest" error. The site now stops you at 60 and lets you know right away.
+- Catalog rows further down your Nuvio home screen now load on the first pass instead of waiting until you scroll to them.
+
+### Improvements
+
 - The Confirm page now tells you how many catalogs to remove if your selection goes over the limit.
 - Manifest errors now explain what to change when a setup has too many catalogs or makes an install link that is too long.
-- Catalog rows further down your Nuvio home screen now load on the first pass instead of waiting until you scroll to them.
 - The catalog limit pop-up now has its own heading ("Catalog limit reached") instead of "Please wait."
 - Error records are now kept for 30 days so codes can be looked up later. The privacy page explains what an error record contains.
 
@@ -36,11 +39,13 @@
 
 ## 1.0.6
 
-### Fixes and improvements
+### Bug fixes
 
 - Fixed a issue where manifest url for Posters+ was not working for https://postersplus.stremio.ru/
 
 ## 1.0.5
+
+### What’s new
 
 - Add a TMDB language preference so catalog rows can match the language selected in Nuvio.
 - Apply the selected language to TMDB catalog metadata requests and keep cached results separate by language.
@@ -49,22 +54,36 @@
 
 ## 1.0.4
 
+### Bug fixes
+
 - Restore the 1.0.3 metadata choices: MyDramaList, or TMDB with MyDramaList filling in missing details.
 
 ## 1.0.3
 
+### What’s new
+
 - Let users import watchlists and organized watchlists and personal lists into their own tabs.
 - Added a Select all button to add all catalogs at once.
 - Added poster ratings toggle and put BetterPosters into it's own tab.
-- Prefer TMDB artwork for standard posters when an IMDb match provides it for to solve blurry and low-res poster issues.
 - Added a Metadata sections for users to choose MyDramaList as their metadata provider or TMDB (i.e localization). TMDB will fall back to MyDramaList when metadata is missing.
+
+### Improvements
+
+- Prefer TMDB artwork for standard posters when an IMDb match provides it for to solve blurry and low-res poster issues.
 
 ## 1.0.2
 
-- Fix manifest issue for built-in user watchlists. 
+### What’s new
+
 - Add BetterPosters as an optional artwork provider for YDL catalogs. Paste a BetterPosters poster URL pattern in Preferences and generate a new install link.
 
+### Bug fixes
+
+- Fix manifest issue for built-in user watchlists.
+
 ## 1.0.1
+
+### Improvements
 
 - Show a diagnostic code when the server rejects a manifest request. The matching server log records only the code, time, and failure category.
 - Show a separate connection message when the browser cannot reach the server.
@@ -72,6 +91,8 @@
 ## 1.0.0
 
 First stable release of YourDramaList.
+
+### What’s new
 
 - Browse country catalogs and weekly collections, and add actor and director filmographies.
 - Cycle through Featured, Recent Activity and Trending lists in the setup banner. The banner refreshes at midnight Pacific, and weekly collections refresh on Mondays at midnight Pacific.
