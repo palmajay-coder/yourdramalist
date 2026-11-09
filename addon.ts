@@ -19,8 +19,8 @@ class InvalidConfig extends Error {
 }
 /** Adds a validated shelf filter to a watchlist or list entry, with its own catalog id and label. */
 function withFilter(entry:Entry,raw:unknown):Entry{
- const filter=normalizeShelfFilter(raw);if(!filter)return entry;
- const label=shelfFilterLabel(filter),suffix=' · '+label;
+ const filter=entry.watchlistAll?null:normalizeShelfFilter(raw);if(!filter)return entry;
+ const label=shelfFilterLabel(filter),suffix=': '+label;
  const name=entry.name.endsWith(suffix)?entry.name.slice(0,-suffix.length).trim()||entry.name:entry.name;
  return{...entry,id:entry.id+':f'+shelfFilterKey(filter),name,filter,filterLabel:label};
 }
@@ -55,7 +55,7 @@ export function createTokenCodec(secret:string){
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
-export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language)+(e.filterLabel?' · '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,mdlPoster:loadMDLTitlePoster}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);

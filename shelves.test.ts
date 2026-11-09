@@ -32,9 +32,11 @@ await test("filter values are cleaned and labelled consistently",()=>{
  assert(normalizeShelfFilter({type:"tv",countries:["XX"],genres:["Fake"],sort:"random"})===null,"unknown values should drop");
  const f=normalizeShelfFilter({type:"drama",countries:["KR"],genres:["Romance"],from:"2024",to:"2018",sort:"newest"})!;
  assert(f.from===2018&&f.to===2024,"years should swap into order");
- assert(shelfFilterLabel(f)==="Korean · Dramas · Romance · 2018–2024 · Newest first","label: "+shelfFilterLabel(f));
+ assert(shelfFilterLabel(f)==="Korean Romance Dramas, 2018–2024, Newest first","label: "+shelfFilterLabel(f));
  assert(shelfFilterKey(f)===shelfFilterKey(normalizeShelfFilter({sort:"newest",to:2024,from:2018,genres:["Romance"],countries:["KR"],type:"drama"})),"key should not depend on order");
  assert(shelfFilterKey(f)!==shelfFilterKey(normalizeShelfFilter({type:"movie"})),"different filters need different keys");
+ assert(shelfFilterLabel(normalizeShelfFilter({countries:["KR","JP"],genres:["Comedy","Romance"],type:"drama"}))==="Japanese & Korean Comedy & Romance Dramas","several countries and genres read as one phrase");
+ assert(shelfFilterLabel(normalizeShelfFilter({sort:"az"}))==="A–Z"&&shelfFilterLabel(normalizeShelfFilter({from:2018}))==="2018 and later","sort or year alone");
  assert(shelfCountry({type:"Hong Kong Movie"})==="HK"&&shelfCountry({country:"1"})==="JP","country mapping");
  assert(shelfNeedsFacts({genres:["Romance"]},items)&&!shelfNeedsFacts({type:"movie"},items),"facts only when needed");
 });
@@ -70,13 +72,15 @@ await test("filtered catalogs get their own id and a server-built name in Nuvio"
  const url="https://mydramalist.com/dramalist/Sample/completed";
  const c=normalizeAddon({catalogs:[
   {name:"Sample’s Completed",url},
-  {name:"Sample’s Completed · Korean · Dramas",url:url+"?ydlf=x",filter:{type:"drama",countries:["KR"]}},
+  {name:"Sample’s Completed: Korean Dramas",url:url+"?ydlf=x",filter:{type:"drama",countries:["KR"]}},
+  {name:"Sample’s Dramas and Films",url:"https://mydramalist.com/dramalist/Sample",filter:{type:"movie"}},
   {name:"Fake name",url:"https://mydramalist.com/list/AbCd1234",filter:{genres:["Romance"],sort:"newest"}},
  ],preferences:{}});
- assert(c.entries.length===3&&new Set(c.entries.map(e=>e.id)).size===3,"filtered and unfiltered versions coexist");
- assert(c.entries[1].name==="Sample’s Completed"&&c.entries[1].filterLabel==="Korean · Dramas","label is rebuilt by the server");
+ assert(c.entries.length===4&&new Set(c.entries.map(e=>e.id)).size===4,"filtered and unfiltered versions coexist");
+ assert(!c.entries[2].filter&&c.entries[2].id==="watchlist:sample","the full watchlist ignores filters");
+ assert(c.entries[1].name==="Sample’s Completed"&&c.entries[1].filterLabel==="Korean Dramas","label is rebuilt by the server");
  const names=makeManifest(c).catalogs.map((x:any)=>x.name);
- assert(names[1]==="Sample’s Completed · Korean · Dramas"&&names[2]==="Fake name · Romance · Newest first","manifest names: "+names.join(" | "));
+ assert(names[1]==="Sample’s Completed: Korean Dramas"&&names[3]==="Fake name: Romance, Newest first","manifest names: "+names.join(" | "));
  const pool=[{slug:"1-love-a",title:"Love A",type:"Drama",year:2021,country:"3"},{slug:"2-city-b",title:"City B",type:"Movie",year:2018,country:"2"}];
  const result=await loadCatalog(c,1,0,"https://test/addon/token",{hidden:async()=>new Set(),watchlistCategory:async()=>pool,map:async(list:any[],type:string)=>list.map(x=>({id:"tt"+x.slug.split("-")[0],name:x.title,type,poster:"https://image.test/p.jpg"}))} as any);
  assert(result.metas.map((m:any)=>m.name).join(",")==="Love A","Nuvio catalog applies the same filter");
@@ -90,7 +94,7 @@ await test("Community lists show as shelves with a live-preview filter that adds
  const {document,window}=parseHTML(html);
  const fetcher=async(input:string)=>{
   const url=String(input);
-  if(url.startsWith("/api/mdl/profile"))return Response.json({profileName:"Sample",lists:[{name:"Sample’s Completed",url:"https://mydramalist.com/dramalist/sample/completed",kind:"watchlist"}]});
+  if(url.startsWith("/api/mdl/profile"))return Response.json({profileName:"Sample",lists:[{name:"Sample’s Completed",url:"https://mydramalist.com/dramalist/sample/completed",kind:"watchlist"},{name:"Sample’s Dramas and Films",url:"https://mydramalist.com/dramalist/sample",kind:"watchlist",combined:true},{name:"Thai Romance",url:"https://mydramalist.com/list/AbCd1234",kind:"list",profile:"Sample"}]});
   if(url.startsWith("/api/mdl/shelf"))return Response.json({items:items.map(x=>({...x,url:"https://mydramalist.com/"+x.slug,poster:x.image||null})),total:5});
   if(url.startsWith("/api/mdl/title-facts"))return Response.json({facts});
   return Response.json({});
@@ -103,22 +107,35 @@ await test("Community lists show as shelves with a live-preview filter that adds
  const waitFor=async(check:()=>unknown,message:string)=>{for(let i=0;i<200;i++){if(check())return;await settle()}throw Error(message)};
  (document.getElementById("profileInput") as any).value="Sample";
  await (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});
- await waitFor(()=>document.querySelectorAll("#listItems .catalogShelf .catalogPoster").length===5,"shelf titles should load");
- const shelf=document.querySelector("#listItems .catalogShelf")!;
+ await waitFor(()=>document.querySelectorAll("#listItems .catalogShelf .catalogPoster").length===10,"watchlist shelves should load");
+ const [full,shelf]=[...document.querySelectorAll("#listItems .catalogShelf")] as any[];
+ assert((full.querySelector(".shelfFilterToggle") as any).hidden,"the full watchlist has no Filter button");
  assert(shelf&&!document.querySelector("#listItems .listcard"),"Community should use shelves, not list cards");
  assert(shelf.querySelectorAll(".catalogPoster").length===5,"shelf should show the watchlist titles");
  const toggle=shelf.querySelector(".shelfFilterToggle") as any;assert(!toggle.hidden,"Filter button should appear once titles load");
- toggle.click();await waitFor(()=>shelf.querySelector(".shelfFilters select"),"filter bar should open");
- const typeSelect=shelf.querySelector(".shelfFilters select") as any;for(const o of typeSelect.querySelectorAll("option"))o.value==="drama"?o.setAttribute("selected",""):o.removeAttribute("selected");try{typeSelect.value="drama"}catch{/* linkedom select.value is read-only unless another suite patched it */}typeSelect.onchange();
+ toggle.click();await waitFor(()=>shelf.querySelector(".shelfFilters .shelfChip"),"filter bar should open");
+ const chip=(text:string)=>[...shelf.querySelectorAll(".shelfChip")].find((b:any)=>b.textContent===text) as any;
+ assert(![...shelf.querySelectorAll(".shelfFilters option")].some((o:any)=>/Dramas and movies/.test(o.textContent)),"no combined Dramas and movies choice");
+ chip("Movies").click();await waitFor(()=>shelf.querySelectorAll(".catalogPoster").length===2,"Movies should preview 2 titles");
+ chip("Dramas").click();
+ assert(chip("Dramas").getAttribute("aria-pressed")==="true"&&chip("Movies").getAttribute("aria-pressed")==="false","only one type at a time");
  await waitFor(()=>shelf.querySelectorAll(".catalogPoster").length===3,"Dramas filter should preview 3 titles");
  await waitFor(()=>[...shelf.querySelectorAll(".shelfChip")].some((b:any)=>b.textContent==="Romance"),"genre chips should appear once TMDB genres load");
  const romance=[...shelf.querySelectorAll(".shelfChip")].find((b:any)=>b.textContent==="Romance") as any;romance.click();
  await waitFor(()=>shelf.querySelectorAll(".catalogPoster").length===1,"Romance should narrow the preview");
  assert([...shelf.querySelectorAll(".catalogPoster strong")].map((x:any)=>x.textContent).join(",")==="Love A","Dramas + Romance should preview only Love A");
- assert(/Showing 1 of 5/.test(shelf.querySelector(".shelfStatus")!.textContent!)&&/Sample’s Completed · Dramas · Romance/.test(shelf.querySelector(".shelfStatus")!.textContent!),"status should show the count and the Nuvio name");
+ assert(/Showing 1 of 5/.test(shelf.querySelector(".shelfStatus")!.textContent!)&&/Sample’s Completed: Romance Dramas/.test(shelf.querySelector(".shelfStatus")!.textContent!),"status should show the count and the Nuvio name");
  (shelf.querySelector(".catalogAdd") as any).click();
  const selection=JSON.parse(saved.get("ydl-v3-selection")!);
- assert(selection.length===1&&selection[0].filter.type==="drama"&&selection[0].filter.genres[0]==="Romance"&&selection[0].name==="Sample’s Completed · Dramas · Romance","filtered catalog should be selected with its label: "+JSON.stringify(selection[0]));
+ assert(selection.length===1&&selection[0].filter.type==="drama"&&selection[0].filter.genres[0]==="Romance"&&selection[0].name==="Sample’s Completed: Romance Dramas","filtered catalog should be selected with its label: "+JSON.stringify(selection[0]));
  assert(shelf.querySelector(".catalogAdd")!.getAttribute("aria-pressed")==="true","Add button should show Added for this filter");
+ (document.querySelector('[data-community-view="custom"]') as any).click();
+ await waitFor(()=>document.querySelectorAll("#listItems .catalogShelf .catalogPoster").length===5,"custom list shelf should load");
+ const custom=document.querySelector("#listItems .catalogShelf") as any;
+ assert(!(custom.querySelector(".shelfFilterToggle") as any).hidden,"custom lists have a Filter button");
+ assert(custom.querySelector("h3").textContent==="Sample’s Thai Romance list","unfiltered custom lists keep the word list: "+custom.querySelector("h3").textContent);
+ custom.querySelector(".shelfFilterToggle").click();await waitFor(()=>custom.querySelector(".shelfChip"),"custom filter bar should open");
+ ([...custom.querySelectorAll(".shelfChip")].find((b:any)=>b.textContent==="Dramas") as any).click();
+ await waitFor(()=>/Adds to Nuvio as “Sample’s Thai Romance: Dramas”/.test(custom.querySelector(".shelfStatus").textContent),"filtered custom lists drop the word list: "+custom.querySelector(".shelfStatus").textContent);
 });
 console.log(JSON.stringify({passed}));

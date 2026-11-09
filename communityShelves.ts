@@ -44,6 +44,7 @@ export function installCommunityShelves(){
   if(description)info.append(node('p',null,description));
   if(stats.length)info.append(node('p','shelfStats',stats.join(' · ')));
   const actions=node('div','catalogRowActions'),add=node('button','secondary catalogAdd');add.type='button';
+  // The full watchlist stays a complete list, so it has no Filter button.
   const filterButton=node('button','secondary shelfFilterToggle',copy.shelfFilter);filterButton.type='button';filterButton.setAttribute('aria-expanded','false');filterButton.hidden=true;
   actions.append(filterButton,add);head.append(info,actions);
   const panel=node('div','shelfFilters');panel.hidden=true;const status=node('p','shelfStatus');const track=node('div','catalogShelfTrack');track.setAttribute('aria-label',userListName(l)||copy.untitledList);
@@ -81,11 +82,10 @@ export function installCommunityShelves(){
    const years=[...new Set(items.map(x=>Number(x.year)).filter(Boolean))].sort((a,b)=>b-a).map(y=>[String(y),String(y)]);
    panel.replaceChildren();
    const grid=node('div','shelfFilterGrid');
-   grid.append(field(copy.shelfFilterType,select([['',copy.shelfAllTypes],['drama',copy.shelfDramas],['movie',copy.shelfMovies]],d.type,v=>{d.type=v;update()})));
    grid.append(field(copy.shelfFrom,select([['',copy.shelfAny],...years],String(d.from||''),v=>{d.from=v;update()})));
    grid.append(field(copy.shelfTo,select([['',copy.shelfAny],...years],String(d.to||''),v=>{d.to=v;update()})));
    grid.append(field(copy.shelfSort,select([['',copy.shelfSortDefault],['newest',copy.shelfSortNewest],['oldest',copy.shelfSortOldest],['az',copy.shelfSortAz]],d.sort,v=>{d.sort=v;update()})));
-   panel.append(grid);
+   panel.append(node('p','shelfGroupLabel',copy.shelfFilterType),choiceGroup(copy.shelfFilterType,[['drama',copy.shelfDramas],['movie',copy.shelfMovies]],d.type?[d.type]:[],v=>{d.type=d.type===v?'':v;update()}),grid);
    if(countries.length){panel.append(node('p','shelfGroupLabel',copy.shelfCountry),choiceGroup(copy.shelfCountry,countries.map(([c])=>[c,countryNames[c]||c]),d.countries,v=>{d.countries=d.countries.includes(v)?d.countries.filter(x=>x!==v):[...d.countries,v];update()}))}
    panel.append(node('p','shelfGroupLabel',copy.shelfGenre));
    if(genres.length)panel.append(choiceGroup(copy.shelfGenre,genres,d.genres,v=>{d.genres=d.genres.includes(v)?d.genres.filter(x=>x!==v):[...d.genres,v];update()}));
@@ -112,7 +112,7 @@ export function installCommunityShelves(){
   row.load=()=>enqueue(async()=>{
    const id=renderId;if(l.empty){track.replaceChildren(node('p','catalogShelfStatus',copy.shelfEmpty));return}
    skeleton(track);
-   try{const response=await fetch('/api/mdl/shelf?url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId)return;if(!response.ok)throw Error(data.error);row.items=data.items||[];filterButton.hidden=!row.items.length;row.paint()}
+   try{const response=await fetch('/api/mdl/shelf?url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId)return;if(!response.ok)throw Error(data.error);row.items=data.items||[];filterButton.hidden=!row.items.length||!!l.combined;row.paint()}
    catch(e){if(id!==renderId)return;track.replaceChildren();const p=node('p','catalogShelfStatus',(e&&e.message)||copy.shelfUnavailable);const retry=node('button','secondary catalogRetry',copy.catalogRetry);retry.type='button';retry.onclick=()=>row.load();track.append(p,retry)}
   });
   if(l.empty)add.disabled=true;

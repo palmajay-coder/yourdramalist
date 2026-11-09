@@ -23,7 +23,6 @@ export const TEXT = {
   catalogRetry: "Try again",
   shelfFilter: "Filter",
   shelfFilterType: "Type",
-  shelfAllTypes: "Dramas and movies",
   shelfDramas: "Dramas",
   shelfMovies: "Movies",
   shelfCountry: "Country",

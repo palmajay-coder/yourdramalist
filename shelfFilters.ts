@@ -80,17 +80,18 @@ export function applyShelfFilter(items: any[], filter: any, facts: Record<string
   return out;
 }
 
-/** Short readable label, e.g. "Korean · Dramas · Romance · 2018–2024 · Newest first". */
+/** Readable label that follows the list name, e.g. "Korean Romance Dramas, 2018–2024, Newest first". */
 export function shelfFilterLabel(filter: any): string {
   if (!filter) return "";
-  const names: Record<string, string> = {KR: "Korean", CN: "Chinese", JP: "Japanese", TW: "Taiwanese", TH: "Thai", HK: "Hong Kong", PH: "Filipino", OTHER: "Other countries"};
-  const parts: string[] = [];
-  if (filter.countries?.length) parts.push(filter.countries.map((c: string) => names[c] || c).join(", "));
-  if (filter.type) parts.push(filter.type === "movie" ? "Movies" : "Dramas");
-  if (filter.genres?.length) parts.push(filter.genres.join(", "));
+  const names: Record<string, string> = {KR: "Korean", CN: "Chinese", JP: "Japanese", TW: "Taiwanese", TH: "Thai", HK: "Hong Kong", PH: "Filipino", OTHER: "Other"};
+  const parts: string[] = [], phrase: string[] = [];
+  if (filter.countries?.length) phrase.push(filter.countries.map((c: string) => names[c] || c).join(" & "));
+  if (filter.genres?.length) phrase.push(filter.genres.join(" & "));
+  if (filter.type) phrase.push(filter.type === "movie" ? "Movies" : "Dramas");
+  if (phrase.length) parts.push(phrase.join(" "));
   if (filter.from || filter.to) parts.push(filter.from && filter.to ? (filter.from === filter.to ? String(filter.from) : filter.from + "–" + filter.to) : filter.from ? filter.from + " and later" : "Up to " + filter.to);
   if (filter.sort) parts.push(filter.sort === "newest" ? "Newest first" : filter.sort === "oldest" ? "Oldest first" : "A–Z");
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 /** Stable short key for a filter, used to tell filtered versions of the same list apart. */

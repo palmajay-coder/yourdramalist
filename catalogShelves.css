@@ -5,10 +5,11 @@
 .shelfFilterToggle{white-space:nowrap;font-size:12px;padding:8px 11px}
 .shelfFilterToggle[aria-expanded=true]{border-color:var(--accent);color:var(--link)}
 .shelfFilters{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 14px}
-.shelfFilterGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.shelfFilterGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
 .shelfField{display:flex;flex-direction:column;gap:5px;margin:0;font-weight:600;font-size:12px;color:var(--muted)}
 .shelfField select{background:var(--input,var(--bg));color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px;font:inherit;font-weight:400;font-size:13px}
 .shelfGroupLabel{font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 6px}
+.shelfFilters>.shelfGroupLabel:first-child{margin-top:0}
 .shelfChoiceGroup{display:flex;flex-wrap:wrap;gap:6px}
 .shelfChip{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:16px;padding:5px 11px;font-size:12px}
 .shelfChip[aria-pressed=true]{background:var(--tab);border-color:var(--accent);color:var(--link)}
