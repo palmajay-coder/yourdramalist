@@ -431,6 +431,10 @@ export function Et(t, e, n) {
     if (n && l) {
       const o = Math.abs(n - l);
       o === 0 ? (u += 3) : o === 1 ? (u += 1.5) : (u -= 2);
+    } else if (n && !l && n < new Date().getFullYear() - 1) {
+      // A result with no year is usually an announced, unreleased title. When the
+      // MyDramaList title is older, it is almost certainly a different work with the same name.
+      u -= 2;
     }
     u > r && ((r = u), (a = i));
   }
@@ -476,11 +480,12 @@ export async function me(t, e, n, k) {
 }
 
 export function fe(t, e, k, X1) {
+  // Cache keys carry a version so matches saved before a matching change are not reused.
   const n = `${X1 ? "x" : ""}${e}:${t.slug}`,
-    x = O.get("nm:" + n);
+    x = O.get("nm2:" + n);
   return x && x.expires > Date.now()
     ? Promise.resolve(null)
-    : D("match:" + n, pe, async () => {
+    : D("match2:" + n, pe, async () => {
       const M = t.title.match(
           /^(.+?)[\s:,-]+(?:season\s*\d+|part\s*\d+|\d+(?:st|nd|rd|th)\s+season|[2-9])$/i,
         ),
@@ -489,8 +494,13 @@ export function fe(t, e, k, X1) {
         F = (c) => (M && t.year
           ? c.filter((z) => !z.year || z.year <= t.year)
           : c),
-        s = Et(F(await ue(e, Q).catch(() => [])), Q, Y) ||
-          (await me(e, Q, Y, k).catch(() => []))[0];
+        c = Et(F(await ue(e, Q).catch(() => [])), Q, Y),
+        // Cinemeta sometimes lists a later release year (or none). When its pick does not
+        // agree with the MyDramaList year, ask TMDB, which uses original release years.
+        agrees = (m) => !Y || (m && m.year && Math.abs(m.year - Y) <= 1),
+        s = c && agrees(c)
+          ? c
+          : (await me(e, Q, Y, k).catch(() => []))[0] || c;
       if (
         !s ||
         (X1 &&
@@ -502,7 +512,7 @@ export function fe(t, e, k, X1) {
       return s;
     }).catch(
       () => (
-        O.set("nm:" + n, {
+        O.set("nm2:" + n, {
           value: Promise.resolve(null),
           expires: Date.now() + 216e5,
         }), null

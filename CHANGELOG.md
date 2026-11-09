@@ -9,6 +9,7 @@
 
 ### Fixes and improvements
 
+- Fixed an issue where some older movies opened the wrong title in Nuvio when an upcoming movie shared the same name (for example Pulse (2001), City on Fire (1987) and From Me to You (2010)). Titles now match the release year from MyDramaList, and TMDB is checked when the years disagree.
 - Fixed an issue where adding more than 40 catalogs from Discover or the weekly picks would fail at the last step with an "Unable to prepare your manifest" error. The site now stops you at 60 and lets you know right away.
 - The Confirm page now tells you how many catalogs to remove if your selection goes over the limit.
 - Manifest errors now explain what to change when a setup has too many catalogs or makes an install link that is too long.

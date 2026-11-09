@@ -36,7 +36,7 @@
     },
     {
       "path": "addonScrape.ts",
-      "sha256": "379bfa21b6cdd6d2a064dbdfdc4cf467e65b23aebde5be547467f24b41c71725",
+      "sha256": "b7bafec2fef4bfeb4b99f016037a6f06c7df58c7831cde923dcbed3927e4d979",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -245,6 +245,13 @@
       "matchesProduction": true
     },
     {
+      "path": "matching.test.ts",
+      "type": "script",
+      "publicationAdaptation": "deployment source",
+      "matchesProduction": true,
+      "sha256": "a63bd328ae7f1a947caf4ccc1087f3cdc0693261bdc985e57f3bc596d932ca2a"
+    },
+    {
       "path": "notifications.ts",
       "sha256": "35c9d7f22663bb58971e5521716c8991a2eedac9ba63cea77abe35d36ccf8590",
       "type": "script",
@@ -442,5 +449,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 714
+  "productionValVersion": 715
 }
