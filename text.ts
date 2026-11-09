@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.8";
-export const DISPLAY_VERSION = "1.0.8 BETA";
+export const APP_VERSION = "1.0.9";
+export const DISPLAY_VERSION = "1.0.9 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -128,6 +128,12 @@ export const TEXT = {
   manifestDiagnosticCode: "Diagnostic code",
   manifestConnectionFailed: "Could not reach YourDramaList. Check your connection and try again.",
   manifestFailed: "Unable to prepare your manifest. Please try again.",
+  manifestTooManyCatalogs:
+    "Your setup has more than {max} catalogs. Remove some catalogs, then try again.",
+  manifestTooLarge:
+    "Your setup is too large for one install link. Remove a few catalogs or shorten long list names, then try again.",
+  confirmOverLimit:
+    "You have {count} catalogs selected. Nuvio installs support up to {max}, so remove {extra} to continue.",
   retryManifest: "Try again",
   manifestSelectToCopy: "Select and copy the URL above.",
   manifestBetterPrivacy: "Your custom poster URL is encrypted in this install link. Keep the link private.",
@@ -160,7 +166,8 @@ export const TEXT = {
   communityWatchlists: "Watchlists",
   communityCustomLists: "Custom lists",
   communitySelectAll: "Select all",
-  communitySelectionLimit: "You can select up to 40 catalogs. Remove some selections and try again.",
+  communitySelectionLimit: "You can select up to {max} catalogs. Remove some selections and try again.",
+  catalogLimitReached: "You’ve reached the {max}-catalog limit. Remove a catalog to add another.",
   communityNoWatchlists: "No public watchlists found.",
   communityNoCustomLists: "No public custom lists found.",
   communityAllTitles: "All Dramas & Films",

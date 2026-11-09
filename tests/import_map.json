@@ -2,6 +2,7 @@
   "imports": {
     "https://esm.town/v/std/blob/main.ts": "./val-town-stubs.ts",
     "https://esm.town/v/std/oauth/middleware.ts": "./val-town-stubs.ts",
-    "https://esm.town/v/std/utils/index.ts": "./val-town-stubs.ts"
+    "https://esm.town/v/std/utils/index.ts": "./val-town-stubs.ts",
+    "https://esm.town/v/std/sqlite/main.ts": "./val-town-stubs.ts"
   }
 }

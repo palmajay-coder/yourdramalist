@@ -7,7 +7,7 @@ export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature
 
 const ERROR_CATEGORIES = new Set([
   "method", "origin", "format", "rate-limit", "request-too-large", "invalid-request-body",
-  "catalog-count", "preferences", "catalog-entry", "duplicate-catalog", "manifest-generation",
+  "catalog-count", "preferences", "catalog-entry", "duplicate-catalog", "manifest-generation", "token-too-large",
 ]);
 const FEATURE_CATEGORIES = new Set([
   "community-public-list", "community-watchlist", "community-combined-watchlist",
@@ -79,7 +79,7 @@ export const analyticsLabels:Record<string,string>={
   "metadata-mdl":"MyDramaList metadata", "metadata-tmdb":"TMDB metadata",
   "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
-  "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation",
+  "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation", "token-too-large":"Install link too long",
 };
 export function analyticsCategoryLabel(category:string){
   if(analyticsLabels[category])return analyticsLabels[category];

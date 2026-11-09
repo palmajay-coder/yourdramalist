@@ -21,6 +21,10 @@ export interface Preferences {
   hideCompleted: boolean;
 }
 export const PREFERENCES_STORAGE_KEY = "ydl-v3-preferences";
+/** Largest setup tested end to end in Nuvio (v1.0.9). Val Town rejects install links near 14,500 characters. */
+export const MAX_CATALOGS = 60;
+/** Longest encrypted setup accepted for a new install link, leaving room for catalog request paths. */
+export const MAX_MANIFEST_TOKEN = 14000;
 export function normalizePreferences(value: unknown): Preferences {
   const v = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const ratings = Array.isArray(v.ratings) ? v.ratings : null;

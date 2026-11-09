@@ -36,6 +36,29 @@ await test('manifest diagnostics correlate safe logs with rejected requests', as
   }
 });
 
+await test('setups up to 60 catalogs are accepted and larger setups name the limit', async () => {
+  const catalogs = (n: number) => Array.from({length: n}, (_, i) => ({name: 'List ' + i, url: 'https://mydramalist.com/list/Limit' + String(i).padStart(2, '0')}));
+  assert(normalizeAddon({...body, catalogs: catalogs(60)}).entries.length === 60, '60 catalogs rejected');
+  let issue = '';
+  try { normalizeAddon({...body, catalogs: catalogs(61)}); } catch (error) { issue = (error as {issue?: string}).issue || ''; }
+  assert(issue === 'catalog-count', '61 catalogs accepted');
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const response = await handleAddon(new Request('https://test/api/addon/configure', {method: 'POST', headers: {origin: 'https://test', 'content-type': 'application/json'}, body: JSON.stringify({...body, catalogs: catalogs(61)})}));
+    const result = await response.json();
+    assert(response.status === 400 && result.issue === 'catalog-count' && /^YDL-[0-9A-F]{8}$/.test(result.diagnosticCode), 'catalog limit not reported');
+  } finally {
+    console.warn = warn;
+  }
+});
+
+await test('a 60-catalog setup fits within the install link limit', async () => {
+  const catalogs = Array.from({length: 60}, (_, i) => ({name: 'MyDramaList’s Most Popular Shows (South Korea) ' + i, url: 'https://mydramalist.com/list/Limit' + String(i).padStart(2, '0')}));
+  const token = await createTokenCodec('b'.repeat(64)).seal(normalizeAddon({...body, catalogs}));
+  assert(token.length <= 14000, 'typical 60-catalog token too long: ' + token.length);
+});
+
 await test('modern MyDramaList watchlist rows retain title, status, type and artwork', () => {
   const html = '<tr id="ml123"><td><div class="msv2-item--cover"><img data-src="https://i.mydramalist.com/example_4t.jpg"></div><a class="title" href="/123-title"><span>Sample &amp; Title</span></a></td><td class="msv2-i-status">Completed</td><td class="msv2-i-type">Movie</td><td class="msv2-i-year">2024</td></tr>';
   const item = parseModernWatchlist(html)[2][0];

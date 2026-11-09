@@ -1,4 +1,4 @@
-import {betterPostersPattern,posterPlusPattern,posterPlusImageUrl,rpdbApiKey,rpdbPosterUrl,normalizePreferences,preferenceIssue} from './preferences.ts';
+import {betterPostersPattern,posterPlusPattern,posterPlusImageUrl,rpdbApiKey,rpdbPosterUrl,normalizePreferences,preferenceIssue,MAX_CATALOGS,MAX_MANIFEST_TOKEN} from './preferences.ts';
 import {normalizeTitle,weeklyCatalog} from './collections.ts';
 import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
@@ -16,7 +16,7 @@ class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
 }
 export function normalizeAddon(body:any){
- if(!body||!Array.isArray(body.catalogs)||!body.catalogs.length||body.catalogs.length>40)throw new InvalidConfig('catalog-count');
+ if(!body||!Array.isArray(body.catalogs)||!body.catalogs.length||body.catalogs.length>MAX_CATALOGS)throw new InvalidConfig('catalog-count');
  const preferences=normalizePreferences(body.preferences),user=/^[a-zA-Z0-9_-]{1,60}$/.test(body.user||'')?body.user:'';
  const keys={tmdb:String(body.keys?.tmdb||'').trim(),mdblist:String(body.keys?.mdblist||'').trim()};
  const betterPosters=betterPostersPattern(body.betterPosters);
@@ -42,7 +42,7 @@ const decode=(value:string)=>Uint8Array.from(atob(value.replace(/-/g,'+').replac
 export function createTokenCodec(secret:string){
  if(!/^[a-f0-9]{64}$/i.test(secret))throw Error('Manifest encryption is not configured');
  const key=crypto.subtle.importKey('raw',Uint8Array.from(secret.match(/../g)!,x=>parseInt(x,16)),'AES-GCM',false,['encrypt','decrypt']);
- return{async seal(value:AddonConfig){const iv=crypto.getRandomValues(new Uint8Array(12));const data=new TextEncoder().encode(JSON.stringify(value));const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await key,data));return encode(iv)+'.'+encode(encrypted);},async open(token:string):Promise<AddonConfig>{if(token.length>24000||!/^[-\w]+\.[-\w]+$/.test(token))throw Error('token');const[iv,data]=token.split('.');const value=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(iv)},await key,decode(data))));if(!value.entries?.length||value.entries.length>40)throw Error('token');return value;}};
+ return{async seal(value:AddonConfig){const iv=crypto.getRandomValues(new Uint8Array(12));const data=new TextEncoder().encode(JSON.stringify(value));const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await key,data));return encode(iv)+'.'+encode(encrypted);},async open(token:string):Promise<AddonConfig>{if(token.length>24000||!/^[-\w]+\.[-\w]+$/.test(token))throw Error('token');const[iv,data]=token.split('.');const value=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(iv)},await key,decode(data))));if(!value.entries?.length||value.entries.length>MAX_CATALOGS)throw Error('token');return value;}};
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
@@ -103,7 +103,9 @@ export async function handleAddon(req:Request){
    const diagnosticCode='YDL-'+crypto.randomUUID().slice(0,8).toUpperCase();
    await recordAnalytics('manifest.error',category);
    console.warn(JSON.stringify({diagnosticCode,timestamp:new Date().toISOString(),category}));
-   return Response.json({error,diagnosticCode},{status,headers});
+   // Size limits are safe to name, so the setup page can tell users what to change.
+   const issue=category==='catalog-count'||category==='token-too-large'?{issue:category}:{};
+   return Response.json({error,diagnosticCode,...issue},{status,headers});
   };
   if(req.method!=='POST')return diagnose('method',405);
   if(req.headers.get('origin')!==u.origin)return diagnose('origin',403);
@@ -119,6 +121,8 @@ export async function handleAddon(req:Request){
   created.push(Date.now());
   try{
    const token=await tokens().seal(config);
+   // Val Town rejects request paths near 14,500 characters, so refuse links Nuvio could not load.
+   if(token.length>MAX_MANIFEST_TOKEN)return diagnose('configuration',400,'token-too-large');
    const counts:Array<[AnalyticsMetric,string,number]>=[['manifest.generated','all',1]];
    for(const entry of config.entries){
     if(entry.weekly)counts.push(['catalog.selected',`weekly:${entry.weekly.slot}`,1]);

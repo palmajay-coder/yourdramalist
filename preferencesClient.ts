@@ -1,5 +1,5 @@
 import {TEXT as copy} from "./text.ts";
-import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
+import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES, MAX_CATALOGS} from "./preferences.ts";
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys are never saved to browser storage or logs. RPDB keys are included in its poster URLs. */
@@ -281,7 +281,8 @@ export function installPreferencesUI(api: {
       const result=await response.json();if(id!==manifestRequest)return;
       if(!response.ok){
         const code=result?.diagnosticCode;
-        status.textContent=copy.manifestFailed+(typeof code==="string"&&/^YDL-[0-9A-F]{8}$/.test(code)?" "+copy.manifestDiagnosticCode+" "+code:"");
+        const message=result?.issue==="catalog-count"?copy.manifestTooManyCatalogs.replace("{max}",String(MAX_CATALOGS)):result?.issue==="token-too-large"?copy.manifestTooLarge:copy.manifestFailed;
+        status.textContent=message+(typeof code==="string"&&/^YDL-[0-9A-F]{8}$/.test(code)?" "+copy.manifestDiagnosticCode+" "+code:"");
         retry.hidden=false;
         return;
       }
@@ -289,6 +290,8 @@ export function installPreferencesUI(api: {
       manifestSignature=signature;manifestValue=url.href;apply(url.href);
     }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;retry.hidden=false;}}}
     copyButton.onclick=async()=>{try{await navigator.clipboard.writeText(input.value);copyButton.textContent=copy.copiedManifest;}catch{input.focus();input.select();status.textContent=copy.manifestSelectToCopy;}};
+    const selected=api.selection().length;
+    if(selected>MAX_CATALOGS){status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
     retry.onclick=()=>{prepare();};prepare();
   }
   render();

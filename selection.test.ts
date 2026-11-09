@@ -45,6 +45,18 @@ assert(document.getElementById("count")!.textContent==="(0)","Cleared selection 
 assert(!/basket/i.test(html),"Selection terminology regression");
 console.log("PASS cleared selection survives refresh and uses selection terminology");
 
+saved.set("ydl-v3-selection",JSON.stringify(Array.from({length:60},(_,i)=>({url:"https://mydramalist.com/list/Limit"+String(i).padStart(2,"0"),name:"Limit "+i}))));
+document=mount();
+document.querySelector<HTMLButtonElement>('[data-filter="catalogs"]')!.click();
+const extra=document.querySelector<HTMLButtonElement>('.catalogAdd')!;
+extra.click();
+assert(document.getElementById("count")!.textContent==="(60)","Selection should stop at 60 catalogs");
+assert(extra.getAttribute("aria-pressed")==="false","Refused catalog should stay unselected");
+assert(JSON.parse(saved.get("ydl-v3-selection")!).length===60,"Saved selection should stay at 60 catalogs");
+assert(/60-catalog limit/.test(document.getElementById("floatingNotice")!.textContent||""),"Limit notice should explain the cap");
+console.log("PASS selection stops at the 60-catalog limit and explains why");
+saved.set("ydl-v3-selection","[]");
+
 document=mount(async()=>Response.json({lists:[
  {name:"Sample’s List",url:"https://mydramalist.com/dramalist/sample",kind:"watchlist",combined:true},
  {name:"Sample’s Plan to Watch",url:"https://mydramalist.com/dramalist/sample/plan_to_watch",kind:"watchlist"},
