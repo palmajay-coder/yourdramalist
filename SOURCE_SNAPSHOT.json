@@ -150,13 +150,15 @@
       "path": "errorGuide.ts",
       "type": "script",
       "publicationAdaptation": "deployment source",
-      "sha256": "7e6ac38afc117b94063ad1fd4d8790a1f861e31b92bc34251597777d8e7ffa86"
+      "sha256": "7e6ac38afc117b94063ad1fd4d8790a1f861e31b92bc34251597777d8e7ffa86",
+      "matchesProduction": true
     },
     {
       "path": "errors.test.ts",
       "type": "script",
       "publicationAdaptation": "deployment source",
-      "sha256": "5447e05bed94b2d7d098d8d2154acb52bcf97fa60f0adf62cc90cbd19dec65d3"
+      "sha256": "5447e05bed94b2d7d098d8d2154acb52bcf97fa60f0adf62cc90cbd19dec65d3",
+      "matchesProduction": true
     },
     {
       "path": "explore.test.ts",
@@ -440,5 +442,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 712
+  "productionValVersion": 714
 }
