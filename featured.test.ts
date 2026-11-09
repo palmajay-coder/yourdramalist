@@ -1,28 +1,35 @@
-import {extractFeatured,createFeaturedService} from "./featured.ts";
-import {handleFeatured} from "./featuredApi.ts";
-let passed=0;const ok=(v:any)=>{if(!v)throw Error("Assertion failed")};async function test(name:string,f:()=>any){await f();passed++;console.log("PASS "+name)}
-const html='<div class="featured-list"><a href="/list/aB12"><img src="https://i.mydramalist.com/a.jpg"><img src="//i.mydramalist.com/b.jpg"><img src="https://i.mydramalist.com/c.jpg"></a><span class="list-type">Featured Voting List</span><h2 class="list-title">A &amp; B</h2><p class="list-desc">Original description.</p></div>';
-const response=()=>new Response(html,{headers:{"content-type":"text/html"}});
-await test("extract actual featured title, original description and three images",()=>{const v=extractFeatured(html);ok(v.id==="aB12"&&v.title==="A & B"&&v.images.length===3&&v.description==="Original description.")});
-await test("unsafe links, images and missing sections rejected",()=>{for(const source of ["<title>Lists</title>",html.replace("/list/aB12","https://evil.test/list/aB12")]){let failed=false;try{extractFeatured(source)}catch{failed=true}ok(failed)}const v=extractFeatured(html.replace("https://i.mydramalist.com/a.jpg","javascript:alert(1)"));ok(v.images.length===2)});
-await test("concurrent requests and daily cache share one upstream call",async()=>{let calls=0;const s=createFeaturedService(undefined,async()=>{calls++;return response()});await Promise.all([s(),s(),s()]);ok((await s()).status==="cached"&&calls===1)});
-await test("persistent cache reload avoids upstream",async()=>{let saved:any;const storage={load:async()=>saved,save:async v=>{saved=v}};await createFeaturedService(storage,async()=>response())();const s=createFeaturedService(storage,async()=>{throw Error("must not fetch")});ok((await s()).featured.id==="aB12")});
-await test("stale success survives access restrictions across daily checks",async()=>{let clock=1000000000,calls=0;const s=createFeaturedService(undefined,async()=>{calls++;return calls===1?response():new Response("Just a moment",{headers:{"content-type":"text/html"}})},()=>clock);await s();clock+=86400000;ok((await s()).status==="stale");clock+=8*86400000;ok((await s()).featured.id==="aB12")});
-await test("failure cooldown prevents repeated MDL requests",async()=>{let calls=0;const s=createFeaturedService(undefined,async()=>{calls++;return new Response("",{status:403})});ok((await s()).featured===null);await s();ok(calls===1)});
-await test("oversized and non-HTML content are unavailable without invented data",async()=>{for(const r of [new Response("a".repeat(3000001),{headers:{"content-type":"text/html"}}),new Response("{}",{headers:{"content-type":"application/json"}})]){const s=createFeaturedService(undefined,async()=>r);ok((await s()).featured===null)}});
-await test("writes rejected",async()=>{ok((await handleFeatured(new Request("https://test/api/mdl/featured",{method:"POST"}))).status===405)});
-console.log(JSON.stringify({passed}));
-await test("daily refresh deduplicates banners, keeps picks on reordered lineups and redraws on change",async()=>{
- const card=(id:string)=>`<div class="custom-list-preview"><div class="content titles"><img src="https://i.mydramalist.com/${id}.jpg"></div><a class="title-primary" href="/list/${id}">${id}</a></div>`;
- const section=(label:string,ids:string[])=>`<div class="box-header"><h2>${label}</h2></div><div class="box-body">${ids.map(card).join("")}</div>`;
- let clock=Date.UTC(2026,6,1,6,59),calls=0,recent=["cccc","dddd"];
- const service=createFeaturedService(undefined,async()=>{
-  calls++;
-  return new Response(html+section("Recently Activity Lists",recent)+section("Trending Lists",["cccc","eeee"]),{headers:{"content-type":"text/html"}});
- },()=>clock,()=>0);
- const first=await service();ok(first.slides.map((x:any)=>x.id).join(",")==="aB12,cccc,eeee");
- ok(first.nextRefresh==="2026-07-01T07:00:00.000Z");
- await service();ok(calls===1);
- clock+=60000;recent.reverse();ok((await service()).slides[1].id==="cccc");
- clock+=86400000;recent.push("ffff");ok((await service()).slides[1].id==="dddd");
+import {seasonForPacificDate,createFeaturedService} from "./featured.ts";
+import {TEXT} from "./text.ts";
+let passed=0;const ok=(v:any,m="Assertion failed")=>{if(!v)throw Error(m)};async function test(name:string,f:()=>any){await f();passed++;console.log("PASS "+name)}
+// Synthetic public list page in the shape MyDramaList serves; no captured user data.
+const page=(id:string)=>`<html><head><link rel="canonical" href="https://mydramalist.com/list/${id}"></head><body><div class="box"><div class="box-header"><h1>Seasonal ${id}</h1><div class="description">Curated picks.</div></div><div class="box-body"><div class="list-bars"></div><div class="collection-list"><div class="film-cover"><img data-src="https://i.mydramalist.com/${id}.jpg"></div></div></div></div></body></html>`;
+const listFetcher=(counter:{calls:number})=>(async(url:string|URL)=>{counter.calls++;const id=String(url).split("/").pop()!;return new Response(page(id),{headers:{"content-type":"text/html"}})}) as typeof fetch;
+const at=(iso:string)=>Date.parse(iso);
+await test("banner season follows the Pacific calendar",()=>{
+ ok(seasonForPacificDate(at("2026-11-09T20:00:00Z"))==="fall","November should be fall");
+ ok(seasonForPacificDate(at("2026-12-01T20:00:00Z"))==="winter","December should be winter");
+ ok(seasonForPacificDate(at("2027-02-28T20:00:00Z"))==="winter","February should be winter");
+ ok(seasonForPacificDate(at("2027-03-01T20:00:00Z"))==="spring","March should be spring");
+ ok(seasonForPacificDate(at("2027-06-15T20:00:00Z"))==="summer","June should be summer");
+ ok(seasonForPacificDate(at("2026-09-01T06:30:00Z"))==="summer","late August in Pacific time should still be summer");
 });
+await test("seasonal lists load three slides with the matching seasonal copy",async()=>{
+ const counter={calls:0},s=createFeaturedService(undefined,listFetcher(counter),()=>at("2026-11-09T20:00:00Z"));
+ const v=await s();
+ ok(v.season==="fall"&&v.status==="live","live fall banner");
+ ok(v.slides.length===3&&v.featured?.id===v.slides[0].id,"three slides");
+ ok(v.heading===TEXT.seasonalBannerCopy.fall.title&&v.subtitle===TEXT.seasonalBannerCopy.fall.description,"seasonal copy");
+ ok(v.slides.every((x:any)=>x.label===TEXT.featuredListLabel&&x.images.length===1),"slide details");
+});
+await test("concurrent requests share one load and later requests use the daily cache",async()=>{
+ const counter={calls:0},s=createFeaturedService(undefined,listFetcher(counter),()=>at("2026-11-09T20:00:00Z"));
+ await Promise.all([s(),s(),s()]);
+ ok(counter.calls===3,"one upstream call per seasonal list");
+ ok((await s()).status==="cached"&&counter.calls===3,"daily cache reused");
+});
+await test("unavailable lists return an empty banner without throwing",async()=>{
+ const s=createFeaturedService(undefined,(async()=>{throw Error("offline")}) as typeof fetch,()=>at("2026-11-09T20:00:00Z"));
+ const v=await s();
+ ok(v.status==="unavailable"&&!v.featured&&v.slides.length===0,"empty fallback");
+});
+console.log(JSON.stringify({passed}));

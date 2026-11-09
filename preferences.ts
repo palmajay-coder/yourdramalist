@@ -63,7 +63,7 @@ export function betterPostersPattern(value: unknown): string {
   return pattern;
 }
 export function posterPlusPattern(value: unknown): string {
-  if (typeof value !== "string" || value.length > 1200) return "";
+  if (typeof value !== "string" || value.length > 8000) return "";
   const pattern = value.trim()
     .replace(/%7B([^{}]*)%7D/gi, (_, key: string) => {
       try { return "{" + decodeURIComponent(key).toLowerCase() + "}"; }
@@ -75,10 +75,11 @@ export function posterPlusPattern(value: unknown): string {
   let url: URL;
   try { url = new URL(pattern); } catch { return ""; }
   if (url.protocol !== "https:" || url.hostname !== "postersplus.stremio.ru" || url.port || url.username || url.password || url.pathname !== "/poster" || url.hash) return "";
-  const allowed = new Set(["tmdb_id", "imdb_id", "stremio_id", "type", "shape", "pc", "tg", "bp", "fti", "mw", "tw", "fbs", "slr", "shr", "bdm", "bms"]);
   const values = new Map<string, string>();
   for (const [key, value] of [...url.searchParams]) {
-    if (!allowed.has(key) || values.has(key) || /[\u0000-\u0020]/.test(value)) return "";
+    // Posters+ adds URL settings over time; accept its safe query names generically
+    // instead of maintaining a brittle list of every configurator option.
+    if (!/^[a-zA-Z_][a-zA-Z0-9_.~-]{0,63}$/.test(key) || /[\u0000-\u001f\u007f]/.test(value)) return "";
     const cleaned = value
       .replace(/\{(?:tmdb_id\??|imdb_id\??|id|type|shape)\}/g, "x");
     if (/[{}]/.test(cleaned)) return "";
@@ -103,9 +104,12 @@ export function posterPlusImageUrl(value: unknown, meta: {id: string; type?: str
     "{id}": imdbId, "{type}": meta.type === "movie" ? "movie" : "series",
     "{shape}": meta.posterShape || "poster",
   };
-  for (const [key, value] of url.searchParams) {
-    if (key === "tmdb_id" && !tmdbId && value === "{tmdb_id?}") { url.searchParams.delete(key); continue; }
-    url.searchParams.set(key, replacements[value] ?? value);
+  const parameters = [...url.searchParams];
+  url.search = "";
+  for (const [key, value] of parameters) {
+    if (key === "tmdb_id" && !tmdbId && value === "{tmdb_id?}") continue;
+    const rendered = value.replace(/\{(tmdb_id\??|imdb_id\??|id|type|shape)\}/g, token => replacements[token] ?? token);
+    url.searchParams.append(key, rendered);
   }
   return url.href;
 }

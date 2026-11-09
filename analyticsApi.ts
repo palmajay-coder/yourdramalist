@@ -3,7 +3,7 @@ import {pacificDate} from "./pacificTime.ts";
 import {canEdit} from "./wallpaper.ts";
 import {CATEGORIES,COUNTRIES} from "./explore.ts";
 
-export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected";
+export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error";
 
 const ERROR_CATEGORIES = new Set([
   "method", "origin", "format", "rate-limit", "request-too-large", "invalid-request-body",
@@ -20,10 +20,21 @@ const CATALOG_CATEGORIES = new Set([
   "explore:top-shows:all", "explore:popular-shows:all", "explore:newest-shows:all", "explore:upcoming-shows:all", "explore:airing-shows:all", "explore:variety-shows:all", "explore:top-movies:all", "explore:popular-movies:all", "explore:newest-movies:all", "explore:upcoming-movies:all",
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
+const ADD_SOURCES = new Set(["discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks"]);
+const POSTER_VERIFY_CATEGORIES = new Set([
+  "unknown:invalid-input", "unknown:invalid-configuration", "unknown:request-limit", "unknown:request-size", "unknown:request-origin", "unknown:request-format", "unknown:request-method",
+  ...["ratings", "better", "posterplus", "rpdb"].flatMap(provider => [
+    `${provider}:invalid-credentials`, `${provider}:invalid-settings`, `${provider}:credentials-rejected`, `${provider}:provider-unavailable`,
+    `${provider}:provider-response`, `${provider}:provider-rate-limit`, `${provider}:sample-poster-missing`,
+    `${provider}:not-an-image`, `${provider}:request-limit`, `${provider}:client-network`,
+  ]),
+]);
 const valid = (metric:AnalyticsMetric, category:string) => metric === "manifest.generated" ? category === "all"
   : metric === "manifest.error" ? ERROR_CATEGORIES.has(category)
   : metric === "feature.selected" ? FEATURE_CATEGORIES.has(category)
-  : metric === "catalog.selected" && CATALOG_CATEGORIES.has(category);
+  : metric === "poster.verify.error" ? POSTER_VERIFY_CATEGORIES.has(category)
+  : metric === "catalog.selected" ? CATALOG_CATEGORIES.has(category)
+  : metric === "catalog.added" && ADD_SOURCES.has(category);
 
 let schema:Promise<void>|undefined;
 async function ready(){
@@ -72,7 +83,24 @@ export async function adminAnalytics(req:Request,session:any){
   }catch{return Response.json({error:"Analytics are temporarily unavailable."},{status:503,headers:{"cache-control":"no-store"}});}
 }
 
+const additionRequests:number[]=[];
+export async function recordCatalogAddition(req:Request){
+  const url=new URL(req.url);
+  if(req.method!=="POST")return Response.json({error:"Method not allowed"},{status:405});
+  if(req.headers.get("origin")!==url.origin)return Response.json({error:"Origin check failed"},{status:403});
+  if(!req.headers.get("content-type")?.startsWith("application/json"))return Response.json({error:"Request format is invalid"},{status:415});
+  if(Number(req.headers.get("content-length")||0)>256)return Response.json({error:"Request is too large"},{status:413});
+  const now=Date.now();while(additionRequests.length&&additionRequests[0]<now-60000)additionRequests.shift();
+  if(additionRequests.length>=120)return Response.json({error:"Request limit reached"},{status:429});
+  let body:any;try{const text=await req.text();if(text.length>256)return Response.json({error:"Request is too large"},{status:413});body=JSON.parse(text)}catch{return Response.json({error:"Invalid request"},{status:400});}
+  if(!body||typeof body.source!=="string"||!ADD_SOURCES.has(body.source))return Response.json({error:"Invalid source"},{status:400});
+  additionRequests.push(now);
+  await recordAnalytics("catalog.added",body.source);
+  return Response.json({ok:true},{headers:{"cache-control":"no-store"}});
+}
+
 export const analyticsLabels:Record<string,string>={
+  "discover-drama-related":"Discover · Drama related lists", "discover-actor-filmography":"Discover · Actor filmographies", "discover-director-filmography":"Discover · Director filmographies", "discover-catalog":"Discover · Catalogs", "community-watchlist":"Community · Watchlists", "community-public-list":"Community · Public lists", "community-direct-list":"Community · Direct list URLs", "featured-list":"Featured banner lists", "weekly-picks":"Weekly picks",
   "community-public-list":"Public lists", "community-watchlist":"Individual watchlists", "community-combined-watchlist":"All watchlists",
   "actor-filmography":"Actor filmographies", "director-filmography":"Director filmographies", reviews:"MyDramaList reviews",
   "hide-unreleased":"Hide unreleased titles", "hide-completed":"Hide completed and dropped titles",
@@ -83,6 +111,12 @@ export const analyticsLabels:Record<string,string>={
 };
 export function analyticsCategoryLabel(category:string){
   if(analyticsLabels[category])return analyticsLabels[category];
+  if(category.includes(":")){
+    const [provider,issue]=category.split(":");
+    const providerName:Record<string,string>={ratings:"EasyPosters",better:"BetterPosters",posterplus:"Poster+",rpdb:"RPDB",unknown:"Other"};
+    const issueName:Record<string,string>={"invalid-credentials":"Invalid or missing credentials","invalid-settings":"Invalid URL or settings","credentials-rejected":"Provider rejected credentials","provider-unavailable":"Provider unavailable","provider-response":"Provider error","provider-rate-limit":"Provider rate limit","sample-poster-missing":"Sample poster unavailable","not-an-image":"Provider did not return an image","request-limit":"Verification request limit","request-size":"Request too large","request-origin":"Request origin check","request-format":"Request format","request-method":"Request method","invalid-input":"Invalid request","invalid-configuration":"Invalid settings","client-network":"Browser connection error"};
+    if(providerName[provider]&&issueName[issue])return `${providerName[provider]} · ${issueName[issue]}`;
+  }
   if(category.startsWith("explore:")){
     const [,id,countryId]=category.split(":");
     const title=CATEGORIES.find(item=>item[0]===id)?.[1];

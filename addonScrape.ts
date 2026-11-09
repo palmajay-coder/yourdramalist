@@ -23,11 +23,11 @@ export const U = (() => {
   })(),
   O = new Map();
 
-export async function D(t, e, n) {
+export async function D(t, e, n, { staleWhileRevalidate = true } = {}) {
   const s = O.get(t),
     a = Date.now();
   if (s && s.expires > a) return s.value;
-  if (s && s.ok && !s.refreshing && a - s.expires < 24 * 3600 * 1e3) {
+  if (s && s.ok && !s.refreshing && staleWhileRevalidate && a - s.expires < 24 * 3600 * 1e3) {
     return (
       (s.refreshing = !0),
         Promise.resolve()
@@ -775,15 +775,41 @@ export function parseModernWatchlist(html, section = 0) {
     const link = N($(anchor, "href"));
     const slug = V(link);
     if (!/^\d+-[a-z0-9-]+$/i.test(slug)) continue;
-    const image = row.match(/msv2-item--cover[^>]*>\s*<img[^>]*(?:data-src|src)=["']([^"']+)/i)?.[1];
+    const imageTag = (row.match(/<img\b[^>]*>/i) || [""])[0];
+    const imageAttr = imageTag.match(/\b(?:data-src|data-cfsrc|data-original|data-lazy-src|src)\s*=\s*(["'])(.*?)\1/i);
+    const srcsetAttr = imageTag.match(/\b(?:data-srcset|srcset)\s*=\s*(["'])(.*?)\1/i);
+    const image = imageAttr?.[2] || srcsetAttr?.[2]?.split(",")[0]?.trim().split(/\s+/)[0] || row.match(/background-image\s*:\s*url\(["']?([^"')]+)["']?\)/i)?.[1] || "";
+    const countryCell = (row.match(/<td\b[^>]*class="[^"]*\bmdl-style-col-country\b[^"]*"[^>]*>/i) || [""])[0];
+    const country = countryCell.match(/\babbr=["'](\d+)["']/i)?.[1] || "";
     const status = Z(row, "msv2-i-status").toLowerCase();
     const statusIndex = ["watching", "completed", "plan to watch", "on hold", "dropped", "undecided", "not interested"].indexOf(status) + 1;
     (sections[section || statusIndex || 0] ??= []).push({
-      slug, link, title: h(anchor), image: image ? N(image).replace(/[st]\.jpg$/, "c.jpg") : "",
-      type: Z(row, "msv2-i-type") || null, year: Pt(Z(row, "msv2-i-year")),
+      slug, link, title: h(anchor), image: image ? N(image).replace(/[st]\.jpg$/, "c.jpg") : "", country,
+      type: Z(row, "msv2-i-type") || Z(row, "mdl-style-col-type") || null,
+      year: Pt(Z(row, "msv2-i-year") || Z(row, "mdl-style-col-year")),
     });
   }
   return sections;
+}
+
+export function extractMDLTitlePoster(html) {
+  const tags = [...html.matchAll(/<(?:meta|img)\b[^>]*>/gi)].map(match => match[0]);
+  const attr = (tag, name) => tag.match(new RegExp(`\\b${name}\\s*=\\s*(["'])(.*?)\\1`, "i"))?.[2] || "";
+  for (const tag of tags) {
+    const isMeta = /^<meta\b/i.test(tag);
+    const key = (attr(tag, isMeta ? "property" : "class") || attr(tag, isMeta ? "name" : "data-role")).toLowerCase();
+    if (isMeta && !["og:image", "twitter:image", "twitter:image:src"].includes(key)) continue;
+    if (!isMeta && !/poster|cover/i.test(key)) continue;
+    const raw = attr(tag, isMeta ? "content" : "data-src") || attr(tag, "data-original") || attr(tag, "src");
+    try { const url = new URL(raw, T); if (url.protocol === "https:" && (url.hostname === "mydramalist.com" || url.hostname.endsWith(".mydramalist.com"))) return url.href; } catch {}
+  }
+  return null;
+}
+
+export async function loadMDLTitlePoster(item) {
+  const slug = String(item?.slug || V(item?.link || ""));
+  if (!/^\\d+-[a-z0-9-]+$/i.test(slug)) return null;
+  return D(`mdl-title-poster:${slug}`, 7 * 86400000, async () => extractMDLTitlePoster(await _(slug))).catch(() => null);
 }
 
 export const WATCHLIST_CARDS = [
@@ -814,17 +840,23 @@ export function loadWatchlistCategory(username, status) {
       if (!next.length || !/"load_more":\s*true/.test(html)) break;
     }
     return items;
-  });
+  }, { staleWhileRevalidate: false });
 }
 
 export async function profileWatchlistCards(username, name, load = loadWatchlistCategory, fallbackArtwork = async (_item) => null) {
   const cards = await It(WATCHLIST_CARDS, 2, async ([status, label]) => {
     const items = await Promise.resolve().then(() => load(username, status)).catch(() => null);
     if (!items) return null;
-    let posters = [...new Set(items.map(item => item.image).filter(Boolean))].slice(0,5);
-    if (!posters.length && items.length) {
-      const matched = await It(items.slice(0,3), 2, item => Promise.resolve().then(() => fallbackArtwork(item)).catch(() => null));
-      posters = [...new Set(matched.filter(Boolean))];
+    // Keep scanning past missing artwork so cards can fill all five poster slots.
+    const posters = [];
+    const candidates = items.slice(0,25);
+    for (let offset = 0; offset < candidates.length && posters.length < 5; offset += 5) {
+      const batch = candidates.slice(offset, offset + 5);
+      const matched = await It(batch, 2, item => Promise.resolve().then(() => fallbackArtwork(item)).catch(() => null));
+      for (let index = 0; index < batch.length && posters.length < 5; index++) {
+        const poster = matched[index] || batch[index].image;
+        if (poster && !posters.includes(poster)) posters.push(poster);
+      }
     }
     return {
       kind:"watchlist", name:`${name}’s ${label}`, empty:items.length===0,

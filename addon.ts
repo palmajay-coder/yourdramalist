@@ -4,7 +4,7 @@ import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
 import {personUrl} from './people.ts';
 import {handlePeople} from './peopleApi.ts';
-import {loadWatchlist,loadWatchlistCategory,WATCHLIST_CARDS} from './addonScrape.ts';
+import {loadWatchlist,loadWatchlistCategory,loadMDLTitlePoster,WATCHLIST_CARDS} from './addonScrape.ts';
 import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
@@ -48,16 +48,16 @@ let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
 export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
-export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork}){
+export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,mdlPoster:loadMDLTitlePoster}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
  const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus),rpdbKey=rpdbApiKey((config as any).rpdb?.apiKey);
  // TMDB remains primary, with MDL filling in metadata TMDB does not provide.
  const metadataProvider=String((config.preferences as any).metadataProvider||"mdl");
  const tmdbMetadata=metadataProvider!=="mdl";
  const artworkMetadata={metadata:true,poster:false,descriptionSource:"tmdb",clearMissingMetadata:false,language:config.preferences.tmdbLanguage};
- function applyExternalPoster<T extends {id:string;poster?:string;type?:string}>(meta:T):T {
+ function applyExternalPoster<T extends {id:string;poster?:string;type?:string}>(meta:T,item?:any):T {
   if(!/^tt\d+$/.test(meta.id))return meta;
-  if(pattern)return {...meta,poster:pattern.replace("{imdb_id}",meta.id)};
+  if(pattern){const url=pattern.replace("{imdb_id}",meta.id);return {...meta,poster:item?.slug&&item?.link?base+'/poster/'+meta.id+'.jpg?style=better&mdl='+encodeURIComponent(item.slug):url};}
   if(plusPattern)return {...meta,poster:posterPlusImageUrl(plusPattern,meta)};
   if(rpdbKey)return {...meta,poster:rpdbPosterUrl(rpdbKey,meta.id)};
   return meta;
@@ -88,11 +88,19 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  const hidden=['completed','dropped'].includes(entry.watchlistStatus||'')?new Set():await deps.hidden(runtime),year=new Date().getFullYear();
  pool=pool.filter(x=>!hidden.has(x.slug)&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
  const selected=pool.slice(skip,skip+30),metas:any[]=Array(selected.length);
- await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg';metas[group[i].i]=meta;});}));
+ await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
  const matched=metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&a.findIndex(y=>y?.id===x.id)===i);
  const standardPoster=!pattern&&!plusPattern&&!rpdbKey&&!runtime.erdb;
  const artwork=deps.standardArtwork&&(standardPoster||tmdbMetadata)?await deps.standardArtwork(matched,{...artworkMetadata,metadata:tmdbMetadata,poster:standardPoster}):matched;
- return{metas:artwork.map(applyExternalPoster).filter(x=>x.poster)};
+ const itemById=new Map(metas.map((meta,i)=>[meta?.id,selected[i]]));
+ const result=artwork.map(meta=>applyExternalPoster(meta,itemById.get(meta.id)));
+ if(standardPoster&&deps.mdlPoster){
+  const itemById=new Map(metas.map((meta,i)=>[meta?.id,selected[i]]));
+  const missing=result.map(meta=>({meta,item:itemById.get(meta.id)})).filter(x=>!x.meta.poster&&x.item?.link).slice(0,5);
+  let cursor=0;
+  await Promise.all(Array.from({length:Math.min(2,missing.length)},async()=>{while(cursor<missing.length){const {meta,item}=missing[cursor++];meta.poster=await deps.mdlPoster(item).catch(()=>null);}}));
+ }
+ return{metas:result.filter(x=>x.poster)};
 }
 let active=0,created:number[]=[];
 async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw RangeError('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}
@@ -149,7 +157,9 @@ export async function handleAddon(req:Request){
  try{
   if(parts[2]==='catalog'&&parts.length>=5){const id=parts[4].replace(/\.json$/,''),match=id.match(/^ydl_(\d+)$/);if(!match)return fail('catalog',404);const i=Number(match[1]);if(config.entries[i]?.type!==parts[3])return fail('catalog',404);const extra=new URLSearchParams(decodeURIComponent((parts[5]||'').replace(/\.json$/,'')));const raw=extra.get('skip')||u.searchParams.get('skip')||'0';if(!/^\d{1,5}$/.test(raw))return fail('skip');return Response.json(await loadCatalog(config,i,Number(raw),u.origin+'/addon/'+parts[1]),{headers});}
   if(parts[2]==='stream'&&parts.length===5&&config.preferences.reviews&&['series','movie'].includes(parts[3]))return Response.json(await Je(parts[3],parts[4].replace(/\.json$/,'')),{headers});
-  if(parts[2]==='poster'&&parts.length===4&&config.preferences.posters&&/^tt\d+\.jpg$/.test(parts[3])){const query=new URLSearchParams({ratings:config.preferences.ratings.join(','),posterRatingsLayout:'bottom',posterStreamBadges:'off',lang:'en',tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist});const image=await fetch('https://dmaxg-dynrat.hf.space/poster/'+parts[3]+'?'+query,{signal:AbortSignal.timeout(12000),redirect:'error'});if(!image.ok){await image.body?.cancel();throw Error('upstream');}if(!/^image\/(jpeg|png|webp)/.test(image.headers.get('content-type')||'')){await image.body?.cancel();throw Error('upstream');}return new Response(await readLimited(image.body,3000000),{headers:{...headers,'content-type':image.headers.get('content-type')!,'x-content-type-options':'nosniff'}});}
+if(parts[2]==='poster'&&parts.length===4&&u.searchParams.get('style')==='better'&&config.betterPosters&&/^tt\d+\.jpg$/.test(parts[3])){const fallback=async()=>{const slug=u.searchParams.get('mdl')||'';if(!/^\d+-[a-z0-9-]+$/i.test(slug))return null;const poster=await loadMDLTitlePoster({slug});if(!poster)return null;const response=await fetch(poster,{signal:AbortSignal.timeout(10000),redirect:'follow'});if(!response.ok||!/^image\/(jpeg|png|webp)/.test(response.headers.get('content-type')||'')){await response.body?.cancel();return null;}return new Response(await readLimited(response.body,3000000),{headers:{...headers,'content-type':response.headers.get('content-type')!,'x-content-type-options':'nosniff'}});};try{const source=config.betterPosters.replace('{imdb_id}',parts[3].replace(/\.jpg$/,''));const image=await fetch(source,{signal:AbortSignal.timeout(12000),redirect:'follow'});if(!image.ok||!/^image\/(jpeg|png|webp)/.test(image.headers.get('content-type')||'')){await image.body?.cancel();throw Error('upstream');}return new Response(await readLimited(image.body,3000000),{headers:{...headers,'content-type':image.headers.get('content-type')!,'x-content-type-options':'nosniff'}});}catch{const image=await fallback();if(image)return image;throw Error('upstream');}}
+
+  if(parts[2]==='poster'&&parts.length===4&&config.preferences.posters&&/^tt\d+\.jpg$/.test(parts[3])){const fallback=async()=>{const slug=u.searchParams.get('mdl')||'';if(!/^\d+-[a-z0-9-]+$/i.test(slug))return null;const poster=await loadMDLTitlePoster({slug});if(!poster)return null;const response=await fetch(poster,{signal:AbortSignal.timeout(10000),redirect:'error'});if(!response.ok||!/^image\/(jpeg|png|webp)/.test(response.headers.get('content-type')||'')){await response.body?.cancel();return null;}return new Response(await readLimited(response.body,3000000),{headers:{...headers,'content-type':response.headers.get('content-type')!,'x-content-type-options':'nosniff'}});};const query=new URLSearchParams({ratings:config.preferences.ratings.join(','),posterRatingsLayout:'bottom',posterStreamBadges:'off',lang:'en',tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist});try{const image=await fetch('https://dmaxg-dynrat.hf.space/poster/'+parts[3]+'?'+query,{signal:AbortSignal.timeout(12000),redirect:'error'});if(!image.ok||!/^image\/(jpeg|png|webp)/.test(image.headers.get('content-type')||'')){await image.body?.cancel();throw Error('upstream');}return new Response(await readLimited(image.body,3000000),{headers:{...headers,'content-type':image.headers.get('content-type')!,'x-content-type-options':'nosniff'}});}catch{const image=await fallback();if(image)return image;throw Error('upstream');}}
   return fail('path',404);
  }catch(error){if((error as {code?:string})?.code==='PRIVATE')return fail('This MyDramaList list is private or unavailable.',404);return fail('MyDramaList or a rating provider is temporarily unavailable. Please try again.',502);}finally{active--;}
 }

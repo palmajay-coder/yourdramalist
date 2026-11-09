@@ -9,7 +9,7 @@ export function installPeopleUI(){
  async function showFilmography(person,mode){
   cleanup();const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent='';
   try{const data=await json('/api/mdl/filmography?mode='+mode+'&url='+encodeURIComponent(person.url));if(requestId!==listRequest)return;
-   const list=data.list;
+   const list={...data.list,analyticsSource:mode==='director'?'discover-director-filmography':'discover-actor-filmography'};
    if(!data.sectionFound||!data.items.length){$('results').textContent=mode==='director'?'No Screenwriter & Director credits were shown for this person.':'No Drama or Movie acting credits were shown for this person.';backButton();return;}
    // Refresh metadata for an existing selection without adding or removing it.
    state.selection=state.selection.map(l=>l.url===list.url?{...l,...list}:l);try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}
