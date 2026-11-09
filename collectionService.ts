@@ -61,11 +61,9 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   const poster=await memo("art:"+item.url,7*86400000,async()=>{const data=await request("search/"+kind,{query:item.name,include_adult:"false",language:"en-US"});return matchArtwork(item,data.results||[],kind,country)}).catch(()=>null);
   return poster?{...item,poster,posterSource:"TMDB"}:item;
  }
- async function standardArtwork(items:any[],{metadata=false,poster:usePoster=true,descriptionSource="tmdb",clearMissingMetadata=false,language="en-US"}={}){
-  if(!items.length)return items;
-  const clearUnavailable=(item:any)=>clearMissingMetadata?{...item,description:"",releaseInfo:""}:item;
-  if(!keyFor())return items.map(clearUnavailable);
-  const result=items.map(clearUnavailable);
+ async function standardArtwork(items:any[],{metadata=false,poster:usePoster=true,language="en-US"}={}){
+  if(!keyFor()||!items.length)return items;
+  const result=items.slice();
   let cursor=0, timer:ReturnType<typeof setTimeout>|undefined;
   let expired=false;
   async function worker(){
@@ -83,14 +81,14 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
      return {poster:posterUrl(match.poster_path),name:String(match.name||match.title||"").trim(),description:String(match.overview||"").trim(),year:String(match.first_air_date||match.release_date||"").match(/^\d{4}(?=-)/)?.[0]};
     }).catch(()=>null);
     if(!match||expired)continue;
-    const update={...(result[i]||item)};
+    const update={...item};
     if(needsPoster&&match.poster)update.poster=match.poster;
     // Some MDL sequel entries share the parent series IMDb ID.
     const separateSeason=/\b(?:season|part)\s*\d+\s*$/i.test(item.name||"")&&normalizeTitle(item.name)!==normalizeTitle(match.name);
     if(metadata&&!separateSeason){
      if(match.name)update.name=match.name;
-     if(descriptionSource!=="mdl")update.description=match.description||(clearMissingMetadata?"":item.description);
-     if(match.year||clearMissingMetadata)update.releaseInfo=match.year||"";
+     if(match.description)update.description=match.description;
+     if(match.year)update.releaseInfo=match.year;
     }
     result[i]=update;
    }

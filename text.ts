@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.8";
-export const DISPLAY_VERSION = "1.0.8 BETA";
+export const APP_VERSION = "1.0.9";
+export const DISPLAY_VERSION = "1.0.9 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -8,7 +8,8 @@ export const TEXT = {
   weeklyDescription: "Curated collections · Refresh every Monday",
   weeklyRefreshTimezone: "Refreshes Monday at midnight Pacific time",
   weeklyRefreshing: "New week",
-  weeklySaved: "Showing saved collections. Live refresh is temporarily unavailable.",
+  weeklySaved:
+    "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",
   catalogMore: "More from MyDramaList",
   catalogAdd: "+ Add catalog",
@@ -20,10 +21,12 @@ export const TEXT = {
   catalogNext: "More titles",
   catalogEmpty: "No matching titles available for this country.",
   catalogRetry: "Try again",
-  catalogUnavailable: "Titles are temporarily unavailable. You can still add this catalog.",
+  catalogUnavailable:
+    "Titles are temporarily unavailable. You can still add this catalog.",
   catalogSaved: "Showing saved MyDramaList titles.",
   catalogDetailsUnavailable: "Details are temporarily unavailable.",
-  catalogArtworkCredit: "Catalog rankings from MyDramaList. Weekly collections and matched artwork use TMDB.",
+  catalogArtworkCredit:
+    "Catalog rankings from MyDramaList. Weekly collections and matched artwork use TMDB.",
   viewFilmography: "View titles",
   selectFilmography: "Select filmography",
   addFilmography: "+ Add filmography",
@@ -40,7 +43,8 @@ export const TEXT = {
   stepConfirm: "CONFIRM",
   preferencesTitle: "Make it yours",
   preferencesDescription: "Choose what appears in Nuvio.",
-  preferencesUnavailable: "Unable to open preferences. Please refresh and try again.",
+  preferencesUnavailable:
+    "Unable to open preferences. Please refresh and try again.",
   reviewsTitle: "MyDramaList reviews",
   reviewsDescription: "Ratings, viewer verdicts and helpful reviews in Nuvio.",
   reviewsPreviewLabel: "Preview in Nuvio",
@@ -54,17 +58,20 @@ export const TEXT = {
   reviewsPercentSample: "36.1% completed it · 0.6% dropped it",
   reviewsHeadlineSample: "“Artistic brilliance in every frame.”",
   reviewsHelpfulSample: "★ 10.0/10 · 43 found this helpful",
-  reviewsBodySample: "This is the kind of show you lose a whole night to without regret. Beyond story and character, the production quality is genuinely exceptional…",
+  reviewsBodySample:
+    "This is the kind of show you lose a whole night to without regret. Beyond story and character, the production quality is genuinely exceptional…",
   reviewsFullExample: "See full Nuvio example ↗",
-  reviewsScreenshotAlt: "Nuvio showing MyDramaList ratings, viewer verdict and review cards for Dead-End Job",
+  reviewsScreenshotAlt:
+    "Nuvio showing MyDramaList ratings, viewer verdict and review cards for Dead-End Job",
   closePreview: "Close ×",
   metadataProvider: "Metadata provider",
   metadataMdl: "MyDramaList",
   metadataTmdb: "TMDB",
   metadataMdlDescription: "Prioritize MyDramaList for metadata.",
-  metadataTmdbDescription: "Prioritize TMDB metadata for localization; use MyDramaList to fill in missing details.",
+  metadataTmdbDescription: "Prioritize TMDB metadata.",
   tmdbLanguageLabel: "TMDB language",
-  tmdbLanguageDescription: "Set the language YDL requests for catalog titles and descriptions.",
+  tmdbLanguageDescription:
+    "Set the language YDL requests for catalog titles and descriptions.",
   posterArtwork: "Poster style",
   posterArtworkDescription: "Choose how posters appear in your catalogs.",
   posterStandard: "TMDB posters (default)",
@@ -77,8 +84,10 @@ export const TEXT = {
   posterRpdbInvalid: "Enter a valid RPDB API key.",
   posterRpdbPrivacy: "Your RPDB key is included in poster URLs sent to Nuvio.",
   posterPlusUrl: "Poster+ URL",
-  posterPlusHelp: "Paste a Poster+ URL pattern. Keep its type, shape, and ID placeholders.",
-  posterPlusInvalid: "Enter a Poster+ URL pattern with type, shape, and an IMDb or TMDB ID placeholder.",
+  posterPlusHelp:
+    "Paste a Poster+ URL pattern. Keep its type, shape, and ID placeholders.",
+  posterPlusInvalid:
+    "Enter a Poster+ URL pattern with type, shape, and an IMDb or TMDB ID placeholder.",
   posterProviderConfig: "Config",
   verifyPosterProvider: "Verify",
   posterVerifyChecking: "Checking connection…",
@@ -86,11 +95,13 @@ export const TEXT = {
   posterVerifyFailed: "Couldn’t verify.",
   diagnosticCode: "Diagnostic code:",
   posterBetterLink: "Configure BetterPosters",
-  posterBetterHelp: "Paste your BetterPosters URL pattern. It stays in your encrypted install link.",
+  posterBetterHelp:
+    "Paste your BetterPosters URL pattern. It stays in your encrypted install link.",
   posterBetterInvalid: "Enter a BetterPosters poster URL with {imdb_id}.",
   posterRatingsTitle: "EasyPosters",
   posterRatingsDescription: "Show ratings on poster artwork with EasyPosters.",
-  posterKeysNote: "TMDB and MDBList keys are only required for poster ratings. You can continue without them.",
+  posterKeysNote:
+    "TMDB and MDBList keys are only required for poster ratings. You can continue without them.",
   optionalLabel: "Optional.",
   tmdbKeyLabel: "TMDB API key",
   mdblistKeyLabel: "MDBList API key",
@@ -103,7 +114,8 @@ export const TEXT = {
   posterPreviewTitle: "Parasite",
   posterIllustrative: "Illustrative preview",
   posterLivePreview: "Live poster preview",
-  posterPreviewUnavailable: "Live poster preview is unavailable. Your sample preview is shown.",
+  posterPreviewUnavailable:
+    "Live poster preview is unavailable. Your sample preview is shown.",
   posterPreviewKeysInvalid: "Check both API keys and try again.",
   posterPreviewRateLimit: "Please wait a moment before refreshing the preview.",
   posterPreviewNoBadges: "No rating badges selected",
@@ -114,9 +126,12 @@ export const TEXT = {
   titleFiltersDescription: "Keep your catalogs focused on what’s next.",
   hideUnreleased: "Hide unreleased titles",
   hideCompleted: "Hide completed and dropped titles",
-  completedNeedsAccount: "Connect your MyDramaList username to use this filter.",
-  preferencesKeysRequired: "Add both API keys to use EasyPosters, or choose another poster style to continue.",
-  preferencesBadgesRequired: "Choose at least one rating badge, or choose another poster style.",
+  completedNeedsAccount:
+    "Connect your MyDramaList username to use this filter.",
+  preferencesKeysRequired:
+    "Add both API keys to use EasyPosters, or choose another poster style to continue.",
+  preferencesBadgesRequired:
+    "Choose at least one rating badge, or choose another poster style.",
   confirmTitle: "Ready when you are.",
   confirmDescription: "Review your setup, then bring your lists to Nuvio.",
   confirmCatalogs: "Your catalogs",
@@ -126,12 +141,21 @@ export const TEXT = {
   copiedManifest: "Copied",
   installNuvio: "Install in Nuvio ↗",
   manifestDiagnosticCode: "Diagnostic code",
-  manifestConnectionFailed: "Could not reach YourDramaList. Check your connection and try again.",
+  manifestConnectionFailed:
+    "Could not reach YourDramaList. Check your connection and try again.",
   manifestFailed: "Unable to prepare your manifest. Please try again.",
+  manifestTooManyCatalogs:
+    "Your setup has more than {max} catalogs. Remove some catalogs, then try again.",
+  manifestTooLarge:
+    "Your setup is too large for one install link. Remove a few catalogs or shorten long list names, then try again.",
+  confirmOverLimit:
+    "You have {count} catalogs selected. Nuvio installs support up to {max}, so remove {extra} to continue.",
   retryManifest: "Try again",
   manifestSelectToCopy: "Select and copy the URL above.",
-  manifestBetterPrivacy: "Your custom poster URL is encrypted in this install link. Keep the link private.",
-  manifestKeyPrivacy: "With poster ratings enabled, your keys are encrypted in this install link and used by ERDB. Keep the link private.",
+  manifestBetterPrivacy:
+    "Your custom poster URL is encrypted in this install link. Keep the link private.",
+  manifestKeyPrivacy:
+    "With poster ratings enabled, your keys are encrypted in this install link and used by ERDB. Keep the link private.",
   editLists: "Edit lists",
   editPreferences: "Edit preferences",
   enabled: "On",
@@ -147,10 +171,22 @@ export const TEXT = {
   listsTitle: "Fall is here.",
   listsDescription: "Your sweater-weather lineup is ready.",
   seasonalBannerCopy: {
-    fall: {title: "Fall is here.", description: "Your sweater-weather lineup is ready."},
-    winter: {title: "Snowed In. Feelings Out.", description: "Snow outside. Be in your feels inside."},
-    spring: {title: "Spring Has Sprung. So Have the Feelings.", description: "Cherry blossoms, gentle breezes, and love blossoming."},
-    summer: {title: "Hot Weather. Hotter Messes.", description: "Your summer plans can wait. The next episode can’t."},
+    fall: {
+      title: "Fall is here.",
+      description: "Your sweater-weather lineup is ready.",
+    },
+    winter: {
+      title: "Snowed In. Feelings Out.",
+      description: "Snow outside. Be in your feels inside.",
+    },
+    spring: {
+      title: "Spring Has Sprung. So Have the Feelings.",
+      description: "Cherry blossoms, gentle breezes, and love blossoming.",
+    },
+    summer: {
+      title: "Hot Weather. Hotter Messes.",
+      description: "Your summer plans can wait. The next episode can’t.",
+    },
   },
   featuredListLabel: "Featured List",
   featuredListAdd: "Add list to selection",
@@ -160,11 +196,14 @@ export const TEXT = {
   communityWatchlists: "Watchlists",
   communityCustomLists: "Custom lists",
   communitySelectAll: "Select all",
-  communitySelectionLimit: "You can select up to 40 catalogs. Remove some selections and try again.",
+  communitySelectionLimit:
+    "You can select up to {max} catalogs. Remove some selections and try again.",
+  catalogLimitReached:
+    "You’ve reached the {max}-catalog limit. Remove a catalog to add another.",
   communityNoWatchlists: "No public watchlists found.",
   communityNoCustomLists: "No public custom lists found.",
   communityAllTitles: "All Dramas & Films",
-  communityAllTitlesDescription: "All watchlist statuses in one catalog.",
+  communityAllTitlesDescription: "All your lists combined.",
   discoverTab: "Discover",
   profileSearchLabel: "Enter a username or paste a link from any list.",
   profilePlaceholder:
@@ -177,6 +216,7 @@ export const TEXT = {
   search: "Search",
   searchRetry: "Please try again shortly.",
   noticeTitle: "Please wait",
+  catalogLimitTitle: "Catalog limit reached",
   dismissNotice: "Dismiss notification",
   selectionTitle: "Your Selection",
   clearSelection: "Clear selection",

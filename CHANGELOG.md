@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.9
+
+### What’s new
+
+- Raised the catalog limit from 40 to 60. You can now add up to 60 catalogs to a single Nuvio install.
+
+### Fixes and improvements
+
+- Fixed an issue where adding more than 40 catalogs from Discover or the weekly picks would fail at the last step with an "Unable to prepare your manifest" error. The site now stops you at 60 and lets you know right away.
+- The Confirm page now tells you how many catalogs to remove if your selection goes over the limit.
+- Manifest errors now explain what to change when a setup has too many catalogs or makes an install link that is too long.
+- Catalog rows further down your Nuvio home screen now load on the first pass instead of waiting until you scroll to them.
+- The catalog limit pop-up now has its own heading ("Catalog limit reached") instead of "Please wait."
+
 ## 1.0.8
 
 ### What’s new

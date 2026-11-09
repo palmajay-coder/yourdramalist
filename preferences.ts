@@ -21,6 +21,10 @@ export interface Preferences {
   hideCompleted: boolean;
 }
 export const PREFERENCES_STORAGE_KEY = "ydl-v3-preferences";
+/** Largest setup tested end to end in Nuvio (v1.0.9). Val Town rejects install links near 14,500 characters. */
+export const MAX_CATALOGS = 60;
+/** Longest encrypted setup accepted for a new install link, leaving room for catalog request paths. */
+export const MAX_MANIFEST_TOKEN = 14000;
 export function normalizePreferences(value: unknown): Preferences {
   const v = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const ratings = Array.isArray(v.ratings) ? v.ratings : null;
@@ -59,7 +63,7 @@ export function betterPostersPattern(value: unknown): string {
   return pattern;
 }
 export function posterPlusPattern(value: unknown): string {
-  if (typeof value !== "string" || value.length > 1200) return "";
+  if (typeof value !== "string" || value.length > 8000) return "";
   const pattern = value.trim()
     .replace(/%7B([^{}]*)%7D/gi, (_, key: string) => {
       try { return "{" + decodeURIComponent(key).toLowerCase() + "}"; }
@@ -71,10 +75,11 @@ export function posterPlusPattern(value: unknown): string {
   let url: URL;
   try { url = new URL(pattern); } catch { return ""; }
   if (url.protocol !== "https:" || url.hostname !== "postersplus.stremio.ru" || url.port || url.username || url.password || url.pathname !== "/poster" || url.hash) return "";
-  const allowed = new Set(["tmdb_id", "imdb_id", "stremio_id", "type", "shape", "pc", "tg", "bp", "fti", "mw", "tw", "fbs", "slr", "shr", "bdm", "bms"]);
   const values = new Map<string, string>();
   for (const [key, value] of [...url.searchParams]) {
-    if (!allowed.has(key) || values.has(key) || /[\u0000-\u0020]/.test(value)) return "";
+    // Posters+ adds URL settings over time; accept its safe query names generically
+    // instead of maintaining a brittle list of every configurator option.
+    if (!/^[a-zA-Z_][a-zA-Z0-9_.~-]{0,63}$/.test(key) || /[\u0000-\u001f\u007f]/.test(value)) return "";
     const cleaned = value
       .replace(/\{(?:tmdb_id\??|imdb_id\??|id|type|shape)\}/g, "x");
     if (/[{}]/.test(cleaned)) return "";
@@ -99,9 +104,12 @@ export function posterPlusImageUrl(value: unknown, meta: {id: string; type?: str
     "{id}": imdbId, "{type}": meta.type === "movie" ? "movie" : "series",
     "{shape}": meta.posterShape || "poster",
   };
-  for (const [key, value] of url.searchParams) {
-    if (key === "tmdb_id" && !tmdbId && value === "{tmdb_id?}") { url.searchParams.delete(key); continue; }
-    url.searchParams.set(key, replacements[value] ?? value);
+  const parameters = [...url.searchParams];
+  url.search = "";
+  for (const [key, value] of parameters) {
+    if (key === "tmdb_id" && !tmdbId && value === "{tmdb_id?}") continue;
+    const rendered = value.replace(/\{(tmdb_id\??|imdb_id\??|id|type|shape)\}/g, token => replacements[token] ?? token);
+    url.searchParams.append(key, rendered);
   }
   return url.href;
 }

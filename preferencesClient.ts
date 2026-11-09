@@ -1,5 +1,5 @@
 import {TEXT as copy} from "./text.ts";
-import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES} from "./preferences.ts";
+import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, normalizePreferences, preferenceIssue, savePreferences, TMDB_LANGUAGES, MAX_CATALOGS} from "./preferences.ts";
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys are never saved to browser storage or logs. RPDB keys are included in its poster URLs. */
@@ -94,7 +94,7 @@ export function installPreferencesUI(api: {
   const rpdbOptions = node("div"); rpdbOptions.id = "prefRpdbPanel";
   function providerUrlField(panel: HTMLElement, id: string, labelText: string, placeholder: string, helpText: string, configUrl: string) {
     const field = node("div", "prefKeyField"), label = node("label", "", labelText); label.htmlFor = id;
-    const row = node("div", "prefProviderUrlRow"), input = node("input"); input.id = id; input.type = "url"; input.autocomplete = "off"; input.spellcheck = false; input.maxLength = 1200; input.placeholder = placeholder;
+    const row = node("div", "prefProviderUrlRow"), input = node("input"); input.id = id; input.type = "url"; input.autocomplete = "off"; input.spellcheck = false; input.maxLength = id === "prefPosterPlus" ? 8000 : 1200; input.placeholder = placeholder;
     const config = button("⚙ " + copy.posterProviderConfig, "prefProviderConfig"); config.setAttribute("aria-label", copy.posterProviderConfig + " · " + labelText); config.onclick = () => window.open(configUrl, "_blank", "noopener,noreferrer");
     const verify = button(copy.verifyPosterProvider, "secondary prefVerifyButton");
     const status = paragraph("", "prefVerifyStatus"); status.setAttribute("role", "status");
@@ -167,17 +167,21 @@ export function installPreferencesUI(api: {
     const code = typeof result?.diagnosticCode === "string" && /^YDL-[A-F0-9]{8}$/.test(result.diagnosticCode) ? result.diagnosticCode : "";
     setStatus(element, copy.posterVerifyFailed + (code ? " " + copy.diagnosticCode + " " + code : ""), "error");
   }
+  async function networkDiagnostic(provider: "ratings" | "better" | "posterplus" | "rpdb") {
+    try {
+      const response = await fetch("/api/preferences/poster-preview", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({provider,clientFailure:"network"}),cache:"no-store"});
+      const result = await response.json().catch(()=>({}));
+      if(typeof result?.diagnosticCode === "string" && /^YDL-[A-F0-9]{8}$/.test(result.diagnosticCode)) return result.diagnosticCode;
+    } catch {}
+    return "YDL-" + crypto.randomUUID().slice(0,8).toUpperCase();
+  }
   async function verifyProvider(provider: "ratings" | "better" | "posterplus" | "rpdb") {
     const field = provider === "better" ? betterField : provider === "posterplus" ? posterPlusField : provider === "rpdb" ? {input:rpdbInput,verify:rpdbVerify,status:rpdbStatus} : null;
     const status = field?.status || ratingsStatus, verify = field?.verify || ratingsVerify;
-    const pattern = provider === "better" ? betterPostersPattern(betterField.input.value) : provider === "posterplus" ? posterPlusPattern(posterPlusField.input.value) : "";
-    if(provider === "rpdb" && !rpdbApiKey(rpdbInput.value)) {setStatus(status, copy.posterRpdbInvalid, "error"); rpdbInput.focus(); return;}
-    if(provider !== "ratings" && provider !== "rpdb" && !pattern) {setStatus(status, provider === "better" ? copy.posterBetterInvalid : copy.posterPlusInvalid, "error"); (field as NonNullable<typeof field>).input.focus(); return;}
-    if(provider === "ratings" && preferenceIssue({...prefs,posters:true},keys())) {setStatus(status, copy.posterPreviewKeysInvalid, "error"); return;}
     verify.disabled = true; setStatus(status, copy.posterVerifyChecking, "neutral");
     request++; abort?.abort(); abort = new AbortController(); const current = request;
     try {
-      const body = provider === "ratings" ? {provider, ...keys(), ratings:prefs.ratings} : provider === "rpdb" ? {provider, apiKey:rpdbApiKey(rpdbInput.value)} : {provider, pattern};
+      const body = provider === "ratings" ? {provider, ...keys(), ratings:prefs.ratings} : provider === "rpdb" ? {provider, apiKey:rpdbInput.value} : {provider, pattern:field?.input.value || ""};
       const response = await fetch("/api/preferences/poster-preview", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:abort.signal,cache:"no-store"});
       if(current !== request) return;
       if(!response.ok) {statusForFailure(status, await response.json().catch(()=>({}))); return;}
@@ -186,7 +190,8 @@ export function installPreferencesUI(api: {
       setStatus(status, copy.posterVerifySuccess, "success"); render();
     } catch(e) {
       if(current !== request || (e as Error).name === "AbortError") return;
-      setStatus(status, copy.posterVerifyFailed, "error");
+      const diagnosticCode=await networkDiagnostic(provider); if(current !== request) return;
+      statusForFailure(status, {diagnosticCode});
     } finally {if(current === request) verify.disabled = false;}
   }
   function invalidatePreview() {
@@ -219,7 +224,8 @@ export function installPreferencesUI(api: {
         if(objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = URL.createObjectURL(blob); image.src = objectUrl; posterCaption.textContent = copy.posterLivePreview; setStatus(ratingsStatus,copy.posterVerifySuccess,"success"); render();
       } catch (e) {
         if(id !== request || (e as Error).name === "AbortError") return;
-        setStatus(ratingsStatus,copy.posterVerifyFailed,"error");
+        const diagnosticCode=await networkDiagnostic("ratings"); if(id !== request) return;
+        statusForFailure(ratingsStatus,{diagnosticCode});
       }
     }, 650);
   }
@@ -281,7 +287,8 @@ export function installPreferencesUI(api: {
       const result=await response.json();if(id!==manifestRequest)return;
       if(!response.ok){
         const code=result?.diagnosticCode;
-        status.textContent=copy.manifestFailed+(typeof code==="string"&&/^YDL-[0-9A-F]{8}$/.test(code)?" "+copy.manifestDiagnosticCode+" "+code:"");
+        const message=result?.issue==="catalog-count"?copy.manifestTooManyCatalogs.replace("{max}",String(MAX_CATALOGS)):result?.issue==="token-too-large"?copy.manifestTooLarge:copy.manifestFailed;
+        status.textContent=message+(typeof code==="string"&&/^YDL-[0-9A-F]{8}$/.test(code)?" "+copy.manifestDiagnosticCode+" "+code:"");
         retry.hidden=false;
         return;
       }
@@ -289,6 +296,8 @@ export function installPreferencesUI(api: {
       manifestSignature=signature;manifestValue=url.href;apply(url.href);
     }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;retry.hidden=false;}}}
     copyButton.onclick=async()=>{try{await navigator.clipboard.writeText(input.value);copyButton.textContent=copy.copiedManifest;}catch{input.focus();input.select();status.textContent=copy.manifestSelectToCopy;}};
+    const selected=api.selection().length;
+    if(selected>MAX_CATALOGS){status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
     retry.onclick=()=>{prepare();};prepare();
   }
   render();

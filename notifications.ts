@@ -17,5 +17,5 @@ export function installFloatingNotice(copy:{noticeTitle:string;dismissNotice:str
  let timer:ReturnType<typeof setTimeout>|undefined;
  function hide(){clearTimeout(timer);root.hidden=true;message.textContent="";}
  close.onclick=hide;
- return {show(text:string){clearTimeout(timer);message.textContent=text;root.hidden=false;timer=setTimeout(hide,6000);},hide};
+ return {show(text:string,heading?:string){clearTimeout(timer);title.textContent=heading||copy.noticeTitle;message.textContent=text;root.hidden=false;timer=setTimeout(hide,6000);},hide};
 }
