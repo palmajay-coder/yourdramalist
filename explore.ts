@@ -21,11 +21,17 @@ export function exploreCatalog(category:string,country=""){
  return {kind:"explore",url:id,catalogId:id,category,country,profile:"MyDramaList",name:"MyDramaList’s "+k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:k[1]+" on MyDramaList"+(country?", from "+c[1]:"")+".",posters:[] as string[]};
 }
 export function userListName(list:any){
- if(list.kind==="watchlist"||list.kind==="filmography"||list.kind==="explore"||list.kind==="weekly")return list.name;
+ // Filtered catalogs keep their base name in originalName and add the filter label once.
+ const label=list.filterLabel?" · "+String(list.filterLabel):"";
+ if(list.kind==="watchlist"||list.kind==="filmography"||list.kind==="explore"||list.kind==="weekly"){
+  if(!label)return list.name;
+  const base=String(list.originalName||list.name);
+  return base.endsWith(label)?base:base+label;
+ }
  const author=list.profileName||list.profile;
  const raw=String(list.originalName||list.name||"Untitled");
  const named=author&&author!=="MyDramaList"&&!raw.toLowerCase().startsWith(String(author).toLowerCase()+"’s ")&&!raw.toLowerCase().startsWith(String(author).toLowerCase()+"'s ")?author+"’s "+raw:raw;
- return /\blist$/i.test(named.trim())?named:named+" list";
+ return (/\blist$/i.test(named.trim())?named:named+" list")+label;
 }
 export function extractExplore(html:string,target:URL){
  const $=load(html),items:any[]=[],seen=new Set();

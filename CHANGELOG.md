@@ -5,6 +5,10 @@
 ### What’s new
 
 - Raised the catalog limit from 40 to 60. You can now add up to 60 catalogs to a single Nuvio install.
+- Community lists and watchlists now show as shelves, the same rows of posters you see on the Discover tab. Drama-related lists use shelves too. Tap any poster to see its details.
+- Added filters to watchlist and custom list shelves. Filter by dramas or movies, country, release year and genre, and sort by newest, oldest or A–Z. The shelf updates as you pick, so you see exactly what will show up in Nuvio before you add it.
+- A filtered shelf adds to Nuvio as its own catalog with the filter in its name, for example "Sample’s Completed · Korean · Dramas". You can add the same list more than once with different filters.
+- Genres come from TMDB. Romance, Thriller, Horror and Historical are filled in from TMDB's tags for dramas, since TMDB's TV genres leave them out.
 - Added an Errors section to the admin page. Paste a diagnostic code a user sends you to see what went wrong and how to fix it. Setup and poster check errors now live in one place, with a guide to every error type and a "Needs your attention" alert for errors only the site owner can fix.
 
 ### Fixes and improvements

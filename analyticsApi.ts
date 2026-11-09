@@ -14,7 +14,7 @@ const FEATURE_CATEGORIES = new Set([
   "community-public-list", "community-watchlist", "community-combined-watchlist",
   "actor-filmography", "director-filmography", "reviews", "hide-unreleased", "hide-completed",
   "metadata-mdl", "metadata-tmdb", "posters-tmdb", "posters-easyposters", "posters-betterposters",
-  "posters-poster-plus", "posters-rpdb",
+  "posters-poster-plus", "posters-rpdb", "filtered-catalog",
 ]);
 const CATALOG_CATEGORIES = new Set([
   "weekly:0", "weekly:1",
@@ -151,7 +151,7 @@ export const analyticsLabels:Record<string,string>={
   "actor-filmography":"Actor filmographies", "director-filmography":"Director filmographies", reviews:"MyDramaList reviews",
   "hide-unreleased":"Hide unreleased titles", "hide-completed":"Hide completed and dropped titles",
   "metadata-mdl":"MyDramaList metadata", "metadata-tmdb":"TMDB metadata",
-  "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB",
+  "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
   "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation", "token-too-large":"Install link too long",
 };

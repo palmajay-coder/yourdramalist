@@ -10,10 +10,19 @@ import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
 import {recordAnalytics,recordAnalyticsBatch,recordErrorLog,type AnalyticsMetric} from './analyticsApi.ts';
-type Entry={id:string;name:string;type:'series'|'movie';watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
+import {getTitleFacts} from './titleFacts.ts';
+type Entry={id:string;name:string;type:'series'|'movie';filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
+}
+/** Adds a validated shelf filter to a watchlist or list entry, with its own catalog id and label. */
+function withFilter(entry:Entry,raw:unknown):Entry{
+ const filter=normalizeShelfFilter(raw);if(!filter)return entry;
+ const label=shelfFilterLabel(filter),suffix=' · '+label;
+ const name=entry.name.endsWith(suffix)?entry.name.slice(0,-suffix.length).trim()||entry.name:entry.name;
+ return{...entry,id:entry.id+':f'+shelfFilterKey(filter),name,filter,filterLabel:label};
 }
 export function normalizeAddon(body:any){
  if(!body||!Array.isArray(body.catalogs)||!body.catalogs.length||body.catalogs.length>MAX_CATALOGS)throw new InvalidConfig('catalog-count');
@@ -30,8 +39,8 @@ export function normalizeAddon(body:any){
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
   const source=String(item.url||'');let id='';
   if(/^d\.[1-5]\.[a-zA-Z0-9_-]{1,60}$/.test(source))id=source;
-  else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const watchlist=u.pathname.match(/^\/dramalist\/([a-zA-Z0-9_-]{1,60})(?:\/([a-z_]+))?\/?$/);if(watchlist){const username=watchlist[1].toLowerCase();const status=watchlist[2];if(status&&!WATCHLIST_CARDS.some(([key])=>key===status))throw new InvalidConfig('catalog-entry');return{id:'watchlist:'+username+(status?':'+status:''),name,type:'series',watchlist:username,...(status?{watchlistStatus:status}:{watchlistAll:true})};}const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
-  return{id,name,type:'series'};
+  else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const watchlist=u.pathname.match(/^\/dramalist\/([a-zA-Z0-9_-]{1,60})(?:\/([a-z_]+))?\/?$/);if(watchlist){const username=watchlist[1].toLowerCase();const status=watchlist[2];if(status&&!WATCHLIST_CARDS.some(([key])=>key===status))throw new InvalidConfig('catalog-entry');return withFilter({id:'watchlist:'+username+(status?':'+status:''),name,type:'series',watchlist:username,...(status?{watchlistStatus:status}:{watchlistAll:true})},item.filter);}const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
+  return withFilter({id,name,type:'series'},item.filter);
  });
  if(new Set(entries.map(x=>x.id)).size!==entries.length)throw new InvalidConfig('duplicate-catalog');
  return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),...(posterPlus?{posterPlus}:{}),...(rpdb?{rpdb:{apiKey:rpdb}}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
@@ -46,7 +55,7 @@ export function createTokenCodec(secret:string){
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
-export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language)+(e.filterLabel?' · '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,mdlPoster:loadMDLTitlePoster}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
@@ -85,6 +94,11 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   pool=Object.values(sections).flat().filter((item:any)=>item.slug&&!seen.has(item.slug)&&seen.add(item.slug));
  }
  else pool=(await deps.source(entry.id)).items;
+ if(entry.filter&&!entry.person){
+  // Same rules as the setup page preview. Genres come from saved TMDB lookups.
+  const facts=shelfNeedsFacts(entry.filter,pool)?await ((deps as any).facts??getTitleFacts)(pool.slice(0,600).map((x:any)=>({slug:x.slug,title:x.title,year:x.year,type:x.type})),{budgetMs:12000}).catch(()=>({})):{};
+  pool=applyShelfFilter(pool,entry.filter,facts);
+ }
  const hidden=['completed','dropped'].includes(entry.watchlistStatus||'')?new Set():await deps.hidden(runtime),year=new Date().getFullYear();
  pool=pool.filter(x=>!hidden.has(x.slug)&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
  const selected=pool.slice(skip,skip+30),metas:any[]=Array(selected.length);
@@ -153,6 +167,7 @@ export async function handleAddon(req:Request){
     else if(entry.person)counts.push(['feature.selected',entry.mode==='director'?'director-filmography':'actor-filmography',1]);
     else if(entry.watchlist)counts.push(['feature.selected',entry.watchlistAll?'community-combined-watchlist':'community-watchlist',1]);
     else counts.push(['feature.selected','community-public-list',1]);
+    if(entry.filter)counts.push(['feature.selected','filtered-catalog',1]);
    }
    const prefs=config.preferences as any;
    counts.push(['feature.selected',prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl',1]);
