@@ -54,6 +54,7 @@ assert(document.getElementById("count")!.textContent==="(60)","Selection should 
 assert(extra.getAttribute("aria-pressed")==="false","Refused catalog should stay unselected");
 assert(JSON.parse(saved.get("ydl-v3-selection")!).length===60,"Saved selection should stay at 60 catalogs");
 assert(/60-catalog limit/.test(document.getElementById("floatingNotice")!.textContent||""),"Limit notice should explain the cap");
+assert(document.querySelector("#floatingNotice strong")!.textContent==="Catalog limit reached","Limit notice should use its own heading");
 console.log("PASS selection stops at the 60-catalog limit and explains why");
 saved.set("ydl-v3-selection","[]");
 

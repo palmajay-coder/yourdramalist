@@ -216,6 +216,7 @@ export const TEXT = {
   search: "Search",
   searchRetry: "Please try again shortly.",
   noticeTitle: "Please wait",
+  catalogLimitTitle: "Catalog limit reached",
   dismissNotice: "Dismiss notification",
   selectionTitle: "Your Selection",
   clearSelection: "Clear selection",

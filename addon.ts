@@ -102,7 +102,21 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  }
  return{metas:result.filter(x=>x.poster)};
 }
-let active=0,created:number[]=[];
+let created:number[]=[];
+/** Runs up to `max` catalog loads at once; later requests wait briefly instead of failing with "busy". */
+export function createRequestLimiter(max=4,maxWaiting=40,waitMs=15000){
+ let active=0;const waiting:Array<()=>void>=[];
+ return{
+  acquire():Promise<boolean>{
+   if(active<max){active++;return Promise.resolve(true);}
+   if(waiting.length>=maxWaiting)return Promise.resolve(false);
+   return new Promise(resolve=>{const start=()=>{clearTimeout(timer);active++;resolve(true);};const timer=setTimeout(()=>{const i=waiting.indexOf(start);if(i>=0)waiting.splice(i,1);resolve(false);},waitMs);waiting.push(start);});
+  },
+  release(){active--;waiting.shift()?.();},
+  stats(){return{active,waiting:waiting.length};},
+ };
+}
+const catalogLimiter=createRequestLimiter();
 async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw RangeError('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}
 export async function handleAddon(req:Request){
  const u=new URL(req.url),headers={'cache-control':'no-store','referrer-policy':'no-referrer'},fail=(error:string,status=400)=>Response.json({error},{status,headers});
@@ -153,7 +167,7 @@ export async function handleAddon(req:Request){
  const parts=u.pathname.split('/').filter(Boolean);if(parts[0]!=='addon'||parts.length<3)return fail('path',404);
  let config:AddonConfig;try{config=await tokens().open(parts[1]);}catch{return fail('configuration',404);}
  if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config),{headers});
- if(active>=4)return fail('busy',429);active++;
+ if(!await catalogLimiter.acquire())return fail('busy',429);
  try{
   if(parts[2]==='catalog'&&parts.length>=5){const id=parts[4].replace(/\.json$/,''),match=id.match(/^ydl_(\d+)$/);if(!match)return fail('catalog',404);const i=Number(match[1]);if(config.entries[i]?.type!==parts[3])return fail('catalog',404);const extra=new URLSearchParams(decodeURIComponent((parts[5]||'').replace(/\.json$/,'')));const raw=extra.get('skip')||u.searchParams.get('skip')||'0';if(!/^\d{1,5}$/.test(raw))return fail('skip');return Response.json(await loadCatalog(config,i,Number(raw),u.origin+'/addon/'+parts[1]),{headers});}
   if(parts[2]==='stream'&&parts.length===5&&config.preferences.reviews&&['series','movie'].includes(parts[3]))return Response.json(await Je(parts[3],parts[4].replace(/\.json$/,'')),{headers});
@@ -161,5 +175,5 @@ if(parts[2]==='poster'&&parts.length===4&&u.searchParams.get('style')==='better'
 
   if(parts[2]==='poster'&&parts.length===4&&config.preferences.posters&&/^tt\d+\.jpg$/.test(parts[3])){const fallback=async()=>{const slug=u.searchParams.get('mdl')||'';if(!/^\d+-[a-z0-9-]+$/i.test(slug))return null;const poster=await loadMDLTitlePoster({slug});if(!poster)return null;const response=await fetch(poster,{signal:AbortSignal.timeout(10000),redirect:'error'});if(!response.ok||!/^image\/(jpeg|png|webp)/.test(response.headers.get('content-type')||'')){await response.body?.cancel();return null;}return new Response(await readLimited(response.body,3000000),{headers:{...headers,'content-type':response.headers.get('content-type')!,'x-content-type-options':'nosniff'}});};const query=new URLSearchParams({ratings:config.preferences.ratings.join(','),posterRatingsLayout:'bottom',posterStreamBadges:'off',lang:'en',tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist});try{const image=await fetch('https://dmaxg-dynrat.hf.space/poster/'+parts[3]+'?'+query,{signal:AbortSignal.timeout(12000),redirect:'error'});if(!image.ok||!/^image\/(jpeg|png|webp)/.test(image.headers.get('content-type')||'')){await image.body?.cancel();throw Error('upstream');}return new Response(await readLimited(image.body,3000000),{headers:{...headers,'content-type':image.headers.get('content-type')!,'x-content-type-options':'nosniff'}});}catch{const image=await fallback();if(image)return image;throw Error('upstream');}}
   return fail('path',404);
- }catch(error){if((error as {code?:string})?.code==='PRIVATE')return fail('This MyDramaList list is private or unavailable.',404);return fail('MyDramaList or a rating provider is temporarily unavailable. Please try again.',502);}finally{active--;}
+ }catch(error){if((error as {code?:string})?.code==='PRIVATE')return fail('This MyDramaList list is private or unavailable.',404);return fail('MyDramaList or a rating provider is temporarily unavailable. Please try again.',502);}finally{catalogLimiter.release();}
 }

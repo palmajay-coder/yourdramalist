@@ -8,14 +8,14 @@
   "files": [
     {
       "path": "addon.test.ts",
-      "sha256": "2e49d087b2be00afbaaa82cb02c0d547b79c93fe61670af12d30beab5ffd1e3f",
+      "sha256": "0939a395b0867d70b2c2e761e2a293850986248d852f72099fb2f2918d0c0372",
       "type": "script",
       "publicationAdaptation": "deployment source with additional offline checks",
       "matchesProduction": false
     },
     {
       "path": "addon.ts",
-      "sha256": "13a5066d94941ab67f842cc2596e0e77fe184528205a96aa5acd2850f306e67e",
+      "sha256": "289dfbcecfc2ae9fffc855cfdc73ec36bf1b4b72054a82921292737dcae74af9",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -57,7 +57,7 @@
     },
     {
       "path": "app.ts",
-      "sha256": "ed28621f0eb549227b539d5435ccfe6146d59500848538633670c9039ec54f84",
+      "sha256": "ddcda53c200bf0397b8874947183a0a39f80fbc407fdbf3d645cfb2b2e11e2e5",
       "type": "http",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -232,7 +232,7 @@
     },
     {
       "path": "notifications.ts",
-      "sha256": "50d72c6260b5b0be99a0e8bf8420c0fdd866294aafb63df22b28f8013e24c967",
+      "sha256": "35c9d7f22663bb58971e5521716c8991a2eedac9ba63cea77abe35d36ccf8590",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -372,14 +372,14 @@
     },
     {
       "path": "selection.test.ts",
-      "sha256": "bc402e7649da812b6d00a2c0e8b6c9d062f025c7defdf0361088eaf601c78fee",
+      "sha256": "6eeb0fffb1d10802297fa7dee6ebdbcdcaff89d014cb0736e80430ec02a7d406",
       "type": "script",
       "publicationAdaptation": "deployment source with additional offline checks",
       "matchesProduction": false
     },
     {
       "path": "text.ts",
-      "sha256": "87015bdcfc016c40c995e530078225d9d7d412ac1b01299d6b9d50e89bd15cfc",
+      "sha256": "6210d6b29e535ff6046024a56c41d8440dd8ce9583c243f88c783fd887cb3496",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -428,5 +428,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 710
+  "productionValVersion": 712
 }

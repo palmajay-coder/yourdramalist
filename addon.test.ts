@@ -1,4 +1,4 @@
-import {normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon} from './addon.ts';
+import {normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter} from './addon.ts';
 import {parseModernWatchlist,profileWatchlistCards,extractMDLTitlePoster} from './addonScrape.ts';
 import {Ge,Sz,Xe} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
@@ -38,6 +38,17 @@ await test('setups up to 60 catalogs are accepted and larger setups name the lim
   }
 });
 await test('a 60-catalog setup fits within the install link limit',async()=>{const catalogs=Array.from({length:60},(_,i)=>({name:'MyDramaList’s Most Popular Shows (South Korea) '+i,url:'https://mydramalist.com/list/Limit'+String(i).padStart(2,'0')}));const token=await createTokenCodec('b'.repeat(64)).seal(normalizeAddon({...body,catalogs}));assert(token.length<=14000,'typical 60-catalog token too long: '+token.length)});
+await test('catalog requests past the limit wait their turn instead of failing',async()=>{
+  const limiter=createRequestLimiter(2,3,200);const order:number[]=[];
+  const job=async(n:number,ms:number)=>{if(!await limiter.acquire())return 'busy';try{await new Promise(r=>setTimeout(r,ms));order.push(n);return 'ok';}finally{limiter.release();}};
+  const results=await Promise.all([job(1,30),job(2,30),job(3,10),job(4,10),job(5,10)]);
+  assert(results.every(r=>r==='ok'),'queued requests failed: '+results.join(','));
+  assert(order.slice(0,2).sort().join()==='1,2'&&order.length===5,'queue order changed');
+  assert(limiter.stats().active===0&&limiter.stats().waiting===0,'limiter did not release');
+  const full=createRequestLimiter(1,1,50);await full.acquire();const queued=full.acquire();
+  assert(await full.acquire()===false,'waiting list should be capped');
+  assert(await queued===false,'a request should give up after the wait limit');
+});
 // Request-level check: rejected requests return a diagnostic code that matches a minimal log line.
 await test('manifest diagnostics correlate safe logs with rejected requests', async () => {
   const warnings: string[] = [];
