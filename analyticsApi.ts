@@ -1,11 +1,12 @@
 import {sqlite} from "https://esm.town/v/std/sqlite/main.ts";
-import {pacificDate} from "./pacificTime.ts";
+import {pacificDate,pacificMidnight} from "./pacificTime.ts";
 import {canEdit} from "./wallpaper.ts";
 import {CATEGORIES,COUNTRIES} from "./explore.ts";
+import {SETUP_ERRORS,POSTER_ERRORS,POSTER_PROVIDERS,type ErrorKind} from "./errorGuide.ts";
 
 export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error";
 
-const ERROR_CATEGORIES = new Set([
+export const ERROR_CATEGORIES = new Set([
   "method", "origin", "format", "rate-limit", "request-too-large", "invalid-request-body",
   "catalog-count", "preferences", "catalog-entry", "duplicate-catalog", "manifest-generation", "token-too-large",
 ]);
@@ -21,7 +22,7 @@ const CATALOG_CATEGORIES = new Set([
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
 const ADD_SOURCES = new Set(["discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks"]);
-const POSTER_VERIFY_CATEGORIES = new Set([
+export const POSTER_VERIFY_CATEGORIES = new Set([
   "unknown:invalid-input", "unknown:invalid-configuration", "unknown:request-limit", "unknown:request-size", "unknown:request-origin", "unknown:request-format", "unknown:request-method",
   ...["ratings", "better", "posterplus", "rpdb"].flatMap(provider => [
     `${provider}:invalid-credentials`, `${provider}:invalid-settings`, `${provider}:credentials-rejected`, `${provider}:provider-unavailable`,
@@ -81,6 +82,51 @@ export async function adminAnalytics(req:Request,session:any){
     const rows=(result.rows||[]).map((row:any)=>({...row,label:analyticsCategoryLabel(String(row.category))}));
     return Response.json({days:30,timezone:"America/Los_Angeles",rows},{headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
   }catch{return Response.json({error:"Analytics are temporarily unavailable."},{status:503,headers:{"cache-control":"no-store"}});}
+}
+
+const ERROR_LOG_MS=30*24*60*60*1000,ERROR_LOG_MAX=5000;
+let errorSchema:Promise<void>|undefined;
+async function errorLogReady(){
+  errorSchema ??= sqlite.execute(`CREATE TABLE IF NOT EXISTS ydl_error_log (
+    code TEXT PRIMARY KEY, at INTEGER NOT NULL, kind TEXT NOT NULL, category TEXT NOT NULL, provider TEXT
+  )`).then(()=>{});
+  try{await errorSchema}catch(error){errorSchema=undefined;throw error;}
+}
+/** Keeps one row per diagnostic code for 30 days: the code, time, error type and poster provider. Nothing that identifies a visitor. */
+export async function recordErrorLog(entry:{code:string;kind:ErrorKind;category:string;provider?:string},now=Date.now()){
+  if(!/^YDL-[0-9A-F]{8}$/.test(entry.code))return;
+  const provider=entry.kind==="poster"?entry.provider||"unknown":null;
+  if(entry.kind==="setup"?!ERROR_CATEGORIES.has(entry.category):!POSTER_VERIFY_CATEGORIES.has(`${provider}:${entry.category}`))return;
+  try{
+    await errorLogReady();
+    await sqlite.batch([
+      {sql:"INSERT OR IGNORE INTO ydl_error_log(code,at,kind,category,provider) VALUES(?,?,?,?,?)",args:[entry.code,now,entry.kind,entry.category,provider]},
+      {sql:"DELETE FROM ydl_error_log WHERE at < ?",args:[now-ERROR_LOG_MS]},
+      {sql:"DELETE FROM ydl_error_log WHERE code IN (SELECT code FROM ydl_error_log ORDER BY at DESC LIMIT -1 OFFSET ?)",args:[ERROR_LOG_MAX]},
+    ]);
+  }catch{/* Error records must never block the response that carries the code. */}
+}
+export async function adminErrors(req:Request,session:any,now=Date.now()){
+  const headers={"cache-control":"no-store","x-content-type-options":"nosniff"};
+  if(!canEdit(session))return Response.json({error:session?.user?"Only the site owner can view errors.":"Sign in to view errors."},{status:session?.user?403:401,headers});
+  if(req.method!=="GET")return Response.json({error:"Method not allowed"},{status:405,headers});
+  const guide={setup:SETUP_ERRORS,poster:POSTER_ERRORS,providers:POSTER_PROVIDERS};
+  const code=new URL(req.url).searchParams.get("code");
+  if(code!==null&&!/^YDL-[0-9A-F]{8}$/.test(code.trim().toUpperCase()))return Response.json({error:"Enter a code like YDL-1A2B3C4D."},{status:400,headers});
+  try{
+    await errorLogReady();
+    const since=now-ERROR_LOG_MS;
+    if(code!==null){
+      const result=await sqlite.execute({sql:"SELECT code, at, kind, category, provider FROM ydl_error_log WHERE code = ? AND at >= ?",args:[code.trim().toUpperCase(),since]});
+      return Response.json({match:result.rows?.[0]??null,guide},{headers});
+    }
+    const today=pacificMidnight(pacificDate(now).date),week=now-7*24*60*60*1000;
+    const [recent,summary]=await Promise.all([
+      sqlite.execute({sql:"SELECT code, at, kind, category, provider FROM ydl_error_log WHERE at >= ? ORDER BY at DESC LIMIT 500",args:[since]}),
+      sqlite.execute({sql:"SELECT kind, category, COUNT(*) AS count, SUM(CASE WHEN at >= ? THEN 1 ELSE 0 END) AS week, SUM(CASE WHEN at >= ? THEN 1 ELSE 0 END) AS today, MAX(at) AS last FROM ydl_error_log WHERE at >= ? GROUP BY kind, category",args:[week,today,since]}),
+    ]);
+    return Response.json({days:30,timezone:"America/Los_Angeles",now,rows:recent.rows||[],summary:summary.rows||[],guide},{headers});
+  }catch{return Response.json({error:"Errors are temporarily unavailable."},{status:503,headers});}
 }
 
 const additionRequests:number[]=[];

@@ -15,7 +15,7 @@
     },
     {
       "path": "addon.ts",
-      "sha256": "289dfbcecfc2ae9fffc855cfdc73ec36bf1b4b72054a82921292737dcae74af9",
+      "sha256": "3ee7e8c87db90490304f1e5df212aa4319566e8b83c401927a118a584e65def6",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -50,14 +50,14 @@
     },
     {
       "path": "analyticsApi.ts",
-      "sha256": "f48ca5437aaa84356ec5eea825363ac390a8e3d2ddbb7d0d200a53f2780d0129",
+      "sha256": "b73e8f867bd5af32c53bd16e10db3c73020c3d7bb0131f2b3e002fa2c622657c",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
     },
     {
       "path": "app.ts",
-      "sha256": "ddcda53c200bf0397b8874947183a0a39f80fbc407fdbf3d645cfb2b2e11e2e5",
+      "sha256": "f55001684ed4183b9d6a7eb6b5998ac9d866e3688af37715f86716c37875014e",
       "type": "http",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -144,6 +144,20 @@
       "sha256": "8cd75a3a7fe7cd1cc5faae4fba8b8eeccd3f27349ba7fd5a98640c19dff0d348",
       "type": "script",
       "publicationAdaptation": "deployment source",
+      "matchesProduction": true
+    },
+    {
+      "path": "errorGuide.ts",
+      "type": "script",
+      "publicationAdaptation": "deployment source",
+      "sha256": "7e6ac38afc117b94063ad1fd4d8790a1f861e31b92bc34251597777d8e7ffa86",
+      "matchesProduction": true
+    },
+    {
+      "path": "errors.test.ts",
+      "type": "script",
+      "publicationAdaptation": "deployment source",
+      "sha256": "5447e05bed94b2d7d098d8d2154acb52bcf97fa60f0adf62cc90cbd19dec65d3",
       "matchesProduction": true
     },
     {
@@ -358,7 +372,7 @@
     },
     {
       "path": "preferencesPreview.ts",
-      "sha256": "bca0a6b3c5b0d1972ac492f500abefdbf7feaddb966a2081ec6388ce9b8e9df8",
+      "sha256": "fe20f2c6e682d2a734352eaba12aef18b3f1f1793256c5049b569c03b9f61521",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -407,14 +421,14 @@
     },
     {
       "path": "wallpaperAdmin.ts",
-      "sha256": "c9922a84964c40c0cfff91f1432a8304e584a4ebe258b925d6eb54a2f38663a8",
+      "sha256": "beea35a79b1475ea8809b260f66deef3420bd8d8ea37c9910993d0eff84327c9",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
     },
     {
       "path": "wallpaperApi.ts",
-      "sha256": "2bc6f707c07c86d5b004590d7af00e58a2a9186cd09e89c18c42f8585857ff36",
+      "sha256": "0aa493f11cca62e5bb5eef38409a99a6b4e8c13f65cea81385576f38ba8d95f3",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -428,5 +442,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 712
+  "productionValVersion": 714
 }

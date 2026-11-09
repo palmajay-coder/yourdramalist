@@ -5,6 +5,7 @@
 ### What’s new
 
 - Raised the catalog limit from 40 to 60. You can now add up to 60 catalogs to a single Nuvio install.
+- Added an Errors section to the admin page. Paste a diagnostic code a user sends you to see what went wrong and how to fix it. Setup and poster check errors now live in one place, with a guide to every error type and a "Needs your attention" alert for errors only the site owner can fix.
 
 ### Fixes and improvements
 
@@ -13,6 +14,7 @@
 - Manifest errors now explain what to change when a setup has too many catalogs or makes an install link that is too long.
 - Catalog rows further down your Nuvio home screen now load on the first pass instead of waiting until you scroll to them.
 - The catalog limit pop-up now has its own heading ("Catalog limit reached") instead of "Please wait."
+- Error records are now kept for 30 days so codes can be looked up later. The privacy page explains what an error record contains.
 
 ## 1.0.8
 

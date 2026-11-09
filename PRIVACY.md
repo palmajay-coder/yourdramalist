@@ -20,9 +20,9 @@ To disable compromised provider credentials, revoke/rotate them at TMDB/MDBList.
 
 If selected, the BetterPosters URL pattern is kept in the setup page until Confirm sends it to the same-origin configuration endpoint. It is encrypted in the install link and is not saved to browser storage or diagnostic logs. Catalog responses include the rendered poster URL so Nuvio can request the image from BetterPosters. The provider receives the IMDb title ID and any options included in the pattern.
 
-## Manifest diagnostics
+## Diagnostic codes
 
-When manifest setup fails on the server, YourDramaList shows a diagnostic code and logs the code, timestamp, and failure category in Val Town. The diagnostic entry contains no username, selected catalogs, provider keys, or install URL. You can share the code when reporting a problem.
+When manifest setup or a poster check fails, YourDramaList shows a diagnostic code. The site keeps an error record with the code, timestamp, fixed failure category and, for poster checks, the provider name, both in the Val Town logs and in a site database. Error records contain no username, selected catalogs, provider keys, poster URL patterns, or install URL. Database records are deleted after 30 days (at most 5,000 are kept), and only the site owner can view them on the admin page. You can share the code when reporting a problem.
 
 ## Aggregate usage analytics
 

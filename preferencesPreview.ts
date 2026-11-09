@@ -1,5 +1,5 @@
 import {betterPostersPattern, posterPlusPattern, posterPlusImageUrl, rpdbApiKey, rpdbPosterUrl} from "./preferences.ts";
-import {recordAnalytics, type AnalyticsMetric} from "./analyticsApi.ts";
+import {recordAnalytics, recordErrorLog, type AnalyticsMetric} from "./analyticsApi.ts";
 
 /** Stateless poster check. Credentials and patterns are never persisted or logged. */
 const SOURCES = ["letterboxd", "tomatoes", "imdb"];
@@ -68,7 +68,7 @@ async function fetchImage(url: string, hosts: readonly string[], fetcher: typeof
   throw Error("redirect");
 }
 
-export function createPreviewHandler(fetcher: typeof fetch = fetch, now = Date.now, track: typeof recordAnalytics = async () => {}) {
+export function createPreviewHandler(fetcher: typeof fetch = fetch, now = Date.now, track: typeof recordAnalytics = async () => {}, logError: typeof recordErrorLog = async () => {}) {
   let active = 0, requests: number[] = [];
   return async function(req: Request) {
     const headers = {"cache-control": "no-store", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff"};
@@ -78,6 +78,7 @@ export function createPreviewHandler(fetcher: typeof fetch = fetch, now = Date.n
       const diagnosticCode = "YDL-" + crypto.randomUUID().slice(0, 8).toUpperCase();
       const analyticsCategory = `${provider}:${category}`;
       await track("poster.verify.error" as AnalyticsMetric, analyticsCategory);
+      await logError({code: diagnosticCode, kind: "poster", category, provider});
       console.warn(JSON.stringify({diagnosticCode, provider, category, timestamp: new Date().toISOString()}));
       return Response.json({code: category, diagnosticCode}, {status, headers});
     };
@@ -138,4 +139,4 @@ export function createPreviewHandler(fetcher: typeof fetch = fetch, now = Date.n
     finally {active--;}
   };
 }
-export const handlePosterPreview = createPreviewHandler(fetch, Date.now, recordAnalytics);
+export const handlePosterPreview = createPreviewHandler(fetch, Date.now, recordAnalytics, recordErrorLog);

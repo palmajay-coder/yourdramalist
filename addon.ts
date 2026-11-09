@@ -9,7 +9,7 @@ import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
-import {recordAnalytics,recordAnalyticsBatch,type AnalyticsMetric} from './analyticsApi.ts';
+import {recordAnalytics,recordAnalyticsBatch,recordErrorLog,type AnalyticsMetric} from './analyticsApi.ts';
 type Entry={id:string;name:string;type:'series'|'movie';watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
@@ -124,6 +124,7 @@ export async function handleAddon(req:Request){
   const diagnose=async(error:string,status:number,category:string=error)=>{
    const diagnosticCode='YDL-'+crypto.randomUUID().slice(0,8).toUpperCase();
    await recordAnalytics('manifest.error',category);
+   await recordErrorLog({code:diagnosticCode,kind:'setup',category});
    console.warn(JSON.stringify({diagnosticCode,timestamp:new Date().toISOString(),category}));
    // Size limits are safe to name, so the setup page can tell users what to change.
    const issue=category==='catalog-count'||category==='token-too-large'?{issue:category}:{};
