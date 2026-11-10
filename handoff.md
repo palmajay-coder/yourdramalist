@@ -3,7 +3,7 @@
 ## Project
 - **What it does:** YourDramaList (YDL) works as a Nuvio add-on that turns MyDramaList catalogs into install links.
 - **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Live files match GitHub as of release 1.1.2.
-- **GitHub mirror:** `palmajay-coder/yourdramalist`. The work branch, `ccr-de4d41e8-p7rg8s`, must restart from `origin/main` for new work, since PR #5 (release 1.1.2) already merged.
+- **GitHub mirror:** `palmajay-coder/yourdramalist`. The work branch, `ccr-de4d41e8-p7rg8s`, sits on `origin/main` (release 1.1.2, PR #5) plus unmerged handoff and skill commits. Keep those commits when new work starts.
 - **Release:** 1.1.2 (1.1.1 was the first stable release).
 
 ## Completed in 1.1.0
@@ -39,6 +39,7 @@
 ## Workflow
 - **Deploy:** Create a Val Town branch, make targeted edits, check bytes against local files with a temporary `_hashcheck.ts`, run tests, merge, delete the branch, then commit and push to GitHub.
 - **Local tests:** `deno run --no-check --allow-read --allow-env --allow-net --import-map=tests/import_map.json tests/run-tests.ts` (last run: 22 suites pass). Release scan: `node tests/audit-release.mjs`.
+- **Handoff skill:** `/handoff` (`.claude/skills/handoff/SKILL.md`) updates this file, commits it and pushes it to the work branch.
 - **Known quirks:** The container cannot reach `api.val.town` for uploads. `run_file` sometimes times out, so retry. Branch endpoints use a different origin.
 
 ## Current status
