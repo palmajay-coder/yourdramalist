@@ -96,7 +96,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  else pool=(await deps.source(entry.id)).items;
  if(entry.filter&&!entry.person){
   // Same rules as the setup page preview. Genres come from saved TMDB lookups.
-  const facts=shelfNeedsFacts(entry.filter,pool)?await ((deps as any).facts??getTitleFacts)(pool.slice(0,600).map((x:any)=>({slug:x.slug,title:x.title,year:x.year,type:x.type})),{budgetMs:12000}).catch(()=>({})):{};
+  const facts=shelfNeedsFacts(entry.filter,pool)?await ((deps as any).facts??getTitleFacts)(pool.slice(0,600).map((x:any)=>({slug:x.slug,title:x.title,year:x.year,type:x.type,country:x.country})),{budgetMs:12000}).catch(()=>({})):{};
   pool=applyShelfFilter(pool,entry.filter,facts);
  }
  const hidden=['completed','dropped'].includes(entry.watchlistStatus||'')?new Set():await deps.hidden(runtime),year=new Date().getFullYear();

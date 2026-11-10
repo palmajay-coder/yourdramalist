@@ -58,7 +58,7 @@ export function createShelfHandler(deps = {load: loadShelfItems, facts: getTitle
       if (Number(req.headers.get("content-length") || 0) > 20000) return Response.json({error: "Request is too large"}, {status: 413, headers});
       let body: any;
       try { const text = await req.text(); if (text.length > 20000) throw 0; body = JSON.parse(text); } catch { return Response.json({error: "Invalid request"}, {status: 400, headers}); }
-      const items = (Array.isArray(body?.items) ? body.items : []).slice(0, 40).map((x: any): FactsInput => ({slug: String(x?.slug || ""), title: String(x?.title || "").slice(0, 300), year: Number(x?.year) || null, type: x?.type ? String(x.type).slice(0, 60) : null}));
+      const items = (Array.isArray(body?.items) ? body.items : []).slice(0, 40).map((x: any): FactsInput => ({slug: String(x?.slug || ""), title: String(x?.title || "").slice(0, 300), year: Number(x?.year) || null, type: x?.type ? String(x.type).slice(0, 60) : null, country: x?.country ? String(x.country).slice(0, 8) : null}));
       if (!items.length) return Response.json({facts: {}}, {headers});
       if (limited()) return Response.json({error: "Too many requests. Please wait a moment."}, {status: 429, headers});
       return Response.json({facts: await deps.facts(items, {budgetMs: 15000})}, {headers});

@@ -3,9 +3,21 @@ import {sqlite} from "https://esm.town/v/std/sqlite/main.ts";
 /** Genres, country and poster for MyDramaList titles, looked up on TMDB and saved for 30 days.
  * Watchlist pages carry no artwork, so watchlist shelves take their posters from here.
  * TMDB's TV genres lack Romance, Thriller, Horror and Historical, so dramas also read TMDB keyword tags. */
-export type FactsInput = {slug: string; title: string; year?: number | null; type?: string | null};
+export type FactsInput = {slug: string; title: string; year?: number | null; type?: string | null; country?: string | null};
 export type Facts = {genres: string[]; country?: string; poster?: string; v?: number};
-const VERSION = 2; // Saved answers from before posters were added are looked up again.
+const VERSION = 4;
+// Version 2 added posters. Version 4 searches by release year and checks the country, so every older answer is looked up again.
+const usable = (data: any) => data.v === VERSION;
+const LANGUAGE_COUNTRIES: Record<string, string[]> = {ko: ["KR"], ja: ["JP"], zh: ["CN", "TW", "HK"], cn: ["CN", "TW", "HK"], th: ["TH"], tl: ["PH"], fil: ["PH"]};
+
+/** Country MyDramaList gives a title: watchlist rows carry a numeric code, list rows a type such as "Korean Drama". */
+export function expectedCountry(item: {type?: string | null; country?: string | null}): string {
+  const codes: Record<string, string> = {"1": "JP", "2": "CN", "3": "KR", "5": "TW", "6": "TH"};
+  if (codes[String(item.country || "")]) return codes[String(item.country)];
+  const type = String(item.type || "").toLowerCase();
+  for (const [pattern, code] of [[/^korean\b/, "KR"], [/^chinese\b/, "CN"], [/^japanese\b/, "JP"], [/^taiwanese\b/, "TW"], [/^thai\b/, "TH"], [/^hong kong\b/, "HK"], [/^filipino\b/, "PH"]] as [RegExp, string][]) if (pattern.test(type)) return code;
+  return "";
+}
 
 const MOVIE: Record<number, string[]> = {28: ["Action"], 12: ["Adventure"], 16: ["Animation"], 35: ["Comedy"], 80: ["Crime"], 99: ["Documentary"], 18: ["Drama"], 10751: ["Family"], 14: ["Fantasy"], 36: ["Historical"], 27: ["Horror"], 10402: ["Music"], 9648: ["Mystery"], 10749: ["Romance"], 878: ["Sci-Fi"], 53: ["Thriller"], 10752: ["War"], 37: ["Western"]};
 const TV: Record<number, string[]> = {10759: ["Action", "Adventure"], 16: ["Animation"], 35: ["Comedy"], 80: ["Crime"], 99: ["Documentary"], 18: ["Drama"], 10751: ["Family"], 10762: ["Kids"], 9648: ["Mystery"], 10763: ["News"], 10764: ["Reality"], 10765: ["Sci-Fi", "Fantasy"], 10766: ["Soap"], 10767: ["Talk"], 10768: ["War", "Politics"], 37: ["Western"]};
@@ -27,8 +39,9 @@ export function factsGenresFor(type: "tv" | "movie", genreIds: number[], keyword
 
 const clean = (value: string) => String(value || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
-/** Picks the TMDB result whose title and year best match the MyDramaList title. */
-export function pickTmdbResult(results: any[], title: string, year?: number | null) {
+/** Picks the TMDB result whose title, year and country best match the MyDramaList title.
+ * A result from another country (for example an American show with the same name and year) is turned down. */
+export function pickTmdbResult(results: any[], title: string, year?: number | null, country = "") {
   const wanted = clean(title);
   let best: any = null, bestScore = -1;
   for (const r of results.slice(0, 10)) {
@@ -37,6 +50,12 @@ export function pickTmdbResult(results: any[], title: string, year?: number | nu
     if (score < 0) continue;
     const found = Number(String(r.first_air_date || r.release_date || "").slice(0, 4)) || null;
     if (year && found) score += found === year ? 3 : Math.abs(found - year) === 1 ? 1.5 : -2;
+    if (country) {
+      const origins = Array.isArray(r.origin_country) && r.origin_country.length ? r.origin_country.map(String) : LANGUAGE_COUNTRIES[String(r.original_language || "")] || [];
+      const language = String(r.original_language || "");
+      if (origins.includes(country) || (LANGUAGE_COUNTRIES[language] || []).includes(country)) score += 2;
+      else if (origins.length || language) score -= 4;
+    }
     if (score > bestScore) { bestScore = score; best = r; }
   }
   return bestScore >= 3 ? best : null;
@@ -52,8 +71,12 @@ async function lookup(item: FactsInput, key: string, fetcher: typeof fetch): Pro
     if (!r.ok) { await r.body?.cancel(); throw Error("tmdb " + r.status); }
     return r.json();
   };
-  const search = await get(`/search/${type}`, {query: item.title, include_adult: "false"});
-  const match = pickTmdbResult(search.results || [], item.title, item.year);
+  // Common titles such as "Midnight" return dozens of results, so search within the release year first.
+  const yearKey = type === "movie" ? "primary_release_year" : "first_air_date_year";
+  let match = null;
+  const country = expectedCountry(item);
+  if (item.year) match = pickTmdbResult((await get(`/search/${type}`, {query: item.title, include_adult: "false", [yearKey]: String(item.year)})).results || [], item.title, item.year, country);
+  if (!match) match = pickTmdbResult((await get(`/search/${type}`, {query: item.title, include_adult: "false"})).results || [], item.title, item.year, country);
   if (!match) return {genres: [], v: VERSION};
   let keywords: string[] = [];
   if (type === "tv") {
@@ -86,7 +109,7 @@ export async function getTitleFacts(items: FactsInput[], options: {key?: string;
       const rows = await sqlite.execute({sql: `SELECT slug, data, at FROM ydl_title_facts WHERE slug IN (${part.map(() => "?").join(",")})`, args: part});
       for (const row of (rows.rows || []) as any[]) {
         const data = JSON.parse(String(row.data));
-        if (data.v === VERSION && Number(row.at) > now() - (data.genres?.length ? FRESH_MS : MISS_MS)) out[String(row.slug)] = data;
+        if (usable(data) && Number(row.at) > now() - (data.genres?.length ? FRESH_MS : MISS_MS)) out[String(row.slug)] = data;
       }
     }
   } catch { /* A storage problem only means more lookups. */ }

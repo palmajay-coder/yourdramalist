@@ -1,7 +1,7 @@
 import {parseHTML} from "npm:linkedom@0.18.12";
 import handler from "./app.ts";
 import {applyShelfFilter,normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfCountry,shelfNeedsFacts} from "./shelfFilters.ts";
-import {factsGenresFor,pickTmdbResult,getTitleFacts} from "./titleFacts.ts";
+import {factsGenresFor,pickTmdbResult,getTitleFacts,expectedCountry} from "./titleFacts.ts";
 import {shelfSource,createShelfHandler} from "./shelfApi.ts";
 import {normalizeAddon,makeManifest,loadCatalog} from "./addon.ts";
 let passed=0;const assert=(v:unknown,m:string)=>{if(!v)throw Error(m)};async function test(name:string,fn:()=>unknown){await fn();passed++;console.log("PASS "+name)}
@@ -58,6 +58,19 @@ await test("title facts are looked up once per title with genres and country",as
  assert(!out["2-city-b"].poster,"no poster when TMDB has none");
  assert(out["2-city-b"].genres.join(",")==="Crime"&&out["2-city-b"].country==="CN","movie facts");
  assert(!out["bad slug"]&&calls===3,"invalid slugs skipped; one search per title plus drama keywords");
+ let searches:string[]=[];
+ const crowded=(async(input:URL)=>{const u=new URL(String(input));searches.push(u.searchParams.get("primary_release_year")||"any");
+  if(u.searchParams.get("primary_release_year")==="2021")return Response.json({results:[{id:5,title:"Midnight",release_date:"2021-06-30",genre_ids:[53],original_language:"ko",poster_path:"/midnight.jpg"}]});
+  return Response.json({results:Array.from({length:10},(_,i)=>({id:100+i,title:"Midnight",release_date:(1990+i)+"-01-01",genre_ids:[18]}))});}) as typeof fetch;
+ const mid=await getTitleFacts([{slug:"40349-midnight",title:"Midnight",year:2021,type:"Korean Movie"}],{key:"test",fetcher:crowded});
+ assert(mid["40349-midnight"].poster==="https://image.tmdb.org/t/p/w342/midnight.jpg"&&searches.join()==="2021","common titles are found by searching within the release year: "+searches.join());
+ searches=[];
+ const old=await getTitleFacts([{slug:"1498-time",title:"Time",year:2018,type:"Korean Drama"}],{key:"test",fetcher:(async()=>{searches.push("x");return Response.json({results:[]})}) as typeof fetch});
+ assert(!old["1498-time"].poster&&searches.length===2,"a miss tries the year search, then a plain search");
+ const lost=pickTmdbResult([{id:1,name:"Lost and Found",first_air_date:"2008-03-01",origin_country:["US"],original_language:"en"},{id:2,name:"Lost and Found",first_air_date:"2008-05-01",origin_country:["TW"],original_language:"zh"}],"Lost and Found",2008,expectedCountry({type:"Taiwanese Drama"}));
+ assert(lost?.id===2,"a same-name show from another country is turned down");
+ assert(!pickTmdbResult([{id:1,name:"Lost and Found",first_air_date:"2008-03-01",origin_country:["US"]}],"Lost and Found",2008,"TW"),"no match beats the wrong match");
+ assert(expectedCountry({country:"3"})==="KR"&&pickTmdbResult([{id:9,title:"Midnight",release_date:"2021-06-30",original_language:"ko"}],"Midnight",2021,"KR")?.id===9,"Korean film matches by language");
 });
 await test("shelf endpoint accepts only MyDramaList lists and watchlists",async()=>{
  assert(shelfSource("https://mydramalist.com/list/AbCd1234")?.kind==="list","list");

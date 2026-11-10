@@ -4,7 +4,7 @@
   "appVersion": "1.0.9",
   "manifestVersion": "1.0.9",
   "release": "1.0.9",
-  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 719) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
+  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 720) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
   "files": [
     {
       "path": "addon.test.ts",
@@ -15,7 +15,7 @@
     },
     {
       "path": "addon.ts",
-      "sha256": "e0d167b9d20eb93da460c7427ca78a0b8c77f813695b93e898b95df9aad6cb3b",
+      "sha256": "3dc87d19aaa2ba7c5d04fda5c5e0bebdade671ccfdbfb26357606b126081d155",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -99,7 +99,7 @@
     },
     {
       "path": "communityShelves.ts",
-      "sha256": "311d5705f063893b824871d1bbd880e14213c2ad7ad1e51af84acc955fe0afc4",
+      "sha256": "f3d55c6e1380fa68aa5591e7ae63ac07723f9942ec61cdfd6c5524f9bdc90383",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -407,7 +407,7 @@
     },
     {
       "path": "shelfApi.ts",
-      "sha256": "e5498bb0294456f78a0a9f38fb4ddcd685387e800b6c70f63d5fe6c59e0e1d51",
+      "sha256": "46413cbb8a1026fb90729c63032ebca0767cdcd58c4d18001ec88291ffafe0ea",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -421,7 +421,7 @@
     },
     {
       "path": "shelves.test.ts",
-      "sha256": "b569eae26d716f39b043953374ed7d9844d42db53520e9920550664e9e918955",
+      "sha256": "8cacb144838b2caa183760a3407381e98850b0d7f7906de6a904a69c1581972e",
       "type": "script",
       "publicationAdaptation": "offline test with synthetic fixtures",
       "matchesProduction": false
@@ -435,7 +435,7 @@
     },
     {
       "path": "titleFacts.ts",
-      "sha256": "aabc4232e09231e71fbffb15711bb191a03a4e6133942d0fbead1189aee55fef",
+      "sha256": "1f22678d6b1e5de6a8b2b9275e9b4601b9c5c00054e9b5b419c1f5524f54ff11",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -484,5 +484,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 719
+  "productionValVersion": 720
 }

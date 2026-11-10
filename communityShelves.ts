@@ -41,7 +41,7 @@ export function installCommunityShelves(){
   for(let i=0;i<todo.length;i+=40){
    if(id!==renderId){for(const x of todo.slice(i))factsPending.delete(x.slug);return}
    const part=todo.slice(i,i+40);
-   try{const r=await fetch('/api/mdl/title-facts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items:part.map(x=>({slug:x.slug,title:x.title,year:x.year,type:x.type}))})});const data=await r.json();if(!r.ok)throw Error();for(const x of part){facts.set(x.slug,data.facts?.[x.slug]||{genres:[]});factsPending.delete(x.slug)}}
+   try{const r=await fetch('/api/mdl/title-facts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items:part.map(x=>({slug:x.slug,title:x.title,year:x.year,type:x.type,country:x.country}))})});const data=await r.json();if(!r.ok)throw Error();for(const x of part){facts.set(x.slug,data.facts?.[x.slug]||{genres:[]});factsPending.delete(x.slug)}}
    catch{for(const x of part)factsPending.delete(x.slug);failedRows.add(row)}
    refresh();
   }
