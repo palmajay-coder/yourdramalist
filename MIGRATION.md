@@ -23,8 +23,8 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 
 - [x] Clone the repository and confirm the work branch (1.1.3 is present). *Done November 10.*
 - [x] Compare each file on the work branch with the live Val Town copy. *Done November 10, from the uploaded export of 74 files.* 62 files match exactly. Eight differ: six test files, `goblinFixture.ts`, and `peopleFixtures.ts`. `errors.test.ts` is marked as matching production in the snapshot, but it differs, so check it before cutover. Four Markdown docs in the export are not at the repository root.
-- [ ] Read the remaining modules and list every blob key the app writes.
-- [ ] Confirm whether any user data is stored. Note whether add-on settings live only in the encrypted manifest link.
+- [x] Read the remaining modules and list every blob key the app writes. *Done November 10.* Blob keys: `catalog-collections:v1`, `explore:v1`, `seasonal-featured:v1`, `poster-background:v1`, `direct-lists:v1`, `people:v1`, `drama-details:v1`, and `appearance:v1`.
+- [x] Confirm whether any user data is stored. *Done November 10.* The app also uses a Val Town SQLite database with seven tables: `ydl_daily_analytics` (294 rows), `ydl_error_log` (2), `ydl_month_salt` (1), `ydl_people_meta` (4), `ydl_review_seen2` (1), `ydl_title_facts` (1,037), and `ydl_visits` (16). These need a decision: migrate them, or drop them. Add-on settings still live only in the encrypted manifest link.
 - [ ] Save a copy of the `legacy/` folder and the nine other Val Town branches.
 
 ### Phase 2: Secrets and accounts
