@@ -4,7 +4,7 @@ import {canEdit} from "./wallpaper.ts";
 import {CATEGORIES,COUNTRIES} from "./explore.ts";
 import {SETUP_ERRORS,POSTER_ERRORS,POSTER_PROVIDERS,type ErrorKind} from "./errorGuide.ts";
 
-export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error";
+export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error" | "people.generated" | "popular.catalog" | "popular.person";
 
 export const ERROR_CATEGORIES = new Set([
   "method", "origin", "format", "rate-limit", "request-too-large", "invalid-request-body",
@@ -21,7 +21,7 @@ const CATALOG_CATEGORIES = new Set([
   "explore:top-shows:all", "explore:popular-shows:all", "explore:newest-shows:all", "explore:upcoming-shows:all", "explore:airing-shows:all", "explore:variety-shows:all", "explore:top-movies:all", "explore:popular-movies:all", "explore:newest-movies:all", "explore:upcoming-movies:all",
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
-const ADD_SOURCES = new Set(["discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks"]);
+const ADD_SOURCES = new Set(["popular-this-month","discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks"]);
 export const POSTER_VERIFY_CATEGORIES = new Set([
   "unknown:invalid-input", "unknown:invalid-configuration", "unknown:request-limit", "unknown:request-size", "unknown:request-origin", "unknown:request-format", "unknown:request-method",
   ...["ratings", "better", "posterplus", "rpdb"].flatMap(provider => [
@@ -30,7 +30,11 @@ export const POSTER_VERIFY_CATEGORIES = new Set([
     `${provider}:not-an-image`, `${provider}:request-limit`, `${provider}:client-network`,
   ]),
 ]);
-const valid = (metric:AnalyticsMetric, category:string) => metric === "manifest.generated" ? category === "all"
+// people.generated counts each person once a day; popular.* count each person once a day per catalog or per actor/director.
+export const POPULAR_PERSON = /^[1-9]\d{0,11}-[a-z0-9-]{1,200}:(actor|director)$/i;
+const valid = (metric:AnalyticsMetric, category:string) => metric === "manifest.generated" || metric === "people.generated" ? category === "all"
+  : metric === "popular.catalog" ? CATALOG_CATEGORIES.has(category) && category.startsWith("explore:")
+  : metric === "popular.person" ? POPULAR_PERSON.test(category)
   : metric === "manifest.error" ? ERROR_CATEGORIES.has(category)
   : metric === "feature.selected" ? FEATURE_CATEGORIES.has(category)
   : metric === "poster.verify.error" ? POSTER_VERIFY_CATEGORIES.has(category)
@@ -46,10 +50,10 @@ async function ready(){
   try{await schema}catch(error){schema=undefined;throw error;}
   await sqlite.execute({sql:"DELETE FROM ydl_daily_analytics WHERE day < ?",args:[shiftDay(dayKey(),-180)]});
 }
-function dayKey(now=Date.now()){
+export function dayKey(now=Date.now()){
   return pacificDate(now).date.toISOString().slice(0,10);
 }
-function shiftDay(day:string,delta:number){
+export function shiftDay(day:string,delta:number){
   const [year,month,date]=day.split("-").map(Number);
   return new Date(Date.UTC(year,month-1,date+delta)).toISOString().slice(0,10);
 }
@@ -146,7 +150,7 @@ export async function recordCatalogAddition(req:Request){
 }
 
 export const analyticsLabels:Record<string,string>={
-  "discover-drama-related":"Discover · Drama related lists", "discover-actor-filmography":"Discover · Actor filmographies", "discover-director-filmography":"Discover · Director filmographies", "discover-catalog":"Discover · Catalogs", "community-watchlist":"Community · Watchlists", "community-public-list":"Community · Public lists", "community-direct-list":"Community · Direct list URLs", "featured-list":"Featured banner lists", "weekly-picks":"Weekly picks",
+  "popular-this-month":"Popular this month card", "discover-drama-related":"Discover · Drama related lists", "discover-actor-filmography":"Discover · Actor filmographies", "discover-director-filmography":"Discover · Director filmographies", "discover-catalog":"Discover · Catalogs", "community-watchlist":"Community · Watchlists", "community-public-list":"Community · Public lists", "community-direct-list":"Community · Direct list URLs", "featured-list":"Featured banner lists", "weekly-picks":"Weekly picks",
   "community-public-list":"Public lists", "community-watchlist":"Individual watchlists", "community-combined-watchlist":"All watchlists",
   "actor-filmography":"Actor filmographies", "director-filmography":"Director filmographies", reviews:"MyDramaList reviews",
   "hide-unreleased":"Hide unreleased titles", "hide-completed":"Hide completed and dropped titles",

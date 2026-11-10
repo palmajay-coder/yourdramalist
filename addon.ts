@@ -12,6 +12,7 @@ import {localizedCatalogName} from './catalogLabels.ts';
 import {recordAnalytics,recordAnalyticsBatch,recordErrorLog,type AnalyticsMetric} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
+import {popularity,personPicks} from './popularity.ts';
 type Entry={id:string;name:string;type:'series'|'movie';filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
@@ -175,6 +176,8 @@ export async function handleAddon(req:Request){
    counts.push(['feature.selected',posterStyle,1]);
    for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)counts.push(['feature.selected',category,1]);}
    await recordAnalyticsBatch(counts);
+   // Counts people once a day, overall and per built-in catalog and actor/director, for analytics and Popular this month.
+   await popularity.recordManifest(req,config.entries.filter(e=>e.explore).map(e=>`explore:${e.explore!.category}:${e.explore!.country||'all'}`),personPicks(config.entries,(body as any)?.catalogs));
    return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});
   }catch{return diagnose('configuration',400,'manifest-generation');}
  }

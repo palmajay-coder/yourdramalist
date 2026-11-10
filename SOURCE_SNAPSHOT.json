@@ -4,7 +4,7 @@
   "appVersion": "1.0.9",
   "manifestVersion": "1.0.9",
   "release": "1.0.9",
-  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 720) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
+  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 721) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
   "files": [
     {
       "path": "addon.test.ts",
@@ -15,7 +15,7 @@
     },
     {
       "path": "addon.ts",
-      "sha256": "3dc87d19aaa2ba7c5d04fda5c5e0bebdade671ccfdbfb26357606b126081d155",
+      "sha256": "2345e8e6b6ea45f5c7e61b5ba2a90ede221d78822f2e59648fdf69d1b09912a0",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -50,14 +50,14 @@
     },
     {
       "path": "analyticsApi.ts",
-      "sha256": "8fd907c7036bef8312754b142bc895d9acfeaca3f1f40c31967aeed53c9a227d",
+      "sha256": "6556aaa72e3cfccaa3a7ac13aa96d7fc386464b0affd6d42bc4ac734799220de",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
     },
     {
       "path": "app.ts",
-      "sha256": "42f34cde33443567f145cf64521a3cc38c1d33cb96dda7a317b7f09a61b31a6a",
+      "sha256": "2811e67a60ee3580f57896eac067ed64d26798f5a799940d4e6429a7b2872670",
       "type": "http",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -71,7 +71,7 @@
     },
     {
       "path": "catalogShelves.css",
-      "sha256": "b4ccb785528e91afd82ebb17ce60350407acb97cc48f7972fdda8bb068f9b4ca",
+      "sha256": "2078daefc520bdb92ae11dcf20f2120d03b677eb1b1aaa8c5df0a62e04c82c19",
       "type": "file",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -308,6 +308,13 @@
       "matchesProduction": false
     },
     {
+      "path": "popularClient.ts",
+      "sha256": "8dda46df43099c356e806b7d7dd4bdb6f8f0c407d6a8dd7a4e7d8f51216dda17",
+      "type": "script",
+      "publicationAdaptation": "deployment source",
+      "matchesProduction": true
+    },
+    {
       "path": "popularLists.test.ts",
       "sha256": "21056d006cc6a0fd155aa457749deae2971c856464073ae0ce11fc6e9259948e",
       "type": "script",
@@ -324,6 +331,20 @@
     {
       "path": "popularListsApi.ts",
       "sha256": "0b4ea62db88b4444fdeb305bf984aa72b10ea172d549a84cbd480b71dea85cc5",
+      "type": "script",
+      "publicationAdaptation": "deployment source",
+      "matchesProduction": true
+    },
+    {
+      "path": "popularity.test.ts",
+      "sha256": "efd58fa6638b4b95c0b6679d16affd067c2ab84b90c526632140daf200ca6e71",
+      "type": "script",
+      "publicationAdaptation": "offline test with synthetic fixtures",
+      "matchesProduction": false
+    },
+    {
+      "path": "popularity.ts",
+      "sha256": "592b8f61791a22a7ec87275b3771579c828dd74abb1b58c0119c0d01c88c4914",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -379,7 +400,7 @@
     },
     {
       "path": "preferencesClient.ts",
-      "sha256": "4d1687a61a2cd6ed36250f61dbd8f88ed5eb18a877626f4b4c8bf7eb00d6469f",
+      "sha256": "657f62276eae11ba2dba12af9800176283a6a44810969f13a82b2d2377ea565d",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -387,6 +408,13 @@
     {
       "path": "preferencesPreview.ts",
       "sha256": "fe20f2c6e682d2a734352eaba12aef18b3f1f1793256c5049b569c03b9f61521",
+      "type": "script",
+      "publicationAdaptation": "deployment source",
+      "matchesProduction": true
+    },
+    {
+      "path": "privacyPage.ts",
+      "sha256": "b18ae8bfe5beb9fdc55a900cf2458fb000363091cb8f1a3a044757b568c49511",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -428,7 +456,7 @@
     },
     {
       "path": "text.ts",
-      "sha256": "feeabbfe813582521898dd28e369a191f0128042adab0ba12149a2cd09296fc5",
+      "sha256": "fea49e354020eb2f2e0c8817dd96bee2450f9d6fe7c07da450861d5b21f26ed6",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -463,7 +491,7 @@
     },
     {
       "path": "wallpaperAdmin.ts",
-      "sha256": "beea35a79b1475ea8809b260f66deef3420bd8d8ea37c9910993d0eff84327c9",
+      "sha256": "b28426dda648f0e755b083e63161a70cc3fe8fa3a6589ce133941b7da8cca979",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -484,5 +512,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 720
+  "productionValVersion": 721
 }
