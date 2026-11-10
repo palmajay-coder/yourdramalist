@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.1
+
+### What’s new
+
+- Restyled the MyDramaList cards on a show’s page in Nuvio. The rating shows as five stars with the score and rating count, and a line shows which of your lists the show is on. The verdict fits on one line with an icon, and a new Open on MyDramaList card takes you to the show’s page to add it to a list, rate it or mark it watched. Reviews look the same as before.
+
+### Bug fixes
+
+- Fixed duplicate review cards when more than one YourDramaList link is installed in Nuvio. Only one install now shows the cards for each show.
+
+### Improvements
+
+- The admin Errors section is shorter. One line sums up today, this week and the most common error, and the guide lists only errors that actually happened, each with its latest codes.
+- The Preferences tab preview matches the new cards, and the extra Nuvio example picture is gone.
+
 ## 1.1.0
 
 ### What’s new
