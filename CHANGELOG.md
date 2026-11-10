@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.2
+
+### What’s new
+
+- Added a Date added sort for watchlists on the Community tab. It puts the shows you added most recently first, so a new Plan to Watch addition shows up at the top of the catalog in Nuvio.
+- The sort menu is now labeled "Sort by".
+
+### Improvements
+
+- Catalog names stay clean. Sorting and release years no longer add text to a catalog’s name; only country, genre and Dramas or Movies do, for example "Plan to Watch: Korean Romance Dramas".
+- The admin analytics now count people instead of clicks. Every catalog, feature and search row shows how many different people chose it over 7 or 30 days, with a mobile and computer split and how many people came back. Weekly picks show people per row each week.
+- Popular this month shows how many people added each entry instead of how many adds.
+- The privacy page explains usage statistics in plain language: what is counted, the scrambled monthly code, how long data is kept and who can see it.
+
 ## 1.1.1
 
 First stable release.

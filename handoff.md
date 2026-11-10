@@ -2,9 +2,9 @@
 
 ## Project
 - **What it does:** YourDramaList (YDL) works as a Nuvio add-on that turns MyDramaList catalogs into install links.
-- **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Live files match GitHub as of release 1.1.1.
+- **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Live files match GitHub as of release 1.1.2.
 - **GitHub mirror:** `palmajay-coder/yourdramalist`. The work branch, `ccr-de4d41e8-p7rg8s`, must restart from `origin/main` for new work, since PR #2 already merged.
-- **Release:** 1.1.1 (first stable release). 1.1.0 merged via PR #2.
+- **Release:** 1.1.2 (1.1.1 was the first stable release).
 
 ## Completed in 1.1.0
 - **Shelves:** Community and drama-related lists show as shelves.
@@ -23,6 +23,10 @@
 - **Admin Errors:** One summary line, a guide showing only errors that happened, and the latest codes under each type.
 - **Cleanup:** The Nuvio example screenshot, its route and unused text are gone.
 
+## Completed in 1.1.2
+- **Date added sort:** Watchlist shelves offer "Date added", using MDL's entry number (`ml12345`) as the add order. Sort and year never appear in catalog names.
+- **People-based analytics:** `popularity.ts` stores `(day, scope, visitor)` rows in `ydl_visits` with a monthly salted code, kept 35 days. The admin page shows unique people per range, mobile vs computer, and returning people. Click totals are no longer written. Popular this month and weekly picks still use daily totals in `ydl_daily_analytics` (`popular.*`, `weekly.people`).
+
 ## Important decisions
 - **Minimal first:** The user wants explanations before code ("do not code yet") and minimal UI.
 - **No empty states:** The popular card hides entirely rather than showing a "not enough data" message.
@@ -38,7 +42,7 @@
 - **Known quirks:** The container cannot reach `api.val.town` for uploads. `run_file` sometimes times out, so retry. Branch endpoints use a different origin.
 
 ## Current status
-- **No active problem:** 1.1.1 runs live. Confirm in Nuvio that two installs show one set of review cards.
+- **No active problem:** 1.1.2 runs live. Old click totals stay in the database but the admin page no longer reads them. Confirm in Nuvio that two installs show one set of review cards.
 - **Cost:** The user asked for cheaper models on routine tasks and `/compact` after each logical step.
 
 ## Open ideas (not requested yet)

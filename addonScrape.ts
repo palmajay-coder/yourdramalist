@@ -779,7 +779,7 @@ const WATCHLIST_SECTIONS = ["watching", "completed", "plan_to_watch", "on_hold",
 
 export function parseModernWatchlist(html, section = 0) {
   const sections = {};
-  for (const [, row] of html.matchAll(/<tr\b[^>]*\bid=["']ml\d+["'][^>]*>([\s\S]*?)<\/tr>/gi)) {
+  for (const [, entry, row] of html.matchAll(/<tr\b[^>]*\bid=["']ml(\d+)["'][^>]*>([\s\S]*?)<\/tr>/gi)) {
     const anchor = (row.match(/<a\b[^>]*class=["'][^"']*\btitle\b[^"']*["'][^>]*>[\s\S]*?<\/a>/i) || [])[0];
     if (!anchor) continue;
     const link = N($(anchor, "href"));
@@ -794,7 +794,7 @@ export function parseModernWatchlist(html, section = 0) {
     const status = Z(row, "msv2-i-status").toLowerCase();
     const statusIndex = ["watching", "completed", "plan to watch", "on hold", "dropped", "undecided", "not interested"].indexOf(status) + 1;
     (sections[section || statusIndex || 0] ??= []).push({
-      slug, link, title: h(anchor), image: image ? N(image).replace(/[st]\.jpg$/, "c.jpg") : "", country,
+      slug, link, added: Number(entry) || 0, title: h(anchor), image: image ? N(image).replace(/[st]\.jpg$/, "c.jpg") : "", country,
       type: Z(row, "msv2-i-type") || Z(row, "mdl-style-col-type") || null,
       year: Pt(Z(row, "msv2-i-year") || Z(row, "mdl-style-col-year")),
     });

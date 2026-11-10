@@ -2,7 +2,7 @@ import {loadWatchlist, loadWatchlistCategory, WATCHLIST_CARDS, X} from "./addonS
 import {getTitleFacts, type FactsInput} from "./titleFacts.ts";
 
 /** Titles for one Community or drama-related list, shown as a shelf on the setup page. */
-export type ShelfItem = {slug: string; title: string; url: string; poster: string | null; year: number | null; type: string | null; country: string};
+export type ShelfItem = {slug: string; title: string; url: string; poster: string | null; year: number | null; type: string | null; country: string; added?: number};
 const MAX_ITEMS = 1000;
 
 /** Accepts MyDramaList list and watchlist links only. */
@@ -22,7 +22,7 @@ export function toShelfItem(item: any): ShelfItem | null {
   const slug = String(item?.slug || "");
   if (!/^\d+-[a-z0-9-]+$/i.test(slug)) return null;
   const poster = typeof item.image === "string" && /^https:\/\/i\.mydramalist\.com\//.test(item.image) ? item.image : null;
-  return {slug, title: String(item.title || "").slice(0, 300), url: "https://mydramalist.com/" + slug, poster, year: Number(item.year) || null, type: item.type ? String(item.type).slice(0, 60) : null, country: item.country ? String(item.country).slice(0, 8) : ""};
+  return {slug, title: String(item.title || "").slice(0, 300), url: "https://mydramalist.com/" + slug, poster, year: Number(item.year) || null, type: item.type ? String(item.type).slice(0, 60) : null, country: item.country ? String(item.country).slice(0, 8) : "", ...(Number(item.added) > 0 ? {added: Number(item.added)} : {})};
 }
 
 export async function loadShelfItems(source: NonNullable<ReturnType<typeof shelfSource>>, deps = {list: X, watchlist: loadWatchlist, category: loadWatchlistCategory}): Promise<any[]> {

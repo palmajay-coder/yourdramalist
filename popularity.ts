@@ -1,70 +1,90 @@
 import {sqlite} from "https://esm.town/v/std/sqlite/main.ts";
-import {recordAnalyticsBatch, dayKey, shiftDay, POPULAR_PERSON, type AnalyticsMetric} from "./analyticsApi.ts";
+import {recordAnalyticsBatch, validAnalytics, dayKey, shiftDay, POPULAR_PERSON, type AnalyticsMetric} from "./analyticsApi.ts";
+import {weekWindow} from "./collections.ts";
 import {CATEGORIES, COUNTRIES} from "./explore.ts";
 import {remoteImage} from "./people.ts";
 
-/** Counts people, not install links, without knowing who anyone is.
- * Each manifest request becomes a scrambled code made from the visitor's network address, browser and a random
- * secret that is replaced every day. Only today's codes are kept, so yesterday's visitors can never be matched
- * to today's. The codes are used to count each person once a day overall, once per built-in catalog and once per
- * actor or director; only those daily totals are stored. */
+/** Counts people, not clicks, without knowing who anyone is.
+ * Each request becomes a scrambled code made from the visitor's network address, browser and a random secret that is
+ * replaced at the start of every month. The address is never stored, and once the month's secret is deleted a code can't
+ * be linked to anyone or to the next month. The site keeps which codes chose which category on which day for 35 days,
+ * so the admin page can count each person once over 7 or 30 days and see how many come back. */
 export type PersonPick = {slug: string; mode: "actor" | "director"; name?: string | null; photo?: string | null};
 type Db = {execute: (query: any) => Promise<any>; batch: (queries: any[]) => Promise<any[]>};
-const MIN_ADDS = 3, SHOW_COUNT = 10, TOP = 5, CACHE_MS = 60 * 60 * 1000, PEOPLE_KEEP_MS = 60 * 24 * 60 * 60 * 1000;
+const MIN_ADDS = 3, SHOW_COUNT = 10, TOP = 5, CACHE_MS = 60 * 60 * 1000, PEOPLE_KEEP_MS = 60 * 24 * 60 * 60 * 1000, KEEP_DAYS = 35;
 
 export function visitorAddress(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return (forwarded || req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "").slice(0, 64);
+}
+/** Phones and tablets count as mobile; everything else as computer. */
+export function deviceType(req: Request): "mobile" | "computer" {
+  return /Mobi|Android|iPhone|iPad|iPod|Tablet|Silk|Kindle|Opera Mini|IEMobile/i.test(req.headers.get("user-agent") || "") ? "mobile" : "computer";
+}
+/** Scopes that may be stored: people, device type, actors and directors, and every analytics category. */
+export function validScope(scope: string): boolean {
+  if (scope === "people" || scope === "device:mobile" || scope === "device:computer") return true;
+  if (scope.startsWith("person:")) return POPULAR_PERSON.test(scope.slice(7));
+  const at = scope.indexOf(":"), metric = scope.slice(0, at) as AnalyticsMetric;
+  return at > 0 && ["catalog.selected", "feature.selected", "catalog.added"].includes(metric) && validAnalytics(metric, scope.slice(at + 1));
 }
 
 const cleanName = (value: unknown) => String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 80);
 
 export function createPopularity(deps: {db?: Db; record?: typeof recordAnalyticsBatch; now?: () => number} = {}) {
   const db = deps.db ?? (sqlite as unknown as Db), record = deps.record ?? recordAnalyticsBatch, now = deps.now ?? Date.now;
-  let schema: Promise<void> | undefined, salt = {day: "", value: ""}, cache: {at: number; data: any} | null = null;
+  let schema: Promise<void> | undefined, salt = {month: "", value: ""}, cache: {at: number; data: any} | null = null;
   async function ready() {
     schema ??= db.batch([
-      {sql: "CREATE TABLE IF NOT EXISTS ydl_daily_salt (day TEXT PRIMARY KEY, salt TEXT NOT NULL)", args: []},
-      {sql: "CREATE TABLE IF NOT EXISTS ydl_daily_seen (day TEXT NOT NULL, scope TEXT NOT NULL, visitor TEXT NOT NULL, PRIMARY KEY(day, scope, visitor))", args: []},
+      {sql: "CREATE TABLE IF NOT EXISTS ydl_month_salt (month TEXT PRIMARY KEY, salt TEXT NOT NULL)", args: []},
+      {sql: "CREATE TABLE IF NOT EXISTS ydl_visits (day TEXT NOT NULL, scope TEXT NOT NULL, visitor TEXT NOT NULL, PRIMARY KEY(day, scope, visitor))", args: []},
       {sql: "CREATE TABLE IF NOT EXISTS ydl_people_meta (slug TEXT PRIMARY KEY, name TEXT NOT NULL, photo TEXT, at INTEGER NOT NULL)", args: []},
+      // The daily codes from before monthly counting are no longer needed.
+      {sql: "DROP TABLE IF EXISTS ydl_daily_seen", args: []},
+      {sql: "DROP TABLE IF EXISTS ydl_daily_salt", args: []},
     ]).then(() => {});
     try { await schema; } catch (error) { schema = undefined; throw error; }
   }
-  async function daySalt(day: string) {
-    if (salt.day === day) return salt.value;
+  async function monthSalt(month: string) {
+    if (salt.month === month) return salt.value;
     const fresh = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
     await db.batch([
-      {sql: "INSERT OR IGNORE INTO ydl_daily_salt(day, salt) VALUES(?, ?)", args: [day, fresh]},
-      {sql: "DELETE FROM ydl_daily_salt WHERE day < ?", args: [day]},
+      {sql: "INSERT OR IGNORE INTO ydl_month_salt(month, salt) VALUES(?, ?)", args: [month, fresh]},
+      {sql: "DELETE FROM ydl_month_salt WHERE month < ?", args: [month]},
     ]);
-    const row = (await db.execute({sql: "SELECT salt FROM ydl_daily_salt WHERE day = ?", args: [day]})).rows?.[0];
-    salt = {day, value: String(row?.salt ?? row?.[0] ?? fresh)};
+    const row = (await db.execute({sql: "SELECT salt FROM ydl_month_salt WHERE month = ?", args: [month]})).rows?.[0];
+    salt = {month, value: String(row?.salt ?? row?.[0] ?? fresh)};
     return salt.value;
   }
 
-  /** Called after a manifest is generated. Never throws: counting must not get in the way of an install link. */
-  async function recordManifest(req: Request, catalogs: string[], people: PersonPick[]) {
+  /** Marks that this person chose each scope today. Never throws: counting must not get in the way of a request. */
+  async function recordVisit(req: Request, rawScopes: string[], people: PersonPick[] = []) {
     const address = visitorAddress(req);
     if (!address) return;
     try {
       await ready();
-      const day = dayKey(now()), secret = await daySalt(day);
+      const time = now(), day = dayKey(time), secret = await monthSalt(day.slice(0, 7));
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret + "|" + address + "|" + (req.headers.get("user-agent") || "").slice(0, 300)));
       const visitor = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
       const picks = new Map<string, PersonPick>();
       for (const p of people) if (POPULAR_PERSON.test(p.slug + ":" + p.mode)) picks.set(p.slug + ":" + p.mode, p);
-      const scopes = ["people", ...new Set(catalogs.filter((c) => c.startsWith("explore:")).map((c) => "catalog:" + c)), ...[...picks.keys()].map((k) => "person:" + k)];
+      const scopes = [...new Set([...rawScopes, ...[...picks.keys()].map((k) => "person:" + k)])].filter(validScope);
+      if (!scopes.length) return;
+      // Weekly picks keep a long-term count of people per row per week for the rotation view.
+      const weekly = scopes.filter((s) => s.startsWith("catalog.selected:weekly:")), week = weekWindow(time).week;
+      const seenThisWeek = new Set<string>(weekly.length ? ((await db.execute({sql: `SELECT DISTINCT scope FROM ydl_visits WHERE visitor = ? AND day >= ? AND scope IN (${weekly.map(() => "?").join(",")})`, args: [visitor, week, ...weekly]})).rows || []).map((r: any) => String(r.scope ?? r[0])) : []);
       const results = await db.batch([
-        ...scopes.map((scope) => ({sql: "INSERT OR IGNORE INTO ydl_daily_seen(day, scope, visitor) VALUES(?, ?, ?)", args: [day, scope, visitor]})),
-        {sql: "DELETE FROM ydl_daily_seen WHERE day < ?", args: [day]},
+        ...scopes.map((scope) => ({sql: "INSERT OR IGNORE INTO ydl_visits(day, scope, visitor) VALUES(?, ?, ?)", args: [day, scope, visitor]})),
+        {sql: "DELETE FROM ydl_visits WHERE day < ?", args: [shiftDay(day, -KEEP_DAYS)]},
       ]);
+      // Popular this month keeps its once-a-day totals for each built-in catalog and actor or director.
       const metrics: Array<[AnalyticsMetric, string, number]> = [];
       scopes.forEach((scope, i) => {
         if (!(Number(results?.[i]?.rowsAffected) > 0)) return;
-        if (scope === "people") metrics.push(["people.generated", "all", 1]);
-        else if (scope.startsWith("catalog:")) metrics.push(["popular.catalog", scope.slice(8), 1]);
-        else metrics.push(["popular.person", scope.slice(7), 1]);
+        if (scope.startsWith("catalog.selected:explore:")) metrics.push(["popular.catalog", scope.slice(17), 1]);
+        else if (scope.startsWith("person:")) metrics.push(["popular.person", scope.slice(7), 1]);
       });
+      for (const scope of weekly) if (!seenThisWeek.has(scope)) metrics.push(["weekly.people", scope.slice(17), 1]);
       if (metrics.length) await record(metrics);
       const named = [...picks.values()].filter((p) => cleanName(p.name));
       if (named.length) {
@@ -74,6 +94,46 @@ export function createPopularity(deps: {db?: Db; record?: typeof recordAnalytics
         ]);
       }
     } catch { /* Counting is best effort. */ }
+  }
+
+  /** Called after an install link is created: the person, their device type and every category in the link. */
+  function recordManifest(req: Request, scopes: string[], people: PersonPick[]) {
+    return recordVisit(req, ["people", "device:" + deviceType(req), ...scopes], people);
+  }
+
+  /** People counts for the admin page. Each person counts once per range, however many days they came back. */
+  async function summary() {
+    await ready();
+    const today = dayKey(now()), from = shiftDay(today, -29);
+    const rows = ((await db.execute({sql: "SELECT day, scope, visitor FROM ydl_visits WHERE day >= ?", args: [from]})).rows || []).map((r: any) => ({day: String(r.day ?? r[0]), scope: String(r.scope ?? r[1]), visitor: String(r.visitor ?? r[2])}));
+    const range = (days: number) => {
+      const start = shiftDay(today, -(days - 1)), scopes = new Map<string, Set<string>>(), activeDays = new Map<string, Set<string>>();
+      for (const r of rows) {
+        if (r.day < start) continue;
+        let set = scopes.get(r.scope); if (!set) scopes.set(r.scope, set = new Set());
+        set.add(r.visitor);
+        if (r.scope === "people") { let d = activeDays.get(r.visitor); if (!d) activeDays.set(r.visitor, d = new Set()); d.add(r.day); }
+      }
+      // Discover catalogs combine their country versions, so someone who picked two countries still counts once.
+      const groups = new Map<string, Set<string>>();
+      for (const [scope, set] of scopes) {
+        if (!scope.startsWith("catalog.selected:")) continue;
+        const parts = scope.split(":"), key = parts[1] === "weekly" ? "weekly" : parts[2];
+        let group = groups.get(key); if (!group) groups.set(key, group = new Set());
+        for (const v of set) group.add(v);
+      }
+      return {
+        people: scopes.get("people")?.size || 0,
+        mobile: scopes.get("device:mobile")?.size || 0,
+        computer: scopes.get("device:computer")?.size || 0,
+        returning: [...activeDays.values()].filter((d) => d.size > 1).length,
+        scopes: Object.fromEntries([...scopes].filter(([scope]) => scope !== "people" && !scope.startsWith("device:") && !scope.startsWith("person:")).map(([scope, set]) => [scope, set.size])),
+        groups: Object.fromEntries([...groups].map(([key, set]) => [key, set.size])),
+      };
+    };
+    const daily: {day: string; people: number}[] = [];
+    for (let i = 29; i >= 0; i--) { const day = shiftDay(today, -i); daily.push({day, people: rows.filter((r) => r.day === day && r.scope === "people").length}); }
+    return {today: range(1), ranges: {7: range(7), 30: range(30)}, daily};
   }
 
   /** Top built-in catalogs and actors/directors over the last 30 days, worked out at most once an hour. */
@@ -113,7 +173,7 @@ export function createPopularity(deps: {db?: Db; record?: typeof recordAnalytics
     if (req.method !== "GET") return Response.json({error: "Method not allowed"}, {status: 405});
     return Response.json(await rankings(), {headers: {"cache-control": "public, max-age=300", "x-content-type-options": "nosniff"}});
   }
-  return {recordManifest, rankings, handle};
+  return {recordVisit, recordManifest, summary, rankings, handle};
 }
 
 export const popularity = createPopularity();

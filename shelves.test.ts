@@ -25,6 +25,9 @@ await test("filters apply type, country, release years, genres and sort",()=>{
  assert(slugs({from:2015,to:2021})==="1-love-a,2-city-b,3-ghost-c","year range");
  assert(slugs({genres:["Romance"]})==="1-love-a,4-old-d","genre filter");
  assert(slugs({sort:"newest"})==="5-thai-e,1-love-a,2-city-b,3-ghost-c,4-old-d","newest first");
+ const added=[{slug:"1-a",added:10},{slug:"2-b",added:30},{slug:"3-c",added:20}];
+ assert(applyShelfFilter(added,normalizeShelfFilter({sort:"added"}),{}).map(x=>x.slug).join(",")==="2-b,3-c,1-a","date added puts the latest addition first");
+ assert(applyShelfFilter(items,normalizeShelfFilter({sort:"added"}),{}).map(x=>x.slug).join(",")==="1-love-a,2-city-b,3-ghost-c,4-old-d,5-thai-e","lists without add order keep their own order");
  assert(slugs({sort:"az"})==="2-city-b,3-ghost-c,1-love-a,4-old-d,5-thai-e","A to Z");
  assert(applyShelfFilter(items,null,facts)===items,"no filter keeps MyDramaList order");
 });
@@ -32,11 +35,11 @@ await test("filter values are cleaned and labelled consistently",()=>{
  assert(normalizeShelfFilter({type:"tv",countries:["XX"],genres:["Fake"],sort:"random"})===null,"unknown values should drop");
  const f=normalizeShelfFilter({type:"drama",countries:["KR"],genres:["Romance"],from:"2024",to:"2018",sort:"newest"})!;
  assert(f.from===2018&&f.to===2024,"years should swap into order");
- assert(shelfFilterLabel(f)==="Korean Romance Dramas, 2018–2024, Newest first","label: "+shelfFilterLabel(f));
+ assert(shelfFilterLabel(f)==="Korean Romance Dramas","year and sort stay out of the name: "+shelfFilterLabel(f));
  assert(shelfFilterKey(f)===shelfFilterKey(normalizeShelfFilter({sort:"newest",to:2024,from:2018,genres:["Romance"],countries:["KR"],type:"drama"})),"key should not depend on order");
  assert(shelfFilterKey(f)!==shelfFilterKey(normalizeShelfFilter({type:"movie"})),"different filters need different keys");
  assert(shelfFilterLabel(normalizeShelfFilter({countries:["KR","JP"],genres:["Comedy","Romance"],type:"drama"}))==="Japanese & Korean Comedy & Romance Dramas","several countries and genres read as one phrase");
- assert(shelfFilterLabel(normalizeShelfFilter({sort:"az"}))==="A–Z"&&shelfFilterLabel(normalizeShelfFilter({from:2018}))==="2018 and later","sort or year alone");
+ assert(shelfFilterLabel(normalizeShelfFilter({sort:"az"}))===""&&shelfFilterLabel(normalizeShelfFilter({sort:"added"}))===""&&shelfFilterLabel(normalizeShelfFilter({from:2018}))==="","sort or year alone leaves the name unchanged");
  assert(shelfCountry({type:"Hong Kong Movie"})==="HK"&&shelfCountry({country:"1"})==="JP","country mapping");
  assert(shelfNeedsFacts({genres:["Romance"]},items)&&!shelfNeedsFacts({type:"movie"},items),"facts only when needed");
 });
@@ -94,7 +97,7 @@ await test("filtered catalogs get their own id and a server-built name in Nuvio"
  assert(!c.entries[2].filter&&c.entries[2].id==="watchlist:sample","the full watchlist ignores filters");
  assert(c.entries[1].name==="Sample’s Completed"&&c.entries[1].filterLabel==="Korean Dramas","label is rebuilt by the server");
  const names=makeManifest(c).catalogs.map((x:any)=>x.name);
- assert(names[1]==="Sample’s Completed: Korean Dramas"&&names[3]==="Fake name: Romance, Newest first","manifest names: "+names.join(" | "));
+ assert(names[1]==="Sample’s Completed: Korean Dramas"&&names[3]==="Fake name: Romance","manifest names: "+names.join(" | "));
  const pool=[{slug:"1-love-a",title:"Love A",type:"Drama",year:2021,country:"3"},{slug:"2-city-b",title:"City B",type:"Movie",year:2018,country:"2"}];
  const result=await loadCatalog(c,1,0,"https://test/addon/token",{hidden:async()=>new Set(),watchlistCategory:async()=>pool,map:async(list:any[],type:string)=>list.map(x=>({id:"tt"+x.slug.split("-")[0],name:x.title,type,poster:"https://image.test/p.jpg"}))} as any);
  assert(result.metas.map((m:any)=>m.name).join(",")==="Love A","Nuvio catalog applies the same filter");
