@@ -4,7 +4,7 @@
 - **What it does:** YourDramaList (YDL) works as a Nuvio add-on that turns MyDramaList catalogs into install links.
 - **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Live files match GitHub as of release 1.1.1.
 - **GitHub mirror:** `palmajay-coder/yourdramalist`. The work branch, `ccr-de4d41e8-p7rg8s`, must restart from `origin/main` for new work, since PR #2 already merged.
-- **Release:** 1.1.1 (shown as "1.1.1 BETA"). 1.1.0 merged via PR #2.
+- **Release:** 1.1.1 (first stable release). 1.1.0 merged via PR #2.
 
 ## Completed in 1.1.0
 - **Shelves:** Community and drama-related lists show as shelves.
