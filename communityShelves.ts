@@ -33,18 +33,28 @@ export function installCommunityShelves(){
  function decode(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value}
  function refresh(){for(const r of rows)if(r.items)r.paint();renderPanel()}
  async function loadFacts(row,subset){
-  // Genres and posters come from TMDB in small batches; shelves and filter choices update as they arrive.
+  // Genres and posters come from TMDB in batches of 40, two at a time; shelves and filter choices update as they arrive.
+  // Titles a batch could not finish in time are asked for again, so the filter covers the whole list.
   const id=renderId,todo=(subset||row.items).filter(x=>!facts.has(x.slug)&&!factsPending.has(x.slug));
   if(!todo.length)return;
   for(const x of todo)factsPending.add(x.slug);
   refresh();
-  for(let i=0;i<todo.length;i+=40){
-   if(id!==renderId){for(const x of todo.slice(i))factsPending.delete(x.slug);return}
-   const part=todo.slice(i,i+40);
-   try{const r=await fetch('/api/mdl/title-facts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items:part.map(x=>({slug:x.slug,title:x.title,year:x.year,type:x.type,country:x.country}))})});const data=await r.json();if(!r.ok)throw Error();for(const x of part){facts.set(x.slug,data.facts?.[x.slug]||{genres:[]});factsPending.delete(x.slug)}}
-   catch{for(const x of part)factsPending.delete(x.slug);failedRows.add(row)}
-   refresh();
+  const parts=[];for(let i=0;i<todo.length;i+=40)parts.push(todo.slice(i,i+40));
+  async function fetchPart(part){
+   for(let attempt=0,errors=0;part.length&&attempt<6&&errors<3;attempt++){
+    if(id!==renderId)return;
+    try{const r=await fetch('/api/mdl/title-facts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items:part.map(x=>({slug:x.slug,title:x.title,year:x.year,type:x.type,country:x.country}))})});const data=await r.json();if(!r.ok)throw Error();
+     const left=[];for(const x of part){const f=data.facts?.[x.slug];if(f){facts.set(x.slug,f);factsPending.delete(x.slug)}else left.push(x)}
+     if(left.length===part.length)errors++;part=left;}
+    catch{errors++;await new Promise(r=>setTimeout(r,2000*errors))}
+    if(id===renderId)refresh();
+   }
+   if(part.length&&id===renderId)failedRows.add(row);
   }
+  let next=0;
+  await Promise.all([0,1].map(async()=>{while(next<parts.length)await fetchPart(parts[next++])}));
+  for(const x of todo)if(!facts.has(x.slug))factsPending.delete(x.slug);
+  if(id===renderId)refresh();
  }
  function ensureFacts(){if(!filter)return;for(const r of rows)if(r.items&&filterable(r)&&shelfNeedsFacts(filter,r.items))loadFacts(r)}
  // Filter bar above the shelves.
@@ -123,7 +133,8 @@ export function installCommunityShelves(){
    const f=rowFilter();
    row.shown=applyShelfFilter(row.items,f,Object.fromEntries(facts));
    track.replaceChildren();
-   for(const item of row.shown.slice(0,60)){
+   // Unfiltered shelves show a sample; a filter shows every match.
+   for(const item of (f?row.shown:row.shown.slice(0,60))){
     const b=node('button','catalogPoster');b.type='button';b.setAttribute('aria-label',copy.catalogTitlePreview+': '+item.title);
     const poster=posterOf(item);if(poster){const img=node('img');img.src=poster;img.alt=item.title;img.loading='lazy';img.referrerPolicy='no-referrer';b.append(img)}else b.append(node('span','shelfPosterBlank',item.title));
     b.append(node('strong',null,item.title),node('small',null,item.year?String(item.year):''));b.onclick=()=>details(item);track.append(b);
@@ -132,7 +143,7 @@ export function installCommunityShelves(){
    const arrows=actions.querySelectorAll('.catalogArrow');
    if(row.shown.length>5&&!arrows.length)for(const [text,amount] of [['‹',-1],['›',1]]){const a=node('button','secondary catalogArrow',text);a.type='button';a.setAttribute('aria-label',amount<0?copy.catalogPrevious:copy.catalogNext);a.onclick=()=>track.scrollBy({left:amount*track.clientWidth,behavior:'smooth'});actions.insertBefore(a,add)}
    if(row.shown.length<=5)arrows.forEach(a=>a.remove());
-   status.textContent=f?fill(copy.shelfShowing,{shown:row.shown.length,total:row.items.length})+' · '+fill(copy.shelfAddsAs,{name:userListName(row.selectionItem())}):'';
+   status.textContent=f?fill(copy.shelfShowing,{shown:row.shown.length,total:row.items.length})+(row.factsPending()?' · '+fill(copy.shelfGenresLoading,{done:row.items.filter(x=>facts.has(x.slug)).length,total:row.items.length}):'')+' · '+fill(copy.shelfAddsAs,{name:userListName(row.selectionItem())}):'';
    row.sync();
   };
   row.load=()=>enqueue(async()=>{

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3
+
+### Bug fixes
+
+- Filters on the setup page now cover every title in a long list or watchlist. Before, genre lookups that ran out of time were treated as having no genres, so a filtered list of 400 or more titles could show only about 90. Unfinished lookups are now asked for again, two batches run at a time, and the shelf shows "Loading genres" with a count until every title is done.
+- A filtered shelf shows every match instead of stopping at 60 posters.
+- Filtered catalogs in Nuvio read genres for up to 1,000 titles instead of 600. Genres looked up on the setup page are saved, so Nuvio can use them right away.
+
 ## 1.1.2
 
 ### What’s new

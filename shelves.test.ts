@@ -169,4 +169,35 @@ await test("Community lists show as shelves with a live-preview filter that adds
  (document.querySelector("#listItems .shelfFilterBarHead .shelfReset") as any).click();
  await waitFor(()=>document.querySelectorAll("#listItems .catalogShelf:not([hidden]) .catalogPoster").length===10,"Reset shows every shelf again, including the full list");
 });
+await test("A genre filter covers every title in a long list, even when lookups run out of time",async()=>{
+ const {document,window}=parseHTML(html);
+ const many=Array.from({length:130},(_,i)=>({slug:(1000+i)+"-show-"+i,title:"Show "+i,type:"Korean Drama",year:2020,country:"3",url:"https://mydramalist.com/"+(1000+i)+"-show-"+i,poster:"https://i.mydramalist.com/x"+i+".jpg"}));
+ let calls=0;
+ const fetcher=async(input:string,init?:any)=>{
+  const url=String(input);
+  if(url.startsWith("/api/mdl/profile"))return Response.json({profileName:"Sample",lists:[{name:"Sample’s Completed",url:"https://mydramalist.com/dramalist/sample/completed",kind:"watchlist"},{name:"Big",url:"https://mydramalist.com/list/BiGg1234",kind:"list",profile:"Sample"}]});
+  if(url.startsWith("/api/mdl/shelf"))return Response.json({items:many,total:many.length});
+  if(url.startsWith("/api/mdl/title-facts")){calls++;const asked=JSON.parse(init.body).items;return Response.json({facts:Object.fromEntries(asked.slice(0,15).map((x:any)=>[x.slug,{genres:["Romance"],v:4}]))})}
+  return Response.json({});
+ };
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
+  window,document,{getItem:()=>null,setItem(){},removeItem(){}},
+  {href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists"},{pushState(){}},fetcher,()=>0,()=>({matches:false}),class{observe(){}}
+ );
+ const settle=()=>new Promise(r=>setTimeout(r,10));
+ const waitFor=async(check:()=>unknown,message:string)=>{for(let i=0;i<300;i++){if(check())return;await settle()}throw Error(message)};
+ (document.getElementById("profileInput") as any).value="Sample";
+ await (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});
+ (document.querySelector('[data-community-view="custom"]') as any).click();
+ await waitFor(()=>document.querySelectorAll("#listItems .catalogShelf .catalogPoster").length===60,"an unfiltered shelf shows a sample of 60");
+ const bar=document.querySelector("#listItems .shelfFilterBar") as any,shelf=document.querySelector("#listItems .catalogShelf") as any;
+ if(bar.querySelector(".shelfFilters").hidden)(bar.querySelector(".shelfFilterToggle") as any).click();
+ const chip=(text:string)=>[...bar.querySelectorAll(".shelfChip")].find((b:any)=>b.textContent===text) as any;
+ await waitFor(()=>chip("Romance"),"genre chips should appear");
+ chip("Romance").click();
+ await waitFor(()=>shelf.querySelectorAll(".catalogPoster").length===130,"Romance should match all 130 titles, got "+shelf.querySelectorAll(".catalogPoster").length);
+ assert(/Showing 130 of 130/.test(shelf.querySelector(".shelfStatus").textContent)&&!/Loading genres/.test(shelf.querySelector(".shelfStatus").textContent),"status shows the full count once genres finish");
+ assert(calls>4,"titles a batch could not finish are asked for again");
+});
+
 console.log(JSON.stringify({passed}));
