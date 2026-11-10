@@ -24,11 +24,17 @@ If selected, the BetterPosters URL pattern is kept in the setup page until Confi
 
 When manifest setup or a poster check fails, YourDramaList shows a diagnostic code. The site keeps an error record with the code, timestamp, fixed failure category and, for poster checks, the provider name, both in the Val Town logs and in a site database. Error records contain no username, selected catalogs, provider keys, poster URL patterns, or install URL. Database records are deleted after 30 days (at most 5,000 are kept), and only the site owner can view them on the admin page. You can share the code when reporting a problem.
 
-## Aggregate usage analytics
+## Usage statistics
 
-YourDramaList stores daily aggregate counts for successful manifest generations, setup errors grouped by fixed category, selected built-in catalogs, and features included in generated manifests. These totals are not linked to individual visitors.
+YourDramaList counts how many people use the site and which features they choose, only for research and to decide what to improve.
 
-To count how many people generate a manifest each day, the site turns the visitor's network address and browser name into a scrambled code using a random secret that is replaced every day. The code, never the address, is kept only until the end of that day and then deleted, so visitors cannot be recognized from one day to the next. The same daily code makes sure each person counts once a day toward the built-in catalogs and the actors and directors whose filmographies they add. Those daily totals, along with the actor's or director's public MyDramaList name and photo link, power the Popular this month list on the Discover tab. The analytics data excludes search text, usernames, personal list URLs, API keys, manifest URLs, and visitor-level histories. Only the site owner can view the dashboard. Counts use the America/Los_Angeles calendar day; entries older than 180 days are cleared when analytics are next updated or viewed.
+- **What is counted:** Each day, how many different devices create an install link, which built-in catalogs and features those links include, which kinds of lists people add from search, and whether the device is mobile (phone or tablet) or a computer.
+- **What is never stored:** IP addresses, names, MyDramaList usernames, search text, list URLs, API keys, poster URL patterns or install links.
+- **How counting works:** The visitor's network address and browser name are combined with a random secret and scrambled with SHA-256. The secret is replaced at the start of each month and the old one deleted, so a code cannot be worked back to an address or linked to the next month. Each code is stored with the day and the category it chose, so each person counts once over a 7 or 30 day range and returning visitors can be counted.
+- **Retention:** Scrambled codes are deleted after 35 days. Daily totals (setup and poster check errors, Popular this month and weekly picks people per week) are kept for 180 days. Days follow the America/Los_Angeles calendar.
+- **Access:** Only the site owner can view the dashboard. Nothing is sold, shared with advertisers or used to track people across other websites.
+
+The same counts, along with an actor's or director's public MyDramaList name and photo link, power the Popular this month list on the Discover tab.
 
 Val Town may separately process request information to host and secure the service. This analytics dashboard does not include or replace hosting-platform request logs.
 

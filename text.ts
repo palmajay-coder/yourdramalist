@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.1.1";
-export const DISPLAY_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
+export const DISPLAY_VERSION = "1.1.2";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -41,7 +41,7 @@ export const TEXT = {
   popularTitle: "Popular this month",
   popularCatalogs: "Catalogs",
   popularPeople: "Actors & directors",
-  popularAdds: "{count} adds",
+  popularAdds: "{count} people",
   popularAddShort: "+ Add",
   popularAdded: "✓ Added",
   popularUnavailable: "This filmography couldn’t be loaded. Please try again.",

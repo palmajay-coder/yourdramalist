@@ -9,7 +9,7 @@ import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
-import {recordAnalytics,recordAnalyticsBatch,recordErrorLog,type AnalyticsMetric} from './analyticsApi.ts';
+import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,personPicks,visitorAddress} from './popularity.ts';
@@ -165,23 +165,21 @@ export async function handleAddon(req:Request){
    const token=await tokens().seal(config);
    // Val Town rejects request paths near 14,500 characters, so refuse links Nuvio could not load.
    if(token.length>MAX_MANIFEST_TOKEN)return diagnose('configuration',400,'token-too-large');
-   const counts:Array<[AnalyticsMetric,string,number]>=[['manifest.generated','all',1]];
+   // Each person counts once per category: the catalogs and features in this link, and their device type.
+   const scopes:string[]=[];
    for(const entry of config.entries){
-    if(entry.weekly)counts.push(['catalog.selected',`weekly:${entry.weekly.slot}`,1]);
-    else if(entry.explore)counts.push(['catalog.selected',`explore:${entry.explore.category}:${entry.explore.country||'all'}`,1]);
-    else if(entry.person)counts.push(['feature.selected',entry.mode==='director'?'director-filmography':'actor-filmography',1]);
-    else if(entry.watchlist)counts.push(['feature.selected',entry.watchlistAll?'community-combined-watchlist':'community-watchlist',1]);
-    else counts.push(['feature.selected','community-public-list',1]);
-    if(entry.filter)counts.push(['feature.selected','filtered-catalog',1]);
+    if(entry.weekly)scopes.push(`catalog.selected:weekly:${entry.weekly.slot}`);
+    else if(entry.explore)scopes.push(`catalog.selected:explore:${entry.explore.category}:${entry.explore.country||'all'}`);
+    else if(entry.person)scopes.push('feature.selected:'+(entry.mode==='director'?'director-filmography':'actor-filmography'));
+    else if(entry.watchlist)scopes.push('feature.selected:'+(entry.watchlistAll?'community-combined-watchlist':'community-watchlist'));
+    else scopes.push('feature.selected:community-public-list');
+    if(entry.filter)scopes.push('feature.selected:filtered-catalog');
    }
    const prefs=config.preferences as any;
-   counts.push(['feature.selected',prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl',1]);
-   const posterStyle=config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb';
-   counts.push(['feature.selected',posterStyle,1]);
-   for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)counts.push(['feature.selected',category,1]);}
-   await recordAnalyticsBatch(counts);
-   // Counts people once a day, overall and per built-in catalog and actor/director, for analytics and Popular this month.
-   await popularity.recordManifest(req,config.entries.filter(e=>e.explore).map(e=>`explore:${e.explore!.category}:${e.explore!.country||'all'}`),personPicks(config.entries,(body as any)?.catalogs));
+   scopes.push('feature.selected:'+(prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl'));
+   scopes.push('feature.selected:'+(config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb'));
+   for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)scopes.push('feature.selected:'+category);}
+   await popularity.recordManifest(req,scopes,personPicks(config.entries,(body as any)?.catalogs));
    return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});
   }catch{return diagnose('configuration',400,'manifest-generation');}
  }

@@ -3,6 +3,7 @@ import {getOAuthUserData} from "https://esm.town/v/std/oauth/middleware.ts";
 import {DEFAULT_WALLPAPER,canEdit,checkWrite,readSettingsBody,validateWallpaper} from "./wallpaper.ts";
 import {adminPage} from "./wallpaperAdmin.ts";
 import {adminAnalytics,adminErrors,adminWeekly} from "./analyticsApi.ts";
+import {popularity} from "./popularity.ts";
 const key="appearance:v1";
 export function createWallpaperHandler(storage:{load:()=>Promise<any>;save:(value:any)=>Promise<any>},sessionFor:(req:Request)=>Promise<any>){
 async function settings(){return validateWallpaper(await storage.load()??DEFAULT_WALLPAPER)}
@@ -10,7 +11,7 @@ return async function(req:Request){
  const u=new URL(req.url),json=(value:any,status=200)=>Response.json(value,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
  if(u.pathname==="/api/appearance"&&req.method==="GET"){try{return json(await settings())}catch{return json({...DEFAULT_WALLPAPER,warning:"Wallpaper settings are temporarily unavailable."})}}
  const session=await sessionFor(req);
- if(u.pathname==="/api/admin/analytics")return await adminAnalytics(req,session);
+ if(u.pathname==="/api/admin/analytics")return await adminAnalytics(req,session,popularity.summary);
  if(u.pathname==="/api/admin/errors")return await adminErrors(req,session);
  if(u.pathname==="/api/admin/weekly")return await adminWeekly(req,session);
  if(u.pathname==="/admin"&&req.method==="GET"){

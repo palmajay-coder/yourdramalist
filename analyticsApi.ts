@@ -5,7 +5,7 @@ import {CATEGORIES,COUNTRIES} from "./explore.ts";
 import {THEMES,themesForWeek,weekWindow} from "./collections.ts";
 import {SETUP_ERRORS,POSTER_ERRORS,POSTER_PROVIDERS,type ErrorKind} from "./errorGuide.ts";
 
-export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error" | "people.generated" | "popular.catalog" | "popular.person";
+export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error" | "people.generated" | "popular.catalog" | "popular.person" | "weekly.people";
 
 export const ERROR_CATEGORIES = new Set([
   "method", "origin", "format", "rate-limit", "request-too-large", "invalid-request-body",
@@ -33,7 +33,8 @@ export const POSTER_VERIFY_CATEGORIES = new Set([
 ]);
 // people.generated counts each person once a day; popular.* count each person once a day per catalog or per actor/director.
 export const POPULAR_PERSON = /^[1-9]\d{0,11}-[a-z0-9-]{1,200}:(actor|director)$/i;
-const valid = (metric:AnalyticsMetric, category:string) => metric === "manifest.generated" || metric === "people.generated" ? category === "all"
+export const validAnalytics = (metric:AnalyticsMetric, category:string) => metric === "weekly.people" ? category === "weekly:0" || category === "weekly:1"
+  : metric === "manifest.generated" || metric === "people.generated" ? category === "all"
   : metric === "popular.catalog" ? CATALOG_CATEGORIES.has(category) && category.startsWith("explore:")
   : metric === "popular.person" ? POPULAR_PERSON.test(category)
   : metric === "manifest.error" ? ERROR_CATEGORIES.has(category)
@@ -64,7 +65,7 @@ export async function recordAnalytics(metric:AnalyticsMetric,category:string,cou
 export async function recordAnalyticsBatch(items:Array<[AnalyticsMetric,string,number]>){
   const counts=new Map<string,{metric:AnalyticsMetric;category:string;count:number}>();
   for(const [metric,category,count] of items){
-    if(!valid(metric,category)||!Number.isSafeInteger(count)||count<1||count>40)continue;
+    if(!validAnalytics(metric,category)||!Number.isSafeInteger(count)||count<1||count>40)continue;
     const key=metric+"\u0000"+category,prior=counts.get(key);
     counts.set(key,{metric,category,count:count+(prior?.count||0)});
   }
@@ -77,27 +78,26 @@ export async function recordAnalyticsBatch(items:Array<[AnalyticsMetric,string,n
   }catch{/* Analytics storage must never prevent a manifest or UI request from succeeding. */}
 }
 
-export async function adminAnalytics(req:Request,session:any){
+/** People counts for the admin page, worked out by popularity.ts from the monthly codes. */
+export async function adminAnalytics(req:Request,session:any,summary:()=>Promise<any>){
   if(!canEdit(session))return Response.json({error:session?.user?"Only the site owner can view analytics.":"Sign in to view analytics."},{status:session?.user?403:401,headers:{"cache-control":"no-store"}});
   if(req.method!=="GET")return Response.json({error:"Method not allowed"},{status:405,headers:{"cache-control":"no-store"}});
   try{
-    await ready();
-    const start=shiftDay(dayKey(),-29);
-    const result=await sqlite.execute({sql:"SELECT day, metric, category, count FROM ydl_daily_analytics WHERE day >= ? ORDER BY day ASC",args:[start]});
-    const rows=(result.rows||[]).map((row:any)=>({...row,label:analyticsCategoryLabel(String(row.category))}));
-    return Response.json({days:30,timezone:"America/Los_Angeles",rows},{headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
+    const data=await summary(),labels:Record<string,string>={};
+    for(const range of Object.values(data.ranges) as any[])for(const scope of Object.keys(range.scopes))labels[scope]=analyticsCategoryLabel(scope.slice(scope.indexOf(":")+1));
+    return Response.json({days:30,timezone:"America/Los_Angeles",...data,labels},{headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
   }catch{return Response.json({error:"Analytics are temporarily unavailable."},{status:503,headers:{"cache-control":"no-store"}});}
 }
 
 /** Weekly picks rotation for the admin page: recent and upcoming weeks, and every theme with when it ran and how many
- * times people added it. Adds count generated manifests that include each weekly row during that week. */
+ * people included it in an install link. Each person counts once per row per week. */
 export async function adminWeekly(req:Request,session:any,now=Date.now()){
   const headers={"cache-control":"no-store","x-content-type-options":"nosniff"};
   if(!canEdit(session))return Response.json({error:session?.user?"Only the site owner can view the rotation.":"Sign in to view the rotation."},{status:session?.user?403:401,headers});
   if(req.method!=="GET")return Response.json({error:"Method not allowed"},{status:405,headers});
   const current=weekWindow(now).index,startOf=(index:number)=>new Date(Date.UTC(2026,10,2)+index*604800000).toISOString().slice(0,10);
   let rows:any[]=[];
-  try{await ready();rows=(await sqlite.execute({sql:"SELECT day, category, count FROM ydl_daily_analytics WHERE metric = 'catalog.selected' AND category IN ('weekly:0','weekly:1') AND day >= ?",args:[startOf(0)]})).rows||[];}catch{/* Show the schedule without adds. */}
+  try{await ready();rows=(await sqlite.execute({sql:"SELECT day, category, count FROM ydl_daily_analytics WHERE metric = 'weekly.people' AND category IN ('weekly:0','weekly:1') AND day >= ?",args:[startOf(0)]})).rows||[];}catch{/* Show the schedule without adds. */}
   const addsFor=(index:number,slot:number)=>{const from=startOf(index),to=startOf(index+1);return rows.filter((r:any)=>r.category==="weekly:"+slot&&r.day>=from&&r.day<to).reduce((n:number,r:any)=>n+Number(r.count||0),0)};
   const weeks=[];
   for(let index=Math.max(0,current-4);index<=current+8;index++)weeks.push({week:startOf(index),current:index===current,past:index<current,themes:themesForWeek(index).map((t,slot)=>({name:t.name,adds:index<=current?addsFor(index,slot):null}))});
@@ -156,7 +156,8 @@ export async function adminErrors(req:Request,session:any,now=Date.now()){
 }
 
 const additionRequests:number[]=[];
-export async function recordCatalogAddition(req:Request){
+/** Counts each person once per kind of list they add, through popularity.ts. */
+export async function recordCatalogAddition(req:Request,count:(source:string)=>Promise<unknown>){
   const url=new URL(req.url);
   if(req.method!=="POST")return Response.json({error:"Method not allowed"},{status:405});
   if(req.headers.get("origin")!==url.origin)return Response.json({error:"Origin check failed"},{status:403});
@@ -167,7 +168,7 @@ export async function recordCatalogAddition(req:Request){
   let body:any;try{const text=await req.text();if(text.length>256)return Response.json({error:"Request is too large"},{status:413});body=JSON.parse(text)}catch{return Response.json({error:"Invalid request"},{status:400});}
   if(!body||typeof body.source!=="string"||!ADD_SOURCES.has(body.source))return Response.json({error:"Invalid source"},{status:400});
   additionRequests.push(now);
-  await recordAnalytics("catalog.added",body.source);
+  await count(body.source);
   return Response.json({ok:true},{headers:{"cache-control":"no-store"}});
 }
 
