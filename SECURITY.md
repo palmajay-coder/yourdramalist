@@ -1,6 +1,6 @@
 # Security policy
 
-This policy covers the current YourDramaList beta. Security fixes target the latest published source. No independent security audit or response-time guarantee is claimed.
+This policy covers the current YourDramaList release. Security fixes target the latest published source. No independent security audit or response-time guarantee is claimed.
 
 ## Report a vulnerability privately
 

@@ -1,6 +1,6 @@
 # Original app (historical)
 
-This document describes the older application preserved in `legacy/`. For the current beta, see the [main README](../README.md).
+This document describes the older application preserved in `legacy/`. For the current release, see the [main README](../README.md).
 
 # YourDramaList (YDL)
 

@@ -2,9 +2,9 @@
 
 ## Project
 - **What it does:** YourDramaList (YDL) works as a Nuvio add-on that turns MyDramaList catalogs into install links.
-- **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Main sits at version 722.
+- **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Live files match GitHub as of release 1.1.1.
 - **GitHub mirror:** `palmajay-coder/yourdramalist`. The work branch, `ccr-de4d41e8-p7rg8s`, must restart from `origin/main` for new work, since PR #2 already merged.
-- **Release:** 1.1.0 (shown as "1.1.0 BETA"). PR #2, "Release 1.1.0", merged into main at `5463b36b`.
+- **Release:** 1.1.1 (first stable release). 1.1.0 merged via PR #2.
 
 ## Completed in 1.1.0
 - **Shelves:** Community and drama-related lists show as shelves.
@@ -17,6 +17,12 @@
 - **Weekly picks:** 25 themes rotate, two fresh themes each week starting Nov 16. Thin rows relax the rating floor, then top up with genre-18 dramas. A rotation view appears on the admin page.
 - **Changelog:** Every version uses What's new, Bug fixes and Improvements.
 
+## Completed in 1.1.1
+- **Nuvio cards:** Five-star score with rating count, an "In your watchlist" status line, a one-line verdict with an icon, and an Open on MyDramaList card. Reviews stay unchanged.
+- **Review dedupe:** `reviewDedupe.ts` lets only the first install on a device answer for a title within 10 seconds, so extra install links no longer duplicate review cards. It stores a hashed device-and-title code and deletes it after 10 seconds.
+- **Admin Errors:** One summary line, a guide showing only errors that happened, and the latest codes under each type.
+- **Cleanup:** The Nuvio example screenshot, its route and unused text are gone.
+
 ## Important decisions
 - **Minimal first:** The user wants explanations before code ("do not code yet") and minimal UI.
 - **No empty states:** The popular card hides entirely rather than showing a "not enough data" message.
@@ -28,11 +34,11 @@
 
 ## Workflow
 - **Deploy:** Create a Val Town branch, make targeted edits, check bytes against local files with a temporary `_hashcheck.ts`, run tests, merge, delete the branch, then commit and push to GitHub.
-- **Local tests:** `deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts` (last run: 195 PASS across 21 suites). Release scan: `node tests/audit-release.mjs`.
+- **Local tests:** `deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts` (last run: 22 suites pass). Release scan: `node tests/audit-release.mjs`.
 - **Known quirks:** The container cannot reach `api.val.town` for uploads. `run_file` sometimes times out, so retry. Branch endpoints use a different origin.
 
 ## Current status
-- **No active problem:** 1.1.0 runs live and merged.
+- **No active problem:** 1.1.1 runs live. Confirm in Nuvio that two installs show one set of review cards.
 - **Cost:** The user asked for cheaper models on routine tasks and `/compact` after each logical step.
 
 ## Open ideas (not requested yet)

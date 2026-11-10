@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.1.0";
-export const DISPLAY_VERSION = "1.1.0 BETA";
+export const APP_VERSION = "1.1.1";
+export const DISPLAY_VERSION = "1.1.1";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -79,21 +79,17 @@ export const TEXT = {
   reviewsDescription: "Ratings, viewer verdicts and helpful reviews in Nuvio.",
   reviewsPreviewLabel: "Preview in Nuvio",
   reviewsPreviewTitle: "Dead-End Job",
-  reviewsSampleLabel: "Example from Nuvio",
   reviewsScoreHeading: "MyDramaList",
-  reviewsScoreSample: "★★★★★★★★☆☆ 8.1/10 from 6,251 users",
-  reviewsStatsSample: "Ranked #2262 · Popularity #1449 · 19,498 watchers",
-  reviewsVerdictHeading: "Verdict",
-  reviewsVerdictSample: "Viewers usually finish this drama.",
-  reviewsPercentSample: "36.1% completed it · 0.6% dropped it",
+  reviewsScoreSample: "★★★★☆ 8.1/10 (6.3K ratings)",
+  reviewsStatsSample: "In your watchlist · Plan to Watch",
+  reviewsVerdictHeading: "✓ Verdict",
+  reviewsVerdictSample: "Viewers usually finish this drama · 36.1% completed",
+  reviewsOpenHeading: "↗ Open on MyDramaList",
+  reviewsOpenSample: "Add to a list, rate or mark as watched",
   reviewsHeadlineSample: "“Artistic brilliance in every frame.”",
   reviewsHelpfulSample: "★ 10.0/10 · 43 found this helpful",
   reviewsBodySample:
     "This is the kind of show you lose a whole night to without regret. Beyond story and character, the production quality is genuinely exceptional…",
-  reviewsFullExample: "See full Nuvio example ↗",
-  reviewsScreenshotAlt:
-    "Nuvio showing MyDramaList ratings, viewer verdict and review cards for Dead-End Job",
-  closePreview: "Close ×",
   metadataProvider: "Metadata provider",
   metadataMdl: "MyDramaList",
   metadataTmdb: "TMDB",
