@@ -49,7 +49,7 @@
 
 ## Next up
 - **Mobile site:** Make the mobile layout match the desktop one (banner alignment, logo, header). Planning only so far; the user has not yet answered questions about decorations, banner text placement and header layout.
-- **Play Store app:** Discussed a Capacitor companion app with a phased plan and screen designs. Nothing built; check the mobile vs computer split in analytics before deciding.
+- **Play Store app (on hold):** Discussed a Capacitor companion app with a phased plan and screen designs. The user put it on hold until analytics gather enough data. Revisit once the mobile vs computer split and returning visitors show real demand.
 
 ## Open ideas (not requested yet)
 - **EasyPosters:** Consider removing it after 30 days of analytics data.
