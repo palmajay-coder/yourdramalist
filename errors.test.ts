@@ -42,7 +42,7 @@ await test("only the site owner can read error records",async()=>{
  assert((await adminErrors(new Request("https://test/api/admin/errors",{method:"POST"}),owner)).status===405,"writes allowed");
 });
 
-await test("admin Errors section shows the summary, alert, guide, recent list and code lookup",async()=>{
+await test("admin Errors section shows the summary line, alert, guide with latest codes and code lookup",async()=>{
  const html=adminPage(true);const {document,window}=parseHTML(html);
  const now=Date.now(),guide={setup:SETUP_ERRORS,poster:POSTER_ERRORS,providers:POSTER_PROVIDERS};
  const rows=[{code:"YDL-AAAA0001",at:now-60000,kind:"setup",category:"manifest-generation",provider:null},{code:"YDL-AAAA0002",at:now-120000,kind:"poster",category:"credentials-rejected",provider:"rpdb"},{code:"YDL-AAAA0003",at:now-180000,kind:"setup",category:"catalog-count",provider:null}];
@@ -58,19 +58,15 @@ await test("admin Errors section shows the summary, alert, guide, recent list an
  new Function("window","document","fetch","navigator","location","ResizeObserver","requestAnimationFrame",script)(window,document,fetcher,{clipboard:{writeText:async()=>{}}},{origin:"https://test"},class{observe(){}disconnect(){}},()=>0);
  await new Promise(r=>setTimeout(r,20));
  const $=(id:string)=>document.getElementById(id)!;
- assert($("errorsToday").textContent==="3"&&$("errorsWeek").textContent==="6","summary counts wrong");
- assert($("errorsTop").textContent==="Too many catalogs","most common error wrong");
+ assert($("errorsLine").textContent==="3 today · 6 this week · most common: Too many catalogs","summary line wrong");
  assert(!$("errorAttention").hasAttribute("hidden")&&/Install link failed to build/.test($("errorAttention").textContent),"needs-attention alert missing");
- assert($("attentionFilter").textContent==="Needs your attention (1)","attention count wrong");
  const guideRows=document.querySelectorAll("#errorGuideRows tr.guideRow");
- assert(guideRows.length===Object.keys(SETUP_ERRORS).length+Object.keys(POSTER_ERRORS).length,"guide table should list every error type");
+ assert(guideRows.length===summary.filter((s:any)=>Number(s.count)>0).length,"guide table should list only errors that happened");
  assert(guideRows[0].textContent!.includes("Too many catalogs"),"guide table should sort by count");
- assert(document.querySelectorAll("#recentErrorRows tr").length===3,"recent list wrong");
- assert(document.querySelector("#recentErrorRows tr")!.textContent!.includes("YDL-AAAA0001"),"newest error should be first");
- (document.querySelector('#errorFilters [data-filter="you"]') as any).click();
- assert(document.querySelectorAll("#recentErrorRows tr").length===1,"needs-attention filter wrong");
- (document.querySelector('#errorFilters [data-filter="poster"]') as any).click();
- assert(document.querySelector("#recentErrorRows tr")!.textContent!.includes("Poster key rejected · RPDB"),"poster filter or provider label wrong");
+ assert(!$("recentErrorRows")&&!$("errorFilters"),"separate recent table should be gone");
+ const posterRow=[...guideRows].find(r=>r.textContent!.includes("Poster key rejected")) as any;
+ posterRow.click();
+ assert(/YDL-AAAA0002/.test(posterRow.nextElementSibling.textContent)&&/RPDB/.test(posterRow.nextElementSibling.textContent),"latest codes missing under the error type");
  ($("codeInput") as any).value="ydl-aaaa0002";$("codeLookup").dispatchEvent(new window.Event("submit"));
  await new Promise(r=>setTimeout(r,20));
  assert(/YDL-AAAA0002/.test($("codeResult").textContent!)&&/Tell the user: Check the key/.test($("codeResult").textContent!),"code lookup result wrong");
