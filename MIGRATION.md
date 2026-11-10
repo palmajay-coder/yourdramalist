@@ -22,7 +22,7 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 ### Phase 1: Export and inventory
 
 - [x] Clone the repository and confirm the work branch (1.1.3 is present). *Done November 10.*
-- [ ] Compare each file on the work branch with the live Val Town copy. Record any mismatch.
+- [x] Compare each file on the work branch with the live Val Town copy. *Done November 10, from the uploaded export of 74 files.* 62 files match exactly. Eight differ: six test files, `goblinFixture.ts`, and `peopleFixtures.ts`. `errors.test.ts` is marked as matching production in the snapshot, but it differs, so check it before cutover. Four Markdown docs in the export are not at the repository root.
 - [ ] Read the remaining modules and list every blob key the app writes.
 - [ ] Confirm whether any user data is stored. Note whether add-on settings live only in the encrypted manifest link.
 - [ ] Save a copy of the `legacy/` folder and the nine other Val Town branches.
