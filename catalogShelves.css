@@ -2,6 +2,10 @@
 .shelfStats{font-size:12px!important;margin-top:4px!important}
 .shelfStatus{font-size:12px;color:var(--muted);margin:-8px 0 10px;min-height:0}
 .shelfStatus:empty{display:none}
+.shelfFilterBar{margin:0 0 22px}
+.shelfFilterBarHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.shelfFilterSummary{font-size:13px;color:var(--muted)}
+.shelfFilterBarHead .shelfReset{padding:0}
 .shelfFilterToggle{white-space:nowrap;font-size:12px;padding:8px 11px}
 .shelfFilterToggle[aria-expanded=true]{border-color:var(--accent);color:var(--link)}
 .shelfFilters{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 14px}

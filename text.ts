@@ -36,6 +36,7 @@ export const TEXT = {
   shelfSortOldest: "Oldest first",
   shelfSortAz: "A–Z",
   shelfReset: "Reset filters",
+  shelfFiltering: "Filtering: {label}",
   shelfShowing: "Showing {shown} of {total}",
   shelfAddsAs: "Adds to Nuvio as “{name}”",
   shelfGenresLoading: "Loading genres… {done} of {total}",

@@ -203,20 +203,20 @@ function showCommunityView(view){
  const lists=profileLists.filter(list=>(list.kind==='watchlist')===watchlists);
  $('communitySelectAll').classList.toggle('hidden',!lists.some(list=>!list.empty));
  $('results').textContent=lists.length?'':watchlists?copy.communityNoWatchlists:copy.communityNoCustomLists;
- renderLists(lists);
+ communityUI.render(lists,view);
 }
 document.querySelectorAll('[data-community-view]').forEach(button=>button.onclick=()=>showCommunityView(button.dataset.communityView));
 $('communitySelectAll').onclick=()=>{
  if(!profileLists)return;
  const selected=new Set(state.selection.map(list=>list.url));
- const additions=activeLists.filter(list=>list.url&&!list.empty&&!list.unavailable&&!selected.has(list.url)&&selected.add(list.url));
+ const additions=communityUI.items().filter(list=>list.url&&!list.empty&&!list.unavailable&&!selected.has(list.url)&&selected.add(list.url));
  if(state.selection.length+additions.length>MAX_CATALOGS){$('results').textContent=copy.communitySelectionLimit.replace('{max}',MAX_CATALOGS);return}
  if(!additions.length)return;
  state.selection.push(...additions);
  additions.forEach(recordCatalogAddition);
  $('results').textContent='';
  renderSelection();
- renderLists(activeLists);
+ communityUI.sync();
 };
 
 async function loadProfile(username){
