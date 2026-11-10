@@ -33,7 +33,8 @@ export function installPreferencesUI(api: {
   const cards = node("div", "prefReviewCards");
   for (const [title, ...lines] of [
     [copy.reviewsScoreHeading, copy.reviewsScoreSample, copy.reviewsStatsSample],
-    [copy.reviewsVerdictHeading, copy.reviewsVerdictSample, copy.reviewsPercentSample],
+    [copy.reviewsVerdictHeading, copy.reviewsVerdictSample],
+    [copy.reviewsOpenHeading, copy.reviewsOpenSample],
     [copy.reviewsHeadlineSample, copy.reviewsHelpfulSample, copy.reviewsBodySample],
   ]) {const card = node("article", "prefReviewCard"); card.append(node("h3", "", title), ...lines.map(s => paragraph(s))); cards.append(card);}
   const example = button(copy.reviewsFullExample, "prefTextButton prefExampleLink");

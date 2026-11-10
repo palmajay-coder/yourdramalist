@@ -1063,10 +1063,10 @@ function Sz(t, e, k, g) {
       d > c
         ? `${t.dropped}% dropped it  \xB7  ${t.completed}% completed it`
         : `${t.completed}% completed it  \xB7  ${t.dropped}% dropped it`,
-    r = `${m}
-${n}`;
+    // One line, like the Stremboxd cards: the verdict, then the share that matters.
+    r = [g ? "Still airing, too early to tell" : m.replace(/\.$/, ""), g ? null : d > c ? `${t.dropped}% dropped` : `${t.completed}% completed`].filter(Boolean).join("  ·  ");
   return {
-    name: "Verdict",
+    name: (g ? "◷" : d > c ? "✕" : "✓") + " Verdict",
     title: r,
     description: r,
     externalUrl: `${T}/${e}/statistics`,
@@ -1075,19 +1075,18 @@ ${n}`;
 }
 
 function Ze(t) {
-  const e = Math.floor(t),
-    n = t - e >= 0.5 ? 1 : 0;
-  return "\u2605".repeat(e) + (n ? "\xBD" : "") + "\u2606".repeat(Math.max(0, 10 - e - n));
+  // Five stars for a score out of ten.
+  const e = Math.floor(t / 2),
+    n = t / 2 - e >= 0.5 ? 1 : 0;
+  return "\u2605".repeat(e) + (n ? "\xBD" : "") + "\u2606".repeat(Math.max(0, 5 - e - n));
 }
 
-function Ge(t, e) {
+const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+
+function Ge(t, e, status) {
   const n = [
-    `${Ze(t.score)} ${t.score.toFixed(1)}/10${t.users ? ` from ${t.users.toLocaleString("en-US")} users` : ""}`,
-    [
-      t.rank ? `Ranked #${t.rank}` : null,
-      t.pop ? `Popularity #${t.pop}` : null,
-      t.watchers ? `${t.watchers} watchers` : null,
-    ]
+    `${Ze(t.score)} ${t.score.toFixed(1)}/10${t.users ? ` (${compact.format(t.users)} ratings)` : ""}`,
+    (status ? ["In your watchlist", status] : [])
       .filter(Boolean)
       .join("  \xB7  "),
   ].filter(Boolean).join(`
@@ -1131,7 +1130,18 @@ function Xe(t, e) {
   });
 }
 
-async function Je(t, e) {
+// One card that opens the title on MyDramaList, where people add it to a list, rate it or mark it watched.
+function Go(e) {
+  return {
+    name: "↗ Open on MyDramaList",
+    title: "Add to a list, rate or mark as watched",
+    description: "Add to a list, rate or mark as watched",
+    externalUrl: `${T}/${e}`,
+    behaviorHints: { notWebReady: !0, bingeGroup: "mdl-reviews" },
+  };
+}
+
+async function Je(t, e, statusOf) {
   const [n, s] = decodeURIComponent(e).split(":");
   if (!/^tt\d+$/.test(n)) return { streams: [] };
   const a = await Ke(t === "movie" ? "movie" : "series", n, Number(s) || 1).catch(() => null);
@@ -1141,10 +1151,11 @@ async function Je(t, e) {
     Fe(a).catch(() => []),
     Sy(a).catch(() => null),
   ]);
+  const st = statusOf ? await statusOf(a).catch(() => null) : null;
   return {
-    streams: [...(r ? [Ge(r, a)] : []), ...(S ? [Sz(S, a, t, r && r.airing)] : []), ...Xe(i, a)],
+    streams: [...(r ? [Ge(r, a, st)] : []), ...(S ? [Sz(S, a, t, r && r.airing)] : []), Go(a), ...Xe(i, a)],
   };
 }
 
 
-export {Ee,X,G,K,Je,Ge,Sz,Xe,Te};
+export {Ee,X,G,K,Je,Ge,Sz,Go,Xe,Te};
