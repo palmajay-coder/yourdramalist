@@ -20,9 +20,10 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 ## Data decision
 
 - **Keep everything.** The site must work exactly the same after the move. All seven SQLite tables and all blob storage move to Cloudflare.
-- **Blob storage (13 items, about 5.6 MB):** `appearance:v1` (1.5 MB), `explore:v1` (227 KB), `catalog-collections:v1` (145 KB), `drama-details:v1` (143 KB), `people:v1` (470 KB), `direct-lists:v1` (12 KB), `featured:v1`, `featured:v2`, `featured:v3`, `poster-background:v1`, `seasonal-featured:v1`, and two images, `Fall.jpg` (1.1 MB) and `Winter.png` (856 KB).
+- **Blob storage (11 data items, about 4.6 MB):** `appearance:v1` (1.5 MB), `explore:v1` (227 KB), `catalog-collections:v1` (145 KB), `drama-details:v1` (143 KB), `people:v1` (470 KB), `direct-lists:v1` (12 KB), `featured:v1`, `featured:v2`, `featured:v3`, `poster-background:v1`, and `seasonal-featured:v1`. These move to Cloudflare R2 with the same names.
+- **Images skipped:** `Fall.jpg` and `Winter.png` are backups, so they do not move.
 - **SQLite tables:** Move to Cloudflare D1, which uses the same SQL.
-- **Open problem:** The image files are binary, and the read tool cannot return their contents. The export method still needs to be chosen for them.
+- **Open problem:** The data still needs a copy method. The chat tools cannot carry the larger data groups line by line.
 
 ## Checklist
 
