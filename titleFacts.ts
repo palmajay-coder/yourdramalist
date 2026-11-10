@@ -1,9 +1,11 @@
 import {sqlite} from "https://esm.town/v/std/sqlite/main.ts";
 
-/** Genres and country for MyDramaList titles, looked up on TMDB and saved for 30 days.
+/** Genres, country and poster for MyDramaList titles, looked up on TMDB and saved for 30 days.
+ * Watchlist pages carry no artwork, so watchlist shelves take their posters from here.
  * TMDB's TV genres lack Romance, Thriller, Horror and Historical, so dramas also read TMDB keyword tags. */
 export type FactsInput = {slug: string; title: string; year?: number | null; type?: string | null};
-export type Facts = {genres: string[]; country?: string};
+export type Facts = {genres: string[]; country?: string; poster?: string; v?: number};
+const VERSION = 2; // Saved answers from before posters were added are looked up again.
 
 const MOVIE: Record<number, string[]> = {28: ["Action"], 12: ["Adventure"], 16: ["Animation"], 35: ["Comedy"], 80: ["Crime"], 99: ["Documentary"], 18: ["Drama"], 10751: ["Family"], 14: ["Fantasy"], 36: ["Historical"], 27: ["Horror"], 10402: ["Music"], 9648: ["Mystery"], 10749: ["Romance"], 878: ["Sci-Fi"], 53: ["Thriller"], 10752: ["War"], 37: ["Western"]};
 const TV: Record<number, string[]> = {10759: ["Action", "Adventure"], 16: ["Animation"], 35: ["Comedy"], 80: ["Crime"], 99: ["Documentary"], 18: ["Drama"], 10751: ["Family"], 10762: ["Kids"], 9648: ["Mystery"], 10763: ["News"], 10764: ["Reality"], 10765: ["Sci-Fi", "Fantasy"], 10766: ["Soap"], 10767: ["Talk"], 10768: ["War", "Politics"], 37: ["Western"]};
@@ -52,14 +54,15 @@ async function lookup(item: FactsInput, key: string, fetcher: typeof fetch): Pro
   };
   const search = await get(`/search/${type}`, {query: item.title, include_adult: "false"});
   const match = pickTmdbResult(search.results || [], item.title, item.year);
-  if (!match) return {genres: []};
+  if (!match) return {genres: [], v: VERSION};
   let keywords: string[] = [];
   if (type === "tv") {
     const tagged = await get(`/tv/${match.id}/keywords`).catch(() => ({results: []}));
     keywords = (tagged.results || []).map((k: any) => String(k.name || ""));
   }
   const origin = Array.isArray(match.origin_country) && match.origin_country[0] ? String(match.origin_country[0]) : LANGUAGES[String(match.original_language || "")] || "";
-  return {genres: factsGenresFor(type, match.genre_ids || [], keywords), ...(origin ? {country: origin} : {})};
+  const poster = typeof match.poster_path === "string" && /^\/[A-Za-z0-9_-]+\.(jpg|png)$/.test(match.poster_path) ? "https://image.tmdb.org/t/p/w342" + match.poster_path : "";
+  return {genres: factsGenresFor(type, match.genre_ids || [], keywords), ...(origin ? {country: origin} : {}), ...(poster ? {poster} : {}), v: VERSION};
 }
 
 let schema: Promise<void> | undefined;
@@ -83,7 +86,7 @@ export async function getTitleFacts(items: FactsInput[], options: {key?: string;
       const rows = await sqlite.execute({sql: `SELECT slug, data, at FROM ydl_title_facts WHERE slug IN (${part.map(() => "?").join(",")})`, args: part});
       for (const row of (rows.rows || []) as any[]) {
         const data = JSON.parse(String(row.data));
-        if (Number(row.at) > now() - (data.genres?.length ? FRESH_MS : MISS_MS)) out[String(row.slug)] = data;
+        if (data.v === VERSION && Number(row.at) > now() - (data.genres?.length ? FRESH_MS : MISS_MS)) out[String(row.slug)] = data;
       }
     }
   } catch { /* A storage problem only means more lookups. */ }

@@ -14,7 +14,7 @@ const items=[
  {slug:"4-old-d",title:"Old D",type:"Korean Movie",year:2001},
  {slug:"5-thai-e",title:"Thai E",type:"Drama",year:2023,country:""},
 ];
-const facts={"1-love-a":{genres:["Drama","Romance"]},"2-city-b":{genres:["Crime","Thriller"]},"3-ghost-c":{genres:["Horror"]},"4-old-d":{genres:["Romance"]},"5-thai-e":{genres:["Comedy"],country:"TH"}};
+const facts={"1-love-a":{genres:["Drama","Romance"]},"2-city-b":{genres:["Crime","Thriller"],poster:"https://image.tmdb.org/t/p/w342/cityb.jpg"},"3-ghost-c":{genres:["Horror"]},"4-old-d":{genres:["Romance"]},"5-thai-e":{genres:["Comedy"],country:"TH"}};
 
 await test("filters apply type, country, release years, genres and sort",()=>{
  const slugs=(f:any)=>applyShelfFilter(items,normalizeShelfFilter(f),facts).map(x=>x.slug).join(",");
@@ -49,12 +49,13 @@ await test("TMDB genres fill in Romance, Thriller, Horror and Historical for dra
 await test("title facts are looked up once per title with genres and country",async()=>{
  let calls=0;
  const fetcher=(async(input:URL)=>{calls++;const u=new URL(String(input));
-  if(u.pathname==="/3/search/tv")return Response.json({results:[{id:77,name:"Love A",first_air_date:"2021-03-01",genre_ids:[18],origin_country:["KR"]}]});
+  if(u.pathname==="/3/search/tv")return Response.json({results:[{id:77,name:"Love A",first_air_date:"2021-03-01",genre_ids:[18],origin_country:["KR"],poster_path:"/loveA.jpg"}]});
   if(u.pathname==="/3/tv/77/keywords")return Response.json({results:[{name:"love triangle"}]});
   if(u.pathname==="/3/search/movie")return Response.json({results:[{id:88,title:"City B",release_date:"2018-05-01",genre_ids:[80],original_language:"zh"}]});
   return new Response("",{status:404});}) as typeof fetch;
  const out=await getTitleFacts([{slug:"1-love-a",title:"Love A",year:2021,type:"Drama"},{slug:"2-city-b",title:"City B",year:2018,type:"Movie"},{slug:"bad slug",title:"x"}],{key:"test",fetcher});
- assert(out["1-love-a"].genres.join(",")==="Drama,Romance"&&out["1-love-a"].country==="KR","drama facts: "+JSON.stringify(out["1-love-a"]));
+ assert(out["1-love-a"].genres.join(",")==="Drama,Romance"&&out["1-love-a"].country==="KR"&&out["1-love-a"].poster==="https://image.tmdb.org/t/p/w342/loveA.jpg","drama facts: "+JSON.stringify(out["1-love-a"]));
+ assert(!out["2-city-b"].poster,"no poster when TMDB has none");
  assert(out["2-city-b"].genres.join(",")==="Crime"&&out["2-city-b"].country==="CN","movie facts");
  assert(!out["bad slug"]&&calls===3,"invalid slugs skipped; one search per title plus drama keywords");
 });
@@ -109,6 +110,7 @@ await test("Community lists show as shelves with a live-preview filter that adds
  await (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});
  await waitFor(()=>document.querySelectorAll("#listItems .catalogShelf .catalogPoster").length===10,"watchlist shelves should load");
  const [full,shelf]=[...document.querySelectorAll("#listItems .catalogShelf")] as any[];
+ await waitFor(()=>[...shelf.querySelectorAll(".catalogPoster img")].some((img:any)=>img.getAttribute("src")==="https://image.tmdb.org/t/p/w342/cityb.jpg"),"watchlist titles without MyDramaList artwork should use the TMDB poster");
  assert((full.querySelector(".shelfFilterToggle") as any).hidden,"the full watchlist has no Filter button");
  assert(shelf&&!document.querySelector("#listItems .listcard"),"Community should use shelves, not list cards");
  assert(shelf.querySelectorAll(".catalogPoster").length===5,"shelf should show the watchlist titles");

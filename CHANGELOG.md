@@ -13,6 +13,7 @@
 
 ### Bug fixes
 
+- Fixed watchlist shelves showing blank tiles instead of posters. MyDramaList watchlists don't include artwork, so watchlist posters now come from TMDB.
 - Fixed an issue where some older movies opened the wrong title in Nuvio when an upcoming movie shared the same name (for example Pulse (2001), City on Fire (1987) and From Me to You (2010)). Titles now match the release year from MyDramaList, and TMDB is checked when the years disagree.
 - Fixed an issue where adding more than 40 catalogs from Discover or the weekly picks would fail at the last step with an "Unable to prepare your manifest" error. The site now stops you at 60 and lets you know right away.
 - Catalog rows further down your Nuvio home screen now load on the first pass instead of waiting until you scroll to them.

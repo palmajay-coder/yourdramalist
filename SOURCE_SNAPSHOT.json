@@ -4,7 +4,7 @@
   "appVersion": "1.0.9",
   "manifestVersion": "1.0.9",
   "release": "1.0.9",
-  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 717) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
+  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 718) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
   "files": [
     {
       "path": "addon.test.ts",
@@ -99,7 +99,7 @@
     },
     {
       "path": "communityShelves.ts",
-      "sha256": "6c7c953919f4003b734be786d034db5df3dd1fee5c66aa4dffe323b4215c9688",
+      "sha256": "57cd0e910d2aea9982d1babd9d9a14c09f07ac66958c92070cce2a1eaae1e349",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -421,7 +421,7 @@
     },
     {
       "path": "shelves.test.ts",
-      "sha256": "d00492ff7b5f779394df6ddc70d9ae302f5ab2656b34dcc59ba5745640a30d36",
+      "sha256": "f273d7dd78d0ae90e631d1b79c1685dce9da956a127f1116c13a56162b7bd2ab",
       "type": "script",
       "publicationAdaptation": "offline test with synthetic fixtures",
       "matchesProduction": false
@@ -435,7 +435,7 @@
     },
     {
       "path": "titleFacts.ts",
-      "sha256": "24a79ae00e1d2a7b5f7fc916a378410c75e9110763f8bfde003000fe5cfc4aa5",
+      "sha256": "aabc4232e09231e71fbffb15711bb191a03a4e6133942d0fbead1189aee55fef",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -484,5 +484,5 @@
     }
   ],
   "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 717
+  "productionValVersion": 718
 }

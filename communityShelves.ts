@@ -10,7 +10,7 @@ export function installCommunityShelves(){
  const fill=(text,values)=>Object.entries(values).reduce((s,[k,v])=>s.replaceAll('{'+k+'}',String(v)),text);
  async function details(item){
   const request=++detailRequest;content.replaceChildren();
-  if(item.poster){const img=node('img');img.src=item.poster;img.alt=item.title;img.referrerPolicy='no-referrer';content.append(img)}
+  const poster=posterOf(item);if(poster){const img=node('img');img.src=poster;img.alt=item.title;img.referrerPolicy='no-referrer';content.append(img)}
   const meta=node('p',null,[item.type,item.year].filter(Boolean).join(' · '));const score=node('div'),pop=node('p'),synopsis=node('p','dramaSynopsis');
   content.append(node('h2',null,item.title),meta,score,pop,synopsis);dialog.showModal();
   try{const response=await fetch('/api/mdl/drama-details?url='+encodeURIComponent(item.url),{signal:AbortSignal.timeout(15000)});const data=await response.json();if(request!==detailRequest||!dialog.open)return;if(!response.ok)throw Error();renderScore(score,data.score);renderSynopsis(synopsis,data.synopsis);if(data.popularity)pop.textContent=copy.catalogPopularity+' #'+data.popularity.toLocaleString();if(data.status==='unavailable'&&!data.synopsis)synopsis.textContent=copy.catalogDetailsUnavailable}
@@ -22,11 +22,14 @@ export function installCommunityShelves(){
  function pump(){while(workers<2&&jobs.length){const job=jobs.shift();workers++;Promise.resolve().then(job).catch(()=>{}).finally(()=>{workers--;pump()})}}
  function skeleton(track){track.innerHTML='<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>'}
  function decode(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value}
- async function loadFacts(row){
-  // Genres come from TMDB in small batches; the shelf and genre choices update as they arrive.
-  const id=renderId,todo=row.items.filter(x=>!facts.has(x.slug)&&!factsPending.has(x.slug));
+ // Watchlist rows have no MyDramaList artwork, so their posters come from the TMDB lookup.
+ const posterOf=item=>item.poster||facts.get(item.slug)?.poster||null;
+ async function loadFacts(row,subset){
+  // Genres and posters come from TMDB in small batches; the shelf and genre choices update as they arrive.
+  const id=renderId,todo=(subset||row.items).filter(x=>!facts.has(x.slug)&&!factsPending.has(x.slug));
+  if(!todo.length)return;
   for(const x of todo)factsPending.add(x.slug);
-  row.factsDone=row.items.length-todo.length;row.paint();
+  row.factsDone=row.items.filter(x=>facts.has(x.slug)).length;row.paint();
   for(let i=0;i<todo.length;i+=40){
    if(id!==renderId)return;
    const part=todo.slice(i,i+40);
@@ -52,7 +55,7 @@ export function installCommunityShelves(){
   const keyOf=()=>row.filter?shelfFilterKey(row.filter):'';
   row.url=()=>row.filter?l.url+(l.url.includes('?')?'&':'?')+'ydlf='+keyOf():l.url;
   row.selectionItem=()=>{
-   const posters=(row.shown||row.items||[]).map(x=>x.poster).filter(Boolean).slice(0,5);
+   const posters=(row.shown||row.items||[]).map(posterOf).filter(Boolean).slice(0,5);
    const base={...l,posters:posters.length?posters:(l.posters||[])};
    if(!row.filter)return base;
    const baseName=l.originalName||l.name;
@@ -100,7 +103,7 @@ export function installCommunityShelves(){
    track.replaceChildren();
    for(const item of row.shown.slice(0,60)){
     const b=node('button','catalogPoster');b.type='button';b.setAttribute('aria-label',copy.catalogTitlePreview+': '+item.title);
-    if(item.poster){const img=node('img');img.src=item.poster;img.alt=item.title;img.loading='lazy';img.referrerPolicy='no-referrer';b.append(img)}else b.append(node('span','shelfPosterBlank',item.title));
+    const poster=posterOf(item);if(poster){const img=node('img');img.src=poster;img.alt=item.title;img.loading='lazy';img.referrerPolicy='no-referrer';b.append(img)}else b.append(node('span','shelfPosterBlank',item.title));
     b.append(node('strong',null,item.title),node('small',null,item.year?String(item.year):''));b.onclick=()=>details(item);track.append(b);
    }
    if(!row.shown.length)track.append(node('p','catalogShelfStatus',row.factsPending()?fill(copy.shelfGenresLoading,{done:row.factsDone,total:row.items.length}):(row.items.length?copy.shelfNoMatches:copy.shelfEmpty)));
@@ -112,7 +115,7 @@ export function installCommunityShelves(){
   row.load=()=>enqueue(async()=>{
    const id=renderId;if(l.empty){track.replaceChildren(node('p','catalogShelfStatus',copy.shelfEmpty));return}
    skeleton(track);
-   try{const response=await fetch('/api/mdl/shelf?url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId)return;if(!response.ok)throw Error(data.error);row.items=data.items||[];filterButton.hidden=!row.items.length||!!l.combined;row.paint()}
+   try{const response=await fetch('/api/mdl/shelf?url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId)return;if(!response.ok)throw Error(data.error);row.items=data.items||[];filterButton.hidden=!row.items.length||!!l.combined;row.paint();const bare=row.items.slice(0,60).filter(x=>!x.poster);if(bare.length)loadFacts(row,bare)}
    catch(e){if(id!==renderId)return;track.replaceChildren();const p=node('p','catalogShelfStatus',(e&&e.message)||copy.shelfUnavailable);const retry=node('button','secondary catalogRetry',copy.catalogRetry);retry.type='button';retry.onclick=()=>row.load();track.append(p,retry)}
   });
   if(l.empty)add.disabled=true;
