@@ -838,7 +838,7 @@ export function loadWatchlistCategory(username, status) {
   return D(`watchlist-category:${username.toLowerCase()}:${status}`, H, async () => {
     const path = `dramalist/${encodeURIComponent(username)}/${status}`;
     const items = [], seen = new Set();
-    for (let page = 1; page <= Math.min(kt, 5); page++) {
+    for (let page = 1; page <= kt; page++) {
       const html = await _(path + (page === 1 ? "" : "?page="+page));
       if (/This (?:list|dramalist|watchlist) is private/i.test(html)) throw Object.assign(Error("Private watchlist"), {code:"PRIVATE"});
       const rows = parseModernWatchlist(html, section)[section] || zt(html)[section] || [];
@@ -900,7 +900,7 @@ export function loadWatchlist(username) {
       for (const group of loaded) Object.assign(sections, group);
     } else if (/"load_more":\s*true/.test(html)) {
       const seen = new Set(Object.values(sections).flat().map(item => item.slug));
-      for (let page = 2; page <= Math.min(kt, 5); page++) {
+      for (let page = 2; page <= kt; page++) {
         const next = parseModernWatchlist(await read("?page="+page));
         let added = false;
         for (const [id,items] of Object.entries(next)) for (const item of items) {

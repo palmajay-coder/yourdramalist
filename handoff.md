@@ -24,7 +24,7 @@
 - **Cleanup:** The Nuvio example screenshot, its route and unused text are gone.
 
 ## Completed in 1.1.3
-- **Filters cover long lists:** The setup page asks again for genres a batch could not finish, runs two batches at a time and shows "Loading genres" in the shelf status. A filtered shelf shows every match, not 60. Nuvio filtered catalogs read genres for up to 1,000 titles (was 600). Test: a 130-title list where each lookup returns only 15 titles.
+- **Filters cover long lists:** The setup page asks again for genres a batch could not finish, runs two batches at a time and shows "Loading genres" in the shelf status. A filtered shelf shows every match, not 60. Nuvio filtered catalogs read genres for up to 1,000 titles (was 600). Test: a 130-title list where each lookup returns only 15 titles. Watchlist categories and the combined watchlist now load up to `kt` (10) pages instead of 5, the same as custom lists; not yet tested live on a 400+ watchlist.
 - **Finding:** A live test on list `MLOPW2Z3` (916 titles) showed batches of 40 finish in about 3 seconds. Only 91 of its titles had saved genres before the test, which matches the "about 90" report. Nuvio filtered catalogs still look up only about 90 new titles per 12-second load, so a list nobody has filtered on the setup page fills in over several Nuvio loads.
 
 ## Completed in 1.1.2
@@ -47,7 +47,7 @@
 - **Known quirks:** The container cannot reach `api.val.town` for uploads. `run_file` sometimes times out, so retry. Branch endpoints use a different origin.
 
 ## Current status
-- **No active problem:** 1.1.3 runs live (Val Town version 754). Old click totals stay in the database but the admin page no longer reads them. Analytics started fresh on release day.
+- **No active problem:** 1.1.3 runs live (Val Town version 755). Old click totals stay in the database but the admin page no longer reads them. Analytics started fresh on release day.
 - **To verify live:** Build one install link, then confirm the admin page shows 1 person today with the right device. Confirm in Nuvio that two installs show one set of review cards.
 - **Release pages:** The user still needs to create the v1.1.1 (and optionally v1.1.2) GitHub release pages by hand, since tag pushes get blocked from this container.
 - **Cost:** The user asked for cheaper models on routine tasks and `/compact` after each logical step.
