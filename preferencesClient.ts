@@ -37,16 +37,7 @@ export function installPreferencesUI(api: {
     [copy.reviewsOpenHeading, copy.reviewsOpenSample],
     [copy.reviewsHeadlineSample, copy.reviewsHelpfulSample, copy.reviewsBodySample],
   ]) {const card = node("article", "prefReviewCard"); card.append(node("h3", "", title), ...lines.map(s => paragraph(s))); cards.append(card);}
-  const example = button(copy.reviewsFullExample, "prefTextButton prefExampleLink");
-  reviewPreview.append(caption, cards, example); reviews.card.append(reviewPreview);
-  const dialog = node("dialog", "prefDialog"); dialog.setAttribute("aria-labelledby", "prefExampleHeading");
-  const dialogHeader = node("header"); const heading = node("h2", "", copy.reviewsSampleLabel); heading.id = "prefExampleHeading";
-  const close = button(copy.closePreview, "secondary"); dialogHeader.append(heading, close);
-  const screenshot = node("img"); screenshot.alt = copy.reviewsScreenshotAlt; screenshot.loading = "lazy";
-  dialog.append(dialogHeader, screenshot); root.append(dialog);
-  example.onclick = () => {screenshot.src = "/assets/preferences-review.jpg"; dialog.showModal();};
-  close.onclick = () => dialog.close();
-  dialog.addEventListener("click", e => {if(e.target === dialog) {const r = dialog.getBoundingClientRect(); const m = e as MouseEvent; if(m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) dialog.close();}});
+  reviewPreview.append(caption, cards); reviews.card.append(reviewPreview);
 
   const metadata = node("section", "panel prefPanel prefMetadataCard"); metadata.style.display = "block"; metadata.style.width = "100%";
   const metadataHeading = node("h2", "", copy.metadataProvider); metadataHeading.id = "prefMetadataHeading";
