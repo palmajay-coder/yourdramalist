@@ -2,9 +2,10 @@ import {sqlite} from "https://esm.town/v/std/sqlite/main.ts";
 import {pacificDate,pacificMidnight} from "./pacificTime.ts";
 import {canEdit} from "./wallpaper.ts";
 import {CATEGORIES,COUNTRIES} from "./explore.ts";
+import {THEMES,themesForWeek,weekWindow} from "./collections.ts";
 import {SETUP_ERRORS,POSTER_ERRORS,POSTER_PROVIDERS,type ErrorKind} from "./errorGuide.ts";
 
-export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error";
+export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error" | "people.generated" | "popular.catalog" | "popular.person";
 
 export const ERROR_CATEGORIES = new Set([
   "method", "origin", "format", "rate-limit", "request-too-large", "invalid-request-body",
@@ -14,14 +15,14 @@ const FEATURE_CATEGORIES = new Set([
   "community-public-list", "community-watchlist", "community-combined-watchlist",
   "actor-filmography", "director-filmography", "reviews", "hide-unreleased", "hide-completed",
   "metadata-mdl", "metadata-tmdb", "posters-tmdb", "posters-easyposters", "posters-betterposters",
-  "posters-poster-plus", "posters-rpdb",
+  "posters-poster-plus", "posters-rpdb", "filtered-catalog",
 ]);
 const CATALOG_CATEGORIES = new Set([
   "weekly:0", "weekly:1",
   "explore:top-shows:all", "explore:popular-shows:all", "explore:newest-shows:all", "explore:upcoming-shows:all", "explore:airing-shows:all", "explore:variety-shows:all", "explore:top-movies:all", "explore:popular-movies:all", "explore:newest-movies:all", "explore:upcoming-movies:all",
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
-const ADD_SOURCES = new Set(["discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks"]);
+const ADD_SOURCES = new Set(["popular-this-month","discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks"]);
 export const POSTER_VERIFY_CATEGORIES = new Set([
   "unknown:invalid-input", "unknown:invalid-configuration", "unknown:request-limit", "unknown:request-size", "unknown:request-origin", "unknown:request-format", "unknown:request-method",
   ...["ratings", "better", "posterplus", "rpdb"].flatMap(provider => [
@@ -30,7 +31,11 @@ export const POSTER_VERIFY_CATEGORIES = new Set([
     `${provider}:not-an-image`, `${provider}:request-limit`, `${provider}:client-network`,
   ]),
 ]);
-const valid = (metric:AnalyticsMetric, category:string) => metric === "manifest.generated" ? category === "all"
+// people.generated counts each person once a day; popular.* count each person once a day per catalog or per actor/director.
+export const POPULAR_PERSON = /^[1-9]\d{0,11}-[a-z0-9-]{1,200}:(actor|director)$/i;
+const valid = (metric:AnalyticsMetric, category:string) => metric === "manifest.generated" || metric === "people.generated" ? category === "all"
+  : metric === "popular.catalog" ? CATALOG_CATEGORIES.has(category) && category.startsWith("explore:")
+  : metric === "popular.person" ? POPULAR_PERSON.test(category)
   : metric === "manifest.error" ? ERROR_CATEGORIES.has(category)
   : metric === "feature.selected" ? FEATURE_CATEGORIES.has(category)
   : metric === "poster.verify.error" ? POSTER_VERIFY_CATEGORIES.has(category)
@@ -46,10 +51,10 @@ async function ready(){
   try{await schema}catch(error){schema=undefined;throw error;}
   await sqlite.execute({sql:"DELETE FROM ydl_daily_analytics WHERE day < ?",args:[shiftDay(dayKey(),-180)]});
 }
-function dayKey(now=Date.now()){
+export function dayKey(now=Date.now()){
   return pacificDate(now).date.toISOString().slice(0,10);
 }
-function shiftDay(day:string,delta:number){
+export function shiftDay(day:string,delta:number){
   const [year,month,date]=day.split("-").map(Number);
   return new Date(Date.UTC(year,month-1,date+delta)).toISOString().slice(0,10);
 }
@@ -82,6 +87,27 @@ export async function adminAnalytics(req:Request,session:any){
     const rows=(result.rows||[]).map((row:any)=>({...row,label:analyticsCategoryLabel(String(row.category))}));
     return Response.json({days:30,timezone:"America/Los_Angeles",rows},{headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
   }catch{return Response.json({error:"Analytics are temporarily unavailable."},{status:503,headers:{"cache-control":"no-store"}});}
+}
+
+/** Weekly picks rotation for the admin page: recent and upcoming weeks, and every theme with when it ran and how many
+ * times people added it. Adds count generated manifests that include each weekly row during that week. */
+export async function adminWeekly(req:Request,session:any,now=Date.now()){
+  const headers={"cache-control":"no-store","x-content-type-options":"nosniff"};
+  if(!canEdit(session))return Response.json({error:session?.user?"Only the site owner can view the rotation.":"Sign in to view the rotation."},{status:session?.user?403:401,headers});
+  if(req.method!=="GET")return Response.json({error:"Method not allowed"},{status:405,headers});
+  const current=weekWindow(now).index,startOf=(index:number)=>new Date(Date.UTC(2026,10,2)+index*604800000).toISOString().slice(0,10);
+  let rows:any[]=[];
+  try{await ready();rows=(await sqlite.execute({sql:"SELECT day, category, count FROM ydl_daily_analytics WHERE metric = 'catalog.selected' AND category IN ('weekly:0','weekly:1') AND day >= ?",args:[startOf(0)]})).rows||[];}catch{/* Show the schedule without adds. */}
+  const addsFor=(index:number,slot:number)=>{const from=startOf(index),to=startOf(index+1);return rows.filter((r:any)=>r.category==="weekly:"+slot&&r.day>=from&&r.day<to).reduce((n:number,r:any)=>n+Number(r.count||0),0)};
+  const weeks=[];
+  for(let index=Math.max(0,current-4);index<=current+8;index++)weeks.push({week:startOf(index),current:index===current,past:index<current,themes:themesForWeek(index).map((t,slot)=>({name:t.name,adds:index<=current?addsFor(index,slot):null}))});
+  const themes=THEMES.map(t=>{
+    const ran:number[]=[];for(let index=0;index<=current;index++)if(themesForWeek(index).some(x=>x.name===t.name))ran.push(index);
+    let next=null;for(let index=current+1;index<=current+60;index++)if(themesForWeek(index).some(x=>x.name===t.name)){next=startOf(index);break}
+    const adds=ran.reduce((n,index)=>n+addsFor(index,themesForWeek(index).findIndex(x=>x.name===t.name)),0);
+    return{name:t.name,description:t.description,runs:ran.length,lastRun:ran.length?startOf(ran[ran.length-1]):null,nextRun:next,adds,live:ran.includes(current)};
+  });
+  return Response.json({current:startOf(current),weeks,themes},{headers});
 }
 
 const ERROR_LOG_MS=30*24*60*60*1000,ERROR_LOG_MAX=5000;
@@ -146,12 +172,12 @@ export async function recordCatalogAddition(req:Request){
 }
 
 export const analyticsLabels:Record<string,string>={
-  "discover-drama-related":"Discover · Drama related lists", "discover-actor-filmography":"Discover · Actor filmographies", "discover-director-filmography":"Discover · Director filmographies", "discover-catalog":"Discover · Catalogs", "community-watchlist":"Community · Watchlists", "community-public-list":"Community · Public lists", "community-direct-list":"Community · Direct list URLs", "featured-list":"Featured banner lists", "weekly-picks":"Weekly picks",
+  "popular-this-month":"Popular this month card", "discover-drama-related":"Discover · Drama related lists", "discover-actor-filmography":"Discover · Actor filmographies", "discover-director-filmography":"Discover · Director filmographies", "discover-catalog":"Discover · Catalogs", "community-watchlist":"Community · Watchlists", "community-public-list":"Community · Public lists", "community-direct-list":"Community · Direct list URLs", "featured-list":"Featured banner lists", "weekly-picks":"Weekly picks",
   "community-public-list":"Public lists", "community-watchlist":"Individual watchlists", "community-combined-watchlist":"All watchlists",
   "actor-filmography":"Actor filmographies", "director-filmography":"Director filmographies", reviews:"MyDramaList reviews",
   "hide-unreleased":"Hide unreleased titles", "hide-completed":"Hide completed and dropped titles",
   "metadata-mdl":"MyDramaList metadata", "metadata-tmdb":"TMDB metadata",
-  "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB",
+  "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
   "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation", "token-too-large":"Install link too long",
 };

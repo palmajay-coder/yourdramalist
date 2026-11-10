@@ -26,7 +26,9 @@ When manifest setup or a poster check fails, YourDramaList shows a diagnostic co
 
 ## Aggregate usage analytics
 
-YourDramaList stores daily aggregate counts for successful manifest generations, setup errors grouped by fixed category, selected built-in catalogs, and features included in generated manifests. These totals are not linked to individual visitors. The analytics data excludes search text, usernames, personal list URLs, API keys, manifest URLs, and visitor-level histories. Only the site owner can view the dashboard. Counts use the America/Los_Angeles calendar day; entries older than 180 days are cleared when analytics are next updated or viewed.
+YourDramaList stores daily aggregate counts for successful manifest generations, setup errors grouped by fixed category, selected built-in catalogs, and features included in generated manifests. These totals are not linked to individual visitors.
+
+To count how many people generate a manifest each day, the site turns the visitor's network address and browser name into a scrambled code using a random secret that is replaced every day. The code, never the address, is kept only until the end of that day and then deleted, so visitors cannot be recognized from one day to the next. The same daily code makes sure each person counts once a day toward the built-in catalogs and the actors and directors whose filmographies they add. Those daily totals, along with the actor's or director's public MyDramaList name and photo link, power the Popular this month list on the Discover tab. The analytics data excludes search text, usernames, personal list URLs, API keys, manifest URLs, and visitor-level histories. Only the site owner can view the dashboard. Counts use the America/Los_Angeles calendar day; entries older than 180 days are cleared when analytics are next updated or viewed.
 
 Val Town may separately process request information to host and secure the service. This analytics dashboard does not include or replace hosting-platform request logs.
 

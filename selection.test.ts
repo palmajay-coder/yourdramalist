@@ -69,12 +69,12 @@ await (document.getElementById("profileForm") as HTMLFormElement).onsubmit!({pre
 await new Promise(resolve=>setTimeout(resolve,0));
 const names=()=>[...document.querySelectorAll("#listItems h3")].map(node=>node.textContent);
 assert(names().join("|")==="Sample’s All Dramas & Films|Sample’s Plan to Watch","Watchlists should open with the combined card first");
-(document.querySelector("#listItems input") as HTMLInputElement).onchange!({} as Event);
+(document.querySelector("#listItems .catalogAdd") as HTMLButtonElement).click();
 (document.querySelector('[data-community-view="custom"]') as HTMLButtonElement).click();
 assert(names().join("|")==="Sample’s Favorites list","Custom tab should show only custom lists");
 assert(document.getElementById("count")!.textContent==="(1)","Switching tabs lost selection");
 (document.querySelector('[data-community-view="watchlists"]') as HTMLButtonElement).click();
-assert((document.querySelector("#listItems input") as HTMLInputElement).checked,"Returning to watchlists lost checkbox state");
+assert(document.querySelector("#listItems .catalogAdd")!.getAttribute("aria-pressed")==="true","Returning to watchlists lost the added state");
 console.log("PASS Community tabs separate profile results and share selections");
 
 (document.getElementById("communitySelectAll") as HTMLButtonElement).click();

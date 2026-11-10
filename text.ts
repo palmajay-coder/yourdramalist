@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.0.9";
-export const DISPLAY_VERSION = "1.0.9 BETA";
+export const APP_VERSION = "1.1.0";
+export const DISPLAY_VERSION = "1.1.0 BETA";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -21,6 +21,36 @@ export const TEXT = {
   catalogNext: "More titles",
   catalogEmpty: "No matching titles available for this country.",
   catalogRetry: "Try again",
+  shelfFilter: "Filter",
+  shelfFilterType: "Type",
+  shelfDramas: "Dramas",
+  shelfMovies: "Movies",
+  shelfCountry: "Country",
+  shelfGenre: "Genre",
+  shelfFrom: "Released from",
+  shelfTo: "Released to",
+  shelfAny: "Any year",
+  shelfSort: "Sort",
+  shelfSortDefault: "MyDramaList order",
+  shelfSortNewest: "Newest first",
+  shelfSortOldest: "Oldest first",
+  shelfSortAz: "A–Z",
+  shelfReset: "Reset filters",
+  shelfFiltering: "Filtering: {label}",
+  popularTitle: "Popular this month",
+  popularCatalogs: "Catalogs",
+  popularPeople: "Actors & directors",
+  popularAdds: "{count} adds",
+  popularAddShort: "+ Add",
+  popularAdded: "✓ Added",
+  popularUnavailable: "This filmography couldn’t be loaded. Please try again.",
+  shelfShowing: "Showing {shown} of {total}",
+  shelfAddsAs: "Adds to Nuvio as “{name}”",
+  shelfGenresLoading: "Loading genres… {done} of {total}",
+  shelfGenresUnavailable: "Genres are unavailable right now. Other filters still work.",
+  shelfNoMatches: "No titles match these filters.",
+  shelfEmpty: "No titles yet.",
+  shelfUnavailable: "This list couldn’t be loaded.",
   catalogUnavailable:
     "Titles are temporarily unavailable. You can still add this catalog.",
   catalogSaved: "Showing saved MyDramaList titles.",

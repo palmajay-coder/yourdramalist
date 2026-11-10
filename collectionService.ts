@@ -39,15 +39,23 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
    for(const [slot,theme]of window.themes.entries()){
     const keywords="keywords"in theme?(await Promise.all(theme.keywords!.map(keyword))).filter(Boolean).join("|"):"";
     if("keywords"in theme&&!keywords)throw Error("Theme metadata unavailable");
-    const groups=await Promise.all(["tv","movie"].map(async kind=>{
-     const params:Record<string,string>={with_origin_country:COLLECTION_COUNTRIES[country],include_adult:"false",language:"en-US",sort_by:"vote_average.desc","vote_count.gte":"20","vote_average.gte":"6",without_genres:"16,99",[kind==="tv"?"first_air_date.lte":"primary_release_date.lte"]:new Date(now()).toISOString().slice(0,10)};
-     if(keywords)params.with_keywords=keywords;if("genre"in theme)params.with_genres=theme.genre!;
+    // Small markets (Taiwan, Thailand) can have few titles for a theme, so a short row first relaxes the rating
+    // floor and, if still short, is topped up with that country's best-rated dramas.
+    const today=new Date(now()).toISOString().slice(0,10);
+    const find=async(kind:string,votes:number,average:number,withTheme:boolean)=>{
+     const params:Record<string,string>={with_origin_country:COLLECTION_COUNTRIES[country],include_adult:"false",language:"en-US",sort_by:"vote_average.desc","vote_count.gte":String(votes),"vote_average.gte":String(average),without_genres:"16,99",[kind==="tv"?"first_air_date.lte":"primary_release_date.lte"]:today};
+     if(withTheme){if(keywords)params.with_keywords=keywords;if("genre"in theme)params.with_genres=theme.genre!;}else params.with_genres="18";
      const data=await request("discover/"+kind,params);
-     return (data.results||[]).filter((r:any)=>!r.adult&&Number(r.vote_count)>=20&&Number(r.vote_average)>=6&&!(r.genre_ids||[]).some((g:number)=>[16,99,10763,10764,10767].includes(g))&&posterUrl(r.poster_path)&&(kind!=="tv"||r.origin_country?.includes(COLLECTION_COUNTRIES[country]))).map((r:any)=>({id:r.id,kind,name:r.name||r.title,poster:posterUrl(r.poster_path),overview:r.overview||"",date:r.first_air_date||r.release_date,score:r.vote_average})).filter((r:any)=>r.name&&/^\d{4}-\d{2}-\d{2}$/.test(r.date||"")&&r.date<=new Date(now()).toISOString().slice(0,10));
-    }));
-    const pool=groups.flat().filter(r=>!used.has(r.kind+":"+r.id));
-    // New-to-recent-collections first; ratings determine order within each group.
-    pool.sort((a,b)=>Number(recent.has(a.kind+":"+a.id))-Number(recent.has(b.kind+":"+b.id))||b.score-a.score||a.id-b.id);
+     return (data.results||[]).filter((r:any)=>!r.adult&&Number(r.vote_count)>=votes&&Number(r.vote_average)>=average&&!(r.genre_ids||[]).some((g:number)=>[16,99,10763,10764,10767].includes(g))&&posterUrl(r.poster_path)&&(kind!=="tv"||r.origin_country?.includes(COLLECTION_COUNTRIES[country]))).map((r:any)=>({id:r.id,kind,name:r.name||r.title,poster:posterUrl(r.poster_path),overview:r.overview||"",date:r.first_air_date||r.release_date,score:r.vote_average})).filter((r:any)=>r.name&&/^\d{4}-\d{2}-\d{2}$/.test(r.date||"")&&r.date<=today);
+    };
+    const tier=async(votes:number,average:number,withTheme:boolean)=>(await Promise.all(["tv","movie"].map(kind=>find(kind,votes,average,withTheme)))).flat().filter((r:any)=>!used.has(r.kind+":"+r.id));
+    // Titles from the last two weeks, and from the last time this theme ran, go to the back so a returning theme looks new.
+    const shownBefore=new Set([...recent,...previous.flatMap(([,v])=>v.data.collections.filter((c:any)=>String(c.catalog?.name||"").startsWith(theme.name+" (")).flatMap((c:any)=>c.items.map((x:any)=>x.kind+":"+x.id)))]);
+    const rank=(list:any[])=>list.sort((a,b)=>Number(shownBefore.has(a.kind+":"+a.id))-Number(shownBefore.has(b.kind+":"+b.id))||b.score-a.score||a.id-b.id);
+    let pool=rank(await tier(20,6,true));
+    const add=(more:any[])=>{const seen=new Set(pool.map((r:any)=>r.kind+":"+r.id));pool=[...pool,...rank(more.filter((r:any)=>!seen.has(r.kind+":"+r.id)))]};
+    if(pool.length<10)add(await tier(5,5.5,true));
+    if(pool.length<10)add(await tier(20,6,false));
     const items=pool.slice(0,20);items.forEach(r=>used.add(r.kind+":"+r.id));
     const catalog={...weeklyCatalog(country,slot),name:theme.name+" ("+({"3":"South Korea","2":"China","1":"Japan","5":"Taiwan","6":"Thailand"}[country])+")",description:theme.description};
     collections.push({catalog,items});
