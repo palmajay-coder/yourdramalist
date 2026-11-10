@@ -2,6 +2,7 @@ import {sqlite} from "https://esm.town/v/std/sqlite/main.ts";
 import {pacificDate,pacificMidnight} from "./pacificTime.ts";
 import {canEdit} from "./wallpaper.ts";
 import {CATEGORIES,COUNTRIES} from "./explore.ts";
+import {THEMES,themesForWeek,weekWindow} from "./collections.ts";
 import {SETUP_ERRORS,POSTER_ERRORS,POSTER_PROVIDERS,type ErrorKind} from "./errorGuide.ts";
 
 export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error" | "people.generated" | "popular.catalog" | "popular.person";
@@ -86,6 +87,27 @@ export async function adminAnalytics(req:Request,session:any){
     const rows=(result.rows||[]).map((row:any)=>({...row,label:analyticsCategoryLabel(String(row.category))}));
     return Response.json({days:30,timezone:"America/Los_Angeles",rows},{headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
   }catch{return Response.json({error:"Analytics are temporarily unavailable."},{status:503,headers:{"cache-control":"no-store"}});}
+}
+
+/** Weekly picks rotation for the admin page: recent and upcoming weeks, and every theme with when it ran and how many
+ * times people added it. Adds count generated manifests that include each weekly row during that week. */
+export async function adminWeekly(req:Request,session:any,now=Date.now()){
+  const headers={"cache-control":"no-store","x-content-type-options":"nosniff"};
+  if(!canEdit(session))return Response.json({error:session?.user?"Only the site owner can view the rotation.":"Sign in to view the rotation."},{status:session?.user?403:401,headers});
+  if(req.method!=="GET")return Response.json({error:"Method not allowed"},{status:405,headers});
+  const current=weekWindow(now).index,startOf=(index:number)=>new Date(Date.UTC(2026,10,2)+index*604800000).toISOString().slice(0,10);
+  let rows:any[]=[];
+  try{await ready();rows=(await sqlite.execute({sql:"SELECT day, category, count FROM ydl_daily_analytics WHERE metric = 'catalog.selected' AND category IN ('weekly:0','weekly:1') AND day >= ?",args:[startOf(0)]})).rows||[];}catch{/* Show the schedule without adds. */}
+  const addsFor=(index:number,slot:number)=>{const from=startOf(index),to=startOf(index+1);return rows.filter((r:any)=>r.category==="weekly:"+slot&&r.day>=from&&r.day<to).reduce((n:number,r:any)=>n+Number(r.count||0),0)};
+  const weeks=[];
+  for(let index=Math.max(0,current-4);index<=current+8;index++)weeks.push({week:startOf(index),current:index===current,past:index<current,themes:themesForWeek(index).map((t,slot)=>({name:t.name,adds:index<=current?addsFor(index,slot):null}))});
+  const themes=THEMES.map(t=>{
+    const ran:number[]=[];for(let index=0;index<=current;index++)if(themesForWeek(index).some(x=>x.name===t.name))ran.push(index);
+    let next=null;for(let index=current+1;index<=current+60;index++)if(themesForWeek(index).some(x=>x.name===t.name)){next=startOf(index);break}
+    const adds=ran.reduce((n,index)=>n+addsFor(index,themesForWeek(index).findIndex(x=>x.name===t.name)),0);
+    return{name:t.name,description:t.description,runs:ran.length,lastRun:ran.length?startOf(ran[ran.length-1]):null,nextRun:next,adds,live:ran.includes(current)};
+  });
+  return Response.json({current:startOf(current),weeks,themes},{headers});
 }
 
 const ERROR_LOG_MS=30*24*60*60*1000,ERROR_LOG_MAX=5000;

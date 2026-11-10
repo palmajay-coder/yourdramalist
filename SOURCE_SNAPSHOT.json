@@ -1,10 +1,10 @@
 {
   "source": "Niwa710/YourDramaList",
   "recorded": "2026-11-09",
-  "appVersion": "1.0.9",
-  "manifestVersion": "1.0.9",
-  "release": "1.0.9",
-  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 721) for the 1.0.9 release; matchesProduction marks files identical to the deployed copy.",
+  "appVersion": "1.1.0",
+  "manifestVersion": "1.1.0",
+  "release": "1.1.0",
+  "note": "Current YourDramaList application, promoted to repository root. Original app preserved in legacy/. Historical storage, encryption and add-on identifiers are retained for compatibility. Production modules come from maintained deployment sources, cross-checked against available Val Town reads. Public tests use synthetic fixtures. Environment secrets and cached/user data are excluded. Synced with Val Town main (version 722) for the 1.1.0 release; matchesProduction marks files identical to the deployed copy.",
   "files": [
     {
       "path": "addon.test.ts",
@@ -50,14 +50,14 @@
     },
     {
       "path": "analyticsApi.ts",
-      "sha256": "6556aaa72e3cfccaa3a7ac13aa96d7fc386464b0affd6d42bc4ac734799220de",
+      "sha256": "5042905ee41229015f6f0e5f0ead95c3382ba1b948e055a29c805ff29eda2b33",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
     },
     {
       "path": "app.ts",
-      "sha256": "2811e67a60ee3580f57896eac067ed64d26798f5a799940d4e6429a7b2872670",
+      "sha256": "1b2043324fa42cb4c2f62ac9cc90a56ac80da776a14d058d84aa78ec6588253b",
       "type": "http",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -78,7 +78,7 @@
     },
     {
       "path": "collectionService.ts",
-      "sha256": "4b340745edfdad2a7512114d429ca563b5fb96e79a1d7177906549547148bb4e",
+      "sha256": "3f702ba0fa6d6eca3cc37c068b1c3bda24236d60d049fb2a4fe56debe9e16f64",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -92,7 +92,7 @@
     },
     {
       "path": "collections.ts",
-      "sha256": "fddfc30b349ec7f19fc0a8bd9dd39919aad17996b035d040e185eb375f90fbcd",
+      "sha256": "fffed153f20da90c3fe951a365f8ffa816ddd2551d956dcd1d5a65610c4e6a0b",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -456,7 +456,7 @@
     },
     {
       "path": "text.ts",
-      "sha256": "fea49e354020eb2f2e0c8817dd96bee2450f9d6fe7c07da450861d5b21f26ed6",
+      "sha256": "376d8b2a4717bd26faaa4b31071ab10f5955c767c5d40c7c93cce5bec7e0aae5",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -491,14 +491,14 @@
     },
     {
       "path": "wallpaperAdmin.ts",
-      "sha256": "b28426dda648f0e755b083e63161a70cc3fe8fa3a6589ce133941b7da8cca979",
+      "sha256": "7a56b1ef957783ed4a596ebcb2ecf75955931a7f58c353c0be292fdbcd612b0b",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
     },
     {
       "path": "wallpaperApi.ts",
-      "sha256": "0aa493f11cca62e5bb5eef38409a99a6b4e8c13f65cea81385576f38ba8d95f3",
+      "sha256": "250e85f71cbe0355b5e936299a44290fb3d253e6d2c1143b0ac29fd5e9d42241",
       "type": "script",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
@@ -509,8 +509,15 @@
       "type": "interval",
       "publicationAdaptation": "deployment source",
       "matchesProduction": true
+    },
+    {
+      "path": "weeklyThemes.test.ts",
+      "sha256": "7572f04b404390288255995cef2ea676ebebaa20c3668fd80bf31daa5a3d2ce7",
+      "type": "script",
+      "publicationAdaptation": "offline test with synthetic fixtures",
+      "matchesProduction": false
     }
   ],
-  "displayVersion": "V.1.0.9 BETA",
-  "productionValVersion": 721
+  "displayVersion": "V.1.1.0 BETA",
+  "productionValVersion": 722
 }

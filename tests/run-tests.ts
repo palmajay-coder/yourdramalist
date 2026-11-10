@@ -3,7 +3,7 @@ const suites = [
   "popularLists.test.ts", "dramaDetails.test.ts", "people.test.ts",
   "directList.test.ts", "listOwner.test.ts", "explore.test.ts",
   "featured.test.ts", "wallpaper.test.ts", "posterBackground.test.ts",
-  "addon.test.ts", "preferences.test.ts", "ui.test.ts", "selection.test.ts", "dramaSearch.test.ts", "collections.test.ts", "filmography.test.ts", "errors.test.ts", "matching.test.ts", "shelves.test.ts", "popularity.test.ts",
+  "addon.test.ts", "preferences.test.ts", "ui.test.ts", "selection.test.ts", "dramaSearch.test.ts", "collections.test.ts", "filmography.test.ts", "errors.test.ts", "matching.test.ts", "shelves.test.ts", "popularity.test.ts", "weeklyThemes.test.ts",
 ];
 const failures: string[] = [];
 for (const suite of suites) {

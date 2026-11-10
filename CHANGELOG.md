@@ -1,28 +1,42 @@
 # Changelog
 
-## 1.0.9
+## 1.1.0
 
 ### What’s new
 
-- Raised the catalog limit from 40 to 60. You can now add up to 60 catalogs to a single Nuvio install.
+- This week’s picks now rotate through 25 themes instead of 6, with two fresh themes every Monday. New themes include Sweet Revenge, First Love, Across Time, Found Family, Swords and Fists, Chasing a Killer, Center Stage and A Table for Two. Every theme runs before any repeats, and a returning theme shows different titles than last time.
 - Community lists and watchlists now show as shelves, the same rows of posters you see on the Discover tab. Drama-related lists use shelves too. Tap any poster to see its details.
 - Added one filter at the top of the Community tab that narrows every shelf at once. Pick Dramas or Movies, then filter by country, release year and genre, and sort by newest, oldest or A–Z. Watchlists and custom lists each keep their own filter, and your full list of every drama and film hides while a filter is on. The shelves update as you pick, so you see exactly what will show up in Nuvio before you add it.
 - A filtered shelf adds to Nuvio as its own catalog with the filter in its name, for example "Sample’s Completed: Korean Romance Dramas". You can add the same list more than once with different filters.
 - Genres come from TMDB. Romance, Thriller, Horror and Historical are filled in from TMDB's tags for dramas, since TMDB's TV genres leave them out.
 - Added a Popular this month card under Your Selection on the Discover tab. It lists the built-in catalogs and the actors and directors people add most, with a one-tap Add button. It appears once there is enough data.
-- Added an Errors section to the admin page. Paste a diagnostic code a user sends you to see what went wrong and how to fix it. Setup and poster check errors now live in one place, with a guide to every error type and a "Needs your attention" alert for errors only the site owner can fix.
 
 ### Bug fixes
 
 - Fixed watchlist shelves showing blank tiles instead of posters. MyDramaList watchlists don't include artwork, so watchlist posters now come from TMDB.
 - Fixed missing or wrong posters for titles with common names such as Midnight (2021) and Time. Poster lookups now search by release year and skip same-name titles from other countries.
+
+### Improvements
+
+- The admin page now counts people, not just install links. Each person is counted once a day without storing their address, and the analytics section is simpler: four headline numbers, a 7 or 30 day switch, Discover catalogs with countries combined, features grouped into tabs, a search breakdown and a people-per-day chart.
+- Weekly picks rows for smaller countries such as Taiwan and Thailand are always filled. When a theme has few matches there, the row adds closely related titles and then the country’s best-rated dramas.
+- The admin page has a Weekly picks section showing this week’s themes, the coming weeks, past weeks with how many people added each row, and every theme with when it last ran.
+
+## 1.0.9
+
+### What’s new
+
+- Raised the catalog limit from 40 to 60. You can now add up to 60 catalogs to a single Nuvio install.
+- Added an Errors section to the admin page. Paste a diagnostic code a user sends you to see what went wrong and how to fix it. Setup and poster check errors now live in one place, with a guide to every error type and a "Needs your attention" alert for errors only the site owner can fix.
+
+### Bug fixes
+
 - Fixed an issue where some older movies opened the wrong title in Nuvio when an upcoming movie shared the same name (for example Pulse (2001), City on Fire (1987) and From Me to You (2010)). Titles now match the release year from MyDramaList, and TMDB is checked when the years disagree.
 - Fixed an issue where adding more than 40 catalogs from Discover or the weekly picks would fail at the last step with an "Unable to prepare your manifest" error. The site now stops you at 60 and lets you know right away.
 - Catalog rows further down your Nuvio home screen now load on the first pass instead of waiting until you scroll to them.
 
 ### Improvements
 
-- The admin page now counts people, not just install links. Each person is counted once a day without storing their address, and the analytics section is simpler: four headline numbers, a 7 or 30 day switch, Discover catalogs with countries combined, features grouped into tabs, a search breakdown and a people-per-day chart.
 - The Confirm page now tells you how many catalogs to remove if your selection goes over the limit.
 - Manifest errors now explain what to change when a setup has too many catalogs or makes an install link that is too long.
 - The catalog limit pop-up now has its own heading ("Catalog limit reached") instead of "Please wait."
