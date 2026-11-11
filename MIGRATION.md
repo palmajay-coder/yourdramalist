@@ -85,8 +85,8 @@ Approach: the app code is used **unchanged**. `cloudflare/build.mjs` bundles it 
 - [x] Replace the SQLite calls with D1. *Done November 11.* Rows work by index and by column name, as on Val Town.
 - [x] Serve the browser files Val Town served at `/__immutable/`. *Done November 11.* Transpiled at build time.
 - [x] Add a scheduled handler for the weekly job, at `0 7,8 * * *` UTC. *Done November 11.* The Pacific midnight check is unchanged.
-- [ ] Replace the Val Town OAuth middleware with Cloudflare Access for the admin area. For now the admin area refuses everyone (fails closed). Public pages are unaffected.
-- [ ] Replace the owner ID check in `wallpaper.ts` with the Access rule.
+- [x] Replace the Val Town OAuth middleware for the admin area. *Done November 11* with the owner-password login above (instead of Cloudflare Access).
+- [x] Owner check in `wallpaper.ts`. *Kept as is:* the password session produces the same owner id the check expects.
 - [x] Move the profile and avatar service. *Done November 11.* YDL-V2 runs as the `ydl-v2` Worker, and the build points YourDramaList at it.
 - [x] Replace the hard-coded Val Town addresses. *Partly done November 11.* The build rewrites the YDL-V2 address and the add-on icon address. The logo address in `addonText.ts` keeps the old Mdl-lists address until the logo image is copied. The build fails on any unmapped `val.run` address.
 - [x] Logo image. *Done November 11.* The same YDL image as the add-on icon is used; no Mdl-lists copy needed.
@@ -100,7 +100,7 @@ Drama search, actor and director search, actor filmographies, watchlists by user
 
 - [ ] **Upgrade Cloudflare to the Workers Paid plan ($5 a month).** The free plan allows about 50 outgoing requests per visit, and the genre lookups already hit that limit ("Too many subrequests" in the logs). This Week's Picks asks TMDB for far more than 50 things when it builds a week, so it will likely fail on the free plan. The paid plan raises the limit to about 1,000. User approved the cost.
 - [ ] **Test This Week's Picks** on the test site once the paid plan is on. TMDB_API_KEY is already set.
-- [ ] **Admin login.** The admin pages (`/admin`, `/api/admin/*`) refuse everyone because Val Town's login does not exist on Cloudflare. Plan: an owner password. The user enters `ADMIN_PASSWORD` as a Worker secret in the Cloudflare dashboard; `/auth/login` checks it and sets a signed cookie; the code's existing owner check then passes only for that session. User approved this approach.
+- [x] **Admin login built** (November 11): `cloudflare/shims/oauth.ts`. `/auth/login` checks the owner password (Worker secret `ADMIN_PASSWORD`) and sets a signed, HttpOnly, 12-hour cookie; `/auth/logout` ends it; the existing owner check passes only for that session. Tested: wrong password, forged and expired cookies, a changed password, no password set (refuses everyone), and a ten-minute limit after eight wrong tries per address. **Waiting on the user** to add the `ADMIN_PASSWORD` secret in the Cloudflare dashboard and try signing in.
 
 ### Phase 5: Parallel run
 
