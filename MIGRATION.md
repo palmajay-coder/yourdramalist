@@ -45,8 +45,8 @@ These features are gone or different, and we agreed they are acceptable:
 
 - [x] **Existing install links.** Done November 11: an install link made on Val Town loads its manifest on the test site, so the manifest secret matches and existing installs keep working. Their catalogs show the new names.
 - [ ] **Replace exposed keys.** The TMDB and MDBList keys appeared in screenshots. Create new ones and update the TMDB secret on Cloudflare.
-- [ ] **Preferences check.** Run through the preferences page once more, including poster styles, Verify, and Config.
-- [ ] **Weekly job.** Confirm the weekly refresh runs on its schedule (07:00 and 08:00 UTC).
+- [x] **Preferences check.** Done by the user, November 11: everything works.
+- [x] **Weekly job schedule.** Confirmed November 11: the job ran at 07:00 and 08:01 UTC, outcome ok, on `0 7,8 * * *`. Still to confirm: the real Monday refresh (next: Monday, November 16) rebuilds the weekly picks and banner.
 - [ ] **Save the other Val Town branches.** Export the nine branches besides `main`. The `legacy/` folder is already in the repository.
 - [ ] **Domain.** Check whether `yourdramalist.net` is available, register it, and decide the final address.
 - [ ] **Billing alert.** Set a Cloudflare alert for about $5.
