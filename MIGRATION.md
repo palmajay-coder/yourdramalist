@@ -28,6 +28,29 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 - **SQLite tables:** Move to Cloudflare D1, which uses the same SQL.
 - **Open problem:** The data still needs a copy method. The chat tools cannot carry the larger data groups line by line.
 
+## Kuryana coverage (checked November 11)
+
+Each Kuryana v2 route was called once from Cloudflare and its answer's structure recorded. All returned 200. Base: `https://kuryana.tbdh.app`. Kuryana caches answers for 60 seconds and documents no rate limit.
+
+| Feature | Kuryana route | Coverage |
+|---|---|---|
+| Drama search | `/v2/search?q=` | **Full.** Title, slug, type, year, episodes, rating, ranking, thumbnail. |
+| Actor and director search | `/v2/search?q=` (people) | **Partial.** Name, nationality, photo. No actor/director distinction, so the separate Actors and Directors tabs need filtering via `/v2/people`. |
+| Drama details | `/v2/dramas/{slug}` | **Full.** Rating, votes, rank, popularity, watchers, synopsis, genres, tags, network, aired dates, poster, main cast. |
+| Cast and crew | `/v2/dramas/{slug}/cast` | **Full.** Grouped by role. |
+| Reviews in Nuvio | `/v2/dramas/{slug}/reviews` | **Full.** Headline, body, helpful count, status, episodes seen, spoiler flag, overall and category ratings, reviewer. |
+| Viewer verdict ("36% completed") | none | **Not covered.** No statistics route. |
+| Filmographies | `/v2/people/{slug}` | **Full.** Works by type, with role, character, year, rating. |
+| Custom lists | `/v2/lists/{id}` | **Mostly.** Items with title, type, year, episodes, rank, note, image. No list owner name. |
+| Watchlists | `/v2/users/{username}/dramalist` | **Mostly.** Every status with title, country, year, type, score, progress. **No posters and no date added**, so posters must come from TMDB matching, and the "Date added" sort disappears (the code already hides it when dates are missing). |
+| Username lookup: a user's custom lists | none | **Not covered.** Visitors can still paste a list link. |
+| Profile avatar | none | **Not covered.** The page shows an initial instead. |
+| Discover by country, "More from MyDramaList" rankings | none | **Not covered.** TMDB discover could substitute, with TMDB rankings instead of MyDramaList's. |
+| Popular lists | none | **Not covered.** |
+| Weekly picks, artwork, IMDb matching | TMDB | **Unaffected.** Already uses TMDB. |
+
+Risks: Kuryana is unofficial, run by one developer, and will be retired if MyDramaList releases an official API. If MyDramaList blocks Kuryana, the covered features stop too. Its capacity under YourDramaList's traffic is unknown.
+
 ## Checklist
 
 ### Phase 1: Export and inventory
