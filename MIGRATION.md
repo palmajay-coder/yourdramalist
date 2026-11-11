@@ -94,7 +94,7 @@ Approach: the app code is used **unchanged**. `cloudflare/build.mjs` bundles it 
 
 ### Switched to Kuryana so far (November 11)
 
-Drama search, actor and director search, actor filmographies, watchlists by username, custom lists by link, drama details (synopsis, score, rank, popularity), and the reviews in Nuvio. Director filmographies come from TMDB. Not yet done: Discover catalogs by country (planned from TMDB) and the featured list; Popular lists (no substitute) and viewer verdicts are dropped.
+Drama search, actor and director search, actor filmographies, watchlists by username, custom lists by link, drama details (synopsis, score, rank, popularity), and the reviews in Nuvio. Director filmographies come from TMDB. **The Dramas tab in Discover was removed** (decided November 11). Its purpose was finding user lists that contain a drama, which no available service provides, and similar or recommended shows would not serve the site's purpose of putting lists into catalogs. Discover now opens on Actors, with Directors and Catalogs beside it. Not yet done: Discover catalogs by country (planned from TMDB) and the featured list. Popular lists (no substitute) and viewer verdicts are dropped.
 
 ### To do later (agreed November 11)
 
