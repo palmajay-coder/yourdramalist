@@ -10,13 +10,15 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 ## Decisions so far
 
 - **Source branch:** `ccr-de4d41e8-p7rg8s` (version 1.1.3). Val Town already runs 1.1.3, so this branch matches the live app. `main` is version 1.1.2 and is behind.
-- **Target platform:** Cloudflare Workers, Cron Triggers, R2 for blob storage, Workers secrets, and Cloudflare Access for the admin area.
+- **Target platform (changed November 11): Render.** MyDramaList refuses requests from Cloudflare Workers (403), so the site runs as a regular Node.js server on Render instead (`render.yaml`, `render/`). Saved data and the SQLite database live on a Render persistent disk. Val Town itself runs on Render, so MyDramaList is expected to accept it; this is confirmed only once deployed.
+- **Cloudflare's new role: daily backups.** The Cloudflare account, R2 buckets and D1 database stay, and will receive a daily copy of the site's data. The `cloudflare/` Workers build is kept for reference but is not used for hosting. The two test Workers (`yourdramalist`, `ydl-v2` on `palmajay.workers.dev`) can be deleted once Render works.
+- **Cost:** Render Starter plan, about $7 a month, plus about $0.25 a month for a 1 GB disk. Cloudflare stays on its free tier.
 - **Repository visibility:** Public, as requested.
 - **Val Town app:** Keeps running untouched until the cutover is approved.
 - **Test address:** A `workers.dev` address until the domain is decided.
 - **Domain:** `yourdramalist.net` is preferred. It is not owned yet.
 - **Scope:** YourDramaList moves, plus two pieces it depends on. **YDL-V2** (`vals/YDL-V2/main.ts`) answers YourDramaList's `/api/mdl/profile` and `/api/mdl/avatar` calls, so it moves as a second Worker. **Mdl-lists** `logo.ts` serves the add-on and reviews logo image, which moves into the main Worker once the image is copied. The probe is left behind.
-- **Test addresses:** `https://yourdramalist.palmajay.workers.dev` (main site) and `https://ydl-v2.palmajay.workers.dev` (profile and avatar service).
+- **Test address:** The Render address, once the service exists (for example `https://yourdramalist.onrender.com`). YDL-V2 runs inside the same server.
 
 ## Data decision
 
