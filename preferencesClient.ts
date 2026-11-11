@@ -99,10 +99,11 @@ export function installPreferencesUI(api: {
   }
   const betterField = providerUrlField(betterOptions, "prefBetterPosters", copy.posterBetterUrl, "https://btttr.cc/poster/imdb/poster-default/{imdb_id}.jpg", copy.posterBetterHelp, "https://btttr.cc/configure");
   const posterPlusField = providerUrlField(posterPlusOptions, "prefPosterPlus", copy.posterPlusUrl, "https://postersplus.stremio.ru/poster?tmdb_id={tmdb_id?}&imdb_id={imdb_id?}&stremio_id={id}&type={type}&shape={shape}&pc=stremio_tv_nuvio&tg=medium&bp=top_left&fti=1&mw=lb:.99,tk:.01&tw=tk:.8,rt:.2&fbs=photoreal&slr=1.20&shr=0.135&bdm=7&bms=5", copy.posterPlusHelp, "https://postersplus.stremio.ru/");
-  const rpdbFieldWrap = node("div", "prefKeyField");
+  const rpdbFieldWrap = node("div", "prefKeyField"), rpdbHeading = node("div", "prefKeyHeading"), rpdbLink = node("a", "", copy.getApiKey);
+  rpdbLink.href = "https://ratingposterdb.com/"; rpdbLink.target = "_blank"; rpdbLink.rel = "noopener noreferrer"; rpdbHeading.append(rpdbLink);
   const rpdbRow = node("div", "prefProviderUrlRow"), rpdbInput = node("input"); rpdbInput.id = "prefRpdbKey"; rpdbInput.type = "password"; rpdbInput.autocomplete = "off"; rpdbInput.spellcheck = false; rpdbInput.maxLength = 200; rpdbInput.placeholder = copy.posterRpdbPlaceholder; rpdbInput.setAttribute("aria-label", copy.posterRpdbKey); rpdbInput.setAttribute("autocapitalize", "none");
   const rpdbVerify = button(copy.verifyPosterProvider, "secondary prefVerifyButton"), rpdbStatus = paragraph("", "prefVerifyStatus"); rpdbStatus.setAttribute("role", "status");
-  rpdbRow.append(rpdbInput, rpdbVerify); rpdbFieldWrap.append(rpdbRow, rpdbStatus); rpdbOptions.append(rpdbFieldWrap);
+  rpdbRow.append(rpdbInput, rpdbVerify); rpdbFieldWrap.append(rpdbHeading, rpdbRow, rpdbStatus); rpdbOptions.append(rpdbFieldWrap);
   const posterStylePanels = node("div", "prefPosterStylePanels"); posterStylePanels.append(ratingsPanel, betterOptions, posterPlusOptions, rpdbOptions);
   posters.card.append(node("h2", "", copy.posterArtwork), paragraph(copy.posterArtworkDescription), artwork, posterStylePanels); stack.append(posters.card);
   const keyFields = node("div", "prefKeys");

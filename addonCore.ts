@@ -1131,7 +1131,7 @@ function Xe(t, e) {
 // One card that opens the title on MyDramaList, where people add it to a list, rate it or mark it watched.
 function Go(e) {
   return {
-    name: "↗ Open on MyDramaList",
+    name: "Open on MyDramaList",
     title: "Add to a list, rate or mark as watched",
     description: "Add to a list, rate or mark as watched",
     externalUrl: `${T}/${e}`,

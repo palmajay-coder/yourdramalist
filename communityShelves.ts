@@ -141,7 +141,7 @@ export function installCommunityShelves(){
    }
    if(!row.shown.length)track.append(node('p','catalogShelfStatus',row.factsPending()?fill(copy.shelfGenresLoading,{done:row.items.filter(x=>facts.has(x.slug)).length,total:row.items.length}):(row.items.length?copy.shelfNoMatches:copy.shelfEmpty)));
    const arrows=actions.querySelectorAll('.catalogArrow');
-   if(row.shown.length>5&&!arrows.length)for(const [text,amount] of [['‹',-1],['›',1]]){const a=node('button','secondary catalogArrow',text);a.type='button';a.setAttribute('aria-label',amount<0?copy.catalogPrevious:copy.catalogNext);a.onclick=()=>track.scrollBy({left:amount*track.clientWidth,behavior:'smooth'});actions.insertBefore(a,add)}
+   if(row.shown.length>5&&!arrows.length)for(const [text,amount] of [['Previous',-1],['Next',1]]){const a=node('button','secondary catalogArrow',text);a.type='button';a.setAttribute('aria-label',amount<0?copy.catalogPrevious:copy.catalogNext);a.onclick=()=>track.scrollBy({left:amount*track.clientWidth,behavior:'smooth'});actions.insertBefore(a,add)}
    if(row.shown.length<=5)arrows.forEach(a=>a.remove());
    status.textContent=f?fill(copy.shelfShowing,{shown:row.shown.length,total:row.items.length})+(row.factsPending()?' · '+fill(copy.shelfGenresLoading,{done:row.items.filter(x=>facts.has(x.slug)).length,total:row.items.length}):'')+' · '+fill(copy.shelfAddsAs,{name:userListName(row.selectionItem())}):'';
    row.sync();
