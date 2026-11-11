@@ -40,15 +40,19 @@ serve({ fetch: (request: Request) => handleApp(publicRequest(request)), port, ho
 // answer this server? Logs one line at startup. Remove once the data source is decided.
 (async () => {
   const base = process.env.KURYANA_URL || "https://kuryana.tbdh.app";
-  for (const path of ["/v2/lists/Ln8NRep4?page=1", "/search/q/goblin"]) {
-    const started = Date.now();
-    try {
-      const response = await fetch(base + path, { headers: { Accept: "application/json" } });
-      const body = await response.text();
-      console.log(JSON.stringify({ kuryanaCheck: path, status: response.status, ms: Date.now() - started, bytes: body.length, start: body.slice(0, 120) }));
-    } catch (error) {
-      console.log(JSON.stringify({ kuryanaCheck: path, error: String(error).slice(0, 200) }));
+  // Director filmography check: how does Kuryana group Park Chan Wook's credits?
+  try {
+    const search = await (await fetch(base + "/v2/search?q=park%20chan%20wook&page=1", { headers: { Accept: "application/json" } })).json();
+    const person = (search?.data?.people || [])[0];
+    console.log(JSON.stringify({ kuryanaCheck: "search", first: person?.slug, name: person?.name }));
+    if (person?.slug) {
+      const data = (await (await fetch(base + "/v2/people/" + person.slug, { headers: { Accept: "application/json" } })).json())?.data;
+      for (const [group, list] of Object.entries<any>(data?.works || {})) {
+        console.log(JSON.stringify({ kuryanaCheck: "works", group, count: list.length, items: list.map((w: any) => `${w.year}|${w.title}|${w.role}`).join(" ; ").slice(0, 900) }));
+      }
     }
+  } catch (error) {
+    console.log(JSON.stringify({ kuryanaCheck: "people", error: String(error).slice(0, 200) }));
   }
 })();
 
