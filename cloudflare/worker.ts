@@ -36,7 +36,6 @@ export default {
       const title = params.get("title") || "Long Vacation";
       const kind = params.get("kind") === "movie" ? "movie" : "show";
       const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-      const key = (_env as any)?.TRAKT_CLIENT_ID || "";
       // An honest User-Agent naming this app; Trakt refuses unidentified clients.
       const headers = { "content-type": "application/json", "trakt-api-version": "2", "trakt-api-key": key, "user-agent": "YourDramaList/1.1.3 (+https://yourdramalist.palmajay.workers.dev)" };
       const out: any[] = [{ keyPresent: key.length > 0, keyLength: key.length, title, kind }];
