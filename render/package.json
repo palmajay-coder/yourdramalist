@@ -1,0 +1,20 @@
+{
+  "name": "yourdramalist-render",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node --disable-warning=ExperimentalWarning dist/server.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.18",
+    "cheerio": "^1.0.0",
+    "hono": "^4.13.17"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}

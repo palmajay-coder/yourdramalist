@@ -1,0 +1,27 @@
+# Render Blueprint for YourDramaList (replaces Val Town hosting).
+# One web service runs YourDramaList and YDL-V2 together; see render/server.ts.
+services:
+  - type: web
+    name: yourdramalist
+    runtime: node
+    plan: starter            # Paid plan: always on, and required for a persistent disk.
+    region: ohio             # Close to where Val Town's servers answered from (Columbus).
+    branch: migration/cloudflare
+    autoDeploy: true
+    buildCommand: cd render && npm ci && npm run build
+    startCommand: cd render && npm start
+    healthCheckPath: /privacy
+    disk:
+      name: ydl-data
+      mountPath: /var/data   # Saved data (blobs) and the SQLite database live here.
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      # Secrets: entered in the Render dashboard, never stored in this file.
+      - key: TMDB_API_KEY
+        sync: false
+      - key: YDL_MANIFEST_SECRET  # Must be the exact Val Town value, or existing install links stop working.
+        sync: false
