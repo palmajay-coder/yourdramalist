@@ -38,8 +38,10 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 ### Phase 2: Secrets and accounts
 
 - [ ] Record `YDL_MANIFEST_SECRET` and `TMDB_API_KEY` in a password manager. The manifest secret must stay identical.
-- [ ] Create or confirm the Cloudflare account. Decide who owns it and who controls billing.
-- [ ] Confirm the Cloudflare plan. Check free tier limits against real traffic.
+- [x] Create or confirm the Cloudflare account. *Done November 10.* The access token is saved in the session's secure credential store, never in this repository.
+- [x] Confirm the Cloudflare plan. *Done November 10.* R2 is on the free plan ($0 due), with 10 GB storage, 1 million writes, and 10 million reads per month included.
+- [x] Create the storage. *Done November 10.* R2 bucket `ydl-data` and D1 database `ydl-db` (id `c4cdaaf7-cbf1-4b53-b243-0beaebe50d8c`). Both are empty.
+- [ ] Set a Cloudflare billing alert for a small amount, such as $5.
 
 ### Phase 3: Domain
 
