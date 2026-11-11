@@ -11,10 +11,25 @@ import weeklyRefresh from "../weeklyRefresh.ts";
 const BACKGROUND_GRACE_MS = 5000;
 const grace = () => new Promise<void>((resolve) => setTimeout(resolve, BACKGROUND_GRACE_MS));
 
+function corsHeaders(): Record<string, string> {
+  return {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET, HEAD, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "86400",
+  };
+}
+
 export default {
   async fetch(request: Request, _env: unknown, ctx: ExecutionContext): Promise<Response> {
     ctx.waitUntil(grace());
-    return (app as (req: Request) => Promise<Response>)(request);
+    // Val Town added CORS headers to every response automatically. Nuvio and other add-on apps
+    // read the manifest and catalogs from a browser, so the Worker must send them itself.
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
+    const response = await (app as (req: Request) => Promise<Response>)(request);
+    const out = new Response(response.body, response);
+    for (const [name, value] of Object.entries(corsHeaders())) out.headers.set(name, value);
+    return out;
   },
 
   // Same schedule as Val Town (0 7,8 * * * UTC). weeklyRefresh.ts skips runs that
