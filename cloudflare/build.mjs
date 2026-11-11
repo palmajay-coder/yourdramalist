@@ -1,6 +1,4 @@
-// Bundles the unchanged Val Town code into Cloudflare Worker files in dist/.
-//   dist/worker.js  YourDramaList (repository root, entry app.ts)
-//   dist/ydl-v2.js  YDL-V2 profile and avatar service (vals/YDL-V2/main.ts)
+// Bundles the Val Town code into a Cloudflare Worker file: dist/worker.js (entry app.ts).
 // Run with: node build.mjs
 //
 // Origins can be overridden when a custom domain is added, for example:
@@ -15,7 +13,6 @@ const root = path.resolve(here, "..");
 const shim = (name) => path.join(here, "shims", name);
 
 const PUBLIC_ORIGIN = process.env.YDL_PUBLIC_ORIGIN || "https://yourdramalist.palmajay.workers.dev";
-const YDL_V2_ORIGIN = process.env.YDL_V2_ORIGIN || "https://ydl-v2.palmajay.workers.dev";
 
 // Val Town and Deno specifiers, mapped to their Cloudflare replacements.
 const ALIASES = {
@@ -26,17 +23,11 @@ const ALIASES = {
   // The app only uses cheerio's load(). This file is the same load() that cheerio's
   // main entry re-exports, without the fetch helpers that need Node streams and undici.
   "npm:cheerio@1.0.0": path.join(here, "node_modules/cheerio/dist/esm/load-parse.js"),
-  "npm:hono": path.join(here, "node_modules/hono/dist/index.js"),
 };
 
 // Hard-coded Val Town addresses in the app, and where each one points on Cloudflare.
 // `to: null` keeps the old address for now; the build lists these as unfinished.
 const URL_REWRITES = [
-  {
-    label: "YDL-V2 profile and avatar service",
-    from: /https:\/\/niwa710--d1ead410d92d11f196511607ee4eb77e\.web\.val\.run/gi,
-    to: YDL_V2_ORIGIN,
-  },
   {
     label: "Add-on icon (served by this Worker at /assets/ydl-classic-blue-v1.png)",
     from: /https:\/\/niwa710--b3275342d95911f1bbef1607ee4eb77e\.web\.val\.run/gi,
@@ -129,4 +120,3 @@ async function bundle({ entry, outfile, assets, buildId }) {
 const buildId = String(Date.now()); // Digits only: app.ts matches /__immutable/\d+/.
 await mkdir(path.join(here, "dist"), { recursive: true });
 await bundle({ entry: "worker.ts", outfile: "worker.js", assets: await buildAssets(), buildId });
-await bundle({ entry: "ydl-v2.worker.ts", outfile: "ydl-v2.js", assets: {}, buildId });

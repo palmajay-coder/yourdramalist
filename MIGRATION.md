@@ -17,7 +17,7 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 - **Val Town app:** Keeps running untouched until the cutover is approved.
 - **Test address:** A `workers.dev` address until the domain is decided.
 - **Domain:** `yourdramalist.net` is preferred. It is not owned yet.
-- **Scope:** YourDramaList moves, plus two pieces it depends on. **YDL-V2** (`vals/YDL-V2/main.ts`) answers YourDramaList's `/api/mdl/profile` and `/api/mdl/avatar` calls, so it moves as a second Worker. **Mdl-lists** `logo.ts` serves the add-on and reviews logo image, which moves into the main Worker once the image is copied. The probe is left behind.
+- **Scope:** YourDramaList moves. **YDL-V2 is no longer needed** (decided November 11): YourDramaList used it only for username lookups and avatars, which now come from Kuryana (watchlists) and a local "no picture" answer. YDL-V2 stays behind on Val Town; its Cloudflare Worker and bucket were deleted. **Mdl-lists** `logo.ts` still serves the add-on and reviews logo image, which moves into the main Worker once the image is copied. The probe is left behind.
 - **Test address:** The Render address, once the service exists (for example `https://yourdramalist.onrender.com`). YDL-V2 runs inside the same server.
 
 ## Data decision

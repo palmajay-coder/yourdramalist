@@ -1,6 +1,8 @@
 // YourDramaList v3 data layer: MyDramaList + Kuryana scraping, parsing, and caching.
 // Imported by main.ts. You should not need to edit this file directly.
 
+import { kuryana, KuryanaError, mdlLink } from "./kuryana.ts";
+
 export let MDL_TEXT, $e;
 
 try {
@@ -777,6 +779,50 @@ export function zt(t) {
 
 const WATCHLIST_SECTIONS = ["watching", "completed", "plan_to_watch", "on_hold", "dropped", "undecided", "not_interested"];
 
+// Watchlists come from Kuryana (MyDramaList refuses requests from cloud hosts).
+// Returns the same shape as the HTML parsers: sections keyed 1-7 in WATCHLIST_SECTIONS order,
+// each item {slug, link, added, title, image, country, type, year}. Kuryana has no posters
+// (artwork comes from TMDB matching) and no date added (the "Date added" sort hides itself).
+const KURYANA_COUNTRY_CODES = { "Japan": "1", "China": "2", "South Korea": "3", "Taiwan": "5", "Thailand": "6" };
+function kuryanaWatchlist(username) {
+  return D(`kuryana-watchlist:${username.toLowerCase()}`, H, async () => {
+    let data;
+    try {
+      data = await kuryana(`/v2/users/${encodeURIComponent(username)}/dramalist`);
+    } catch (error) {
+      if (error instanceof KuryanaError && error.status === 404) {
+        throw Object.assign(new Error("This MyDramaList watchlist is private."), { code: "PRIVATE" });
+      }
+      throw error;
+    }
+    const sections = {};
+    WATCHLIST_SECTIONS.forEach((status, index) => {
+      const list = data?.lists?.[status];
+      if (!list || !Array.isArray(list.items)) return;
+      const seen = new Set(), items = [];
+      for (const entry of list.items) {
+        const link = mdlLink(entry?.link);
+        const slug = link ? V(link) : "";
+        if (!/^\d+-[a-z0-9-]+$/i.test(slug) || seen.has(slug)) continue;
+        seen.add(slug);
+        const year = Number(entry?.year);
+        items.push({
+          slug, link, added: 0,
+          title: String(entry?.title || "").replace(/\s+/g, " ").trim(),
+          image: "",
+          // Numeric MyDramaList codes where shelfCountry knows them; other countries fall back to TMDB facts.
+          country: KURYANA_COUNTRY_CODES[entry?.country] || "",
+          type: entry?.type || null,
+          year: Number.isInteger(year) && year > 1800 ? year : null,
+        });
+      }
+      sections[index + 1] = items;
+    });
+    return sections;
+  });
+}
+
+
 export function parseModernWatchlist(html, section = 0) {
   const sections = {};
   for (const [, entry, row] of html.matchAll(/<tr\b[^>]*\bid=["']ml(\d+)["'][^>]*>([\s\S]*?)<\/tr>/gi)) {
@@ -835,22 +881,7 @@ export const WATCHLIST_CARDS = [
 export function loadWatchlistCategory(username, status) {
   const section = WATCHLIST_SECTIONS.indexOf(status) + 1;
   if (!section) throw Error("Unknown watchlist category");
-  return D(`watchlist-category:${username.toLowerCase()}:${status}`, H, async () => {
-    const path = `dramalist/${encodeURIComponent(username)}/${status}`;
-    const items = [], seen = new Set();
-    for (let page = 1; page <= kt; page++) {
-      const html = await _(path + (page === 1 ? "" : "?page="+page));
-      if (/This (?:list|dramalist|watchlist) is private/i.test(html)) throw Object.assign(Error("Private watchlist"), {code:"PRIVATE"});
-      const rows = parseModernWatchlist(html, section)[section] || zt(html)[section] || [];
-      if (page === 1 && !rows.length && !/you currently have no shows or movies on your list|(?:this|the) (?:watch)?list is empty/i.test(html)) {
-        throw Error("MyDramaList did not return readable watchlist titles.");
-      }
-      const next = rows.filter(item => item.slug && !seen.has(item.slug) && seen.add(item.slug));
-      items.push(...next);
-      if (!next.length || !/"load_more":\s*true/.test(html)) break;
-    }
-    return items;
-  }, { staleWhileRevalidate: false });
+  return kuryanaWatchlist(username).then((sections) => sections[section] || []);
 }
 
 export async function profileWatchlistCards(username, name, load = loadWatchlistCategory, fallbackArtwork = async (_item) => null) {
@@ -878,60 +909,16 @@ export async function profileWatchlistCards(username, name, load = loadWatchlist
 }
 
 export function loadWatchlist(username) {
-  return D(`public-watchlist:${username.toLowerCase()}`, H, async () => {
-    const path = `dramalist/${encodeURIComponent(username)}`;
-    async function read(suffix = "") {
-      const html = await _(path + suffix);
-      if (/This (?:list|dramalist|watchlist) is private/i.test(html)) {
-        throw Object.assign(new Error("This MyDramaList watchlist is private."), {code: "PRIVATE"});
-      }
-      return html;
-    }
-    const html = await read();
-    const legacy = zt(html);
-    if (Object.keys(legacy).length) return legacy;
-    if (!/msv2-(?:style|content|table)/i.test(html)) throw new Error("MyDramaList did not return a readable watchlist.");
-    const initialSection = Number(html.match(/"filters":\s*\{[^}]*"list":\s*"(\d+)"/)?.[1]) || 0;
-    const sections = parseModernWatchlist(html, initialSection);
-    if (initialSection) {
-      const links = WATCHLIST_SECTIONS.map((name, index) => ({name, id:index+1}))
-        .filter(({name,id}) => id !== initialSection && html.includes(`/${name}"`));
-      const loaded = await It(links, 2, async ({name,id}) => parseModernWatchlist(await read("/"+name), id));
-      for (const group of loaded) Object.assign(sections, group);
-    } else if (/"load_more":\s*true/.test(html)) {
-      const seen = new Set(Object.values(sections).flat().map(item => item.slug));
-      for (let page = 2; page <= kt; page++) {
-        const next = parseModernWatchlist(await read("?page="+page));
-        let added = false;
-        for (const [id,items] of Object.entries(next)) for (const item of items) {
-          if (seen.has(item.slug)) continue;
-          seen.add(item.slug);
-          (sections[id] ??= []).push(item);
-          added = true;
-        }
-        if (!added) break;
-      }
-    }
-    return sections;
-  });
+  return kuryanaWatchlist(username);
 }
 
-export function G(t) {
-  return D(`dl:${t.toLowerCase()}`, H, async () => {
-    let e = null;
-    try {
-      const n = await _(`dramalist/${encodeURIComponent(t)}`);
-      if (/This list is private|is private/i.test(n)) {
-        throw Object.assign(new Error("This dramalist is private"), {
-          code: "PRIVATE",
-        });
-      }
-      e = zt(n);
-    } catch (n) {
-      if (n.code === "PRIVATE") throw n;
-    }
-    return e || {};
-  });
+export async function G(t) {
+  try {
+    return await kuryanaWatchlist(t);
+  } catch (n) {
+    if (n.code === "PRIVATE") throw n;
+    return {};
+  }
 }
 
 export async function be(t) {
