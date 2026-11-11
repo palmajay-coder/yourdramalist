@@ -43,7 +43,7 @@ These features are gone or different, and we agreed they are acceptable:
 
 ## Before the cutover
 
-- [ ] **Existing install links.** Confirm an install link made on Val Town still works on the test site. This proves the manifest secret matches.
+- [x] **Existing install links.** Done November 11: an install link made on Val Town loads its manifest on the test site, so the manifest secret matches and existing installs keep working. Their catalogs show the new names.
 - [ ] **Replace exposed keys.** The TMDB and MDBList keys appeared in screenshots. Create new ones and update the TMDB secret on Cloudflare.
 - [ ] **Preferences check.** Run through the preferences page once more, including poster styles, Verify, and Config.
 - [ ] **Weekly job.** Confirm the weekly refresh runs on its schedule (07:00 and 08:00 UTC).
