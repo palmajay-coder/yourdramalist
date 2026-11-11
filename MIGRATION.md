@@ -4,7 +4,7 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 
 ## Key dates
 
-- **December 10, 2026:** Val Town code becomes read-only, and `*.val.run` redirects can no longer be added or changed. The data copy, the switch, and the redirect must happen before this date.
+- **December 10, 2026:** Val Town code becomes read-only, and `*.val.run` redirects can no longer be added or changed. The switch and the redirect must happen before this date.
 - **January 10, 2027:** Val Town stops running the app.
 
 ## Decisions
@@ -16,6 +16,7 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 - **Test address:** `https://yourdramalist.palmajay.workers.dev` until the domain is decided.
 - **Domain:** `yourdramalist.net` is preferred and not yet owned.
 - **Val Town:** Keeps running untouched until the cutover is approved.
+- **Data:** Start fresh (decided November 11). No data is copied from Val Town. Visitors lose nothing, since the site stores no accounts and install links depend only on the secret key. Analytics history and "Popular this month" start from zero.
 
 ## Ready on the test site
 
@@ -41,7 +42,6 @@ These features are gone or different, and we agreed they are acceptable:
 
 ## Before the cutover
 
-- [ ] **Data copy (must finish before December 10).** Copy the blob data (11 items) and the seven SQLite tables from Val Town to Cloudflare. The chat tools cannot carry the larger data, so we need a copy method first.
 - [ ] **Existing install links.** Confirm an install link made on Val Town still works on the test site. This proves the manifest secret matches.
 - [ ] **Replace exposed keys.** The TMDB and MDBList keys appeared in screenshots. Create new ones and update the TMDB secret on Cloudflare.
 - [ ] **Preferences check.** Run through the preferences page once more, including poster styles, Verify, and Config.
@@ -58,7 +58,7 @@ These features are gone or different, and we agreed they are acceptable:
 ## Cutover (needs your approval)
 
 - [ ] Attach the chosen domain to the Cloudflare site.
-- [ ] Copy the final data from Val Town.
+- [ ] Clear the test data (test visits, analytics, and error log) so the live site starts at zero. Keep the wallpaper and banner settings.
 - [ ] Set the `yourdramalist.val.run` redirect, only after the new site is verified.
 - [ ] Tell users to reinstall the add-on from the new address, since many add-on apps do not follow redirects.
 
