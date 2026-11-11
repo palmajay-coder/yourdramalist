@@ -1,4 +1,4 @@
-import { load } from "npm:cheerio@1.0.0";
+import { kuryana, KuryanaError, detailsLine, mdlLink, mdlImage } from "./kuryana.ts";
 import { TEXT } from "./text.ts";
 
 type SearchResult={query:string;page:number;dramas:{id:string;name:string;url:string;poster:string|null;details:string;score:string}[];hasNextPage:boolean};
@@ -10,53 +10,28 @@ export function createDramaSearchHandler(fetcher:typeof fetch=fetch,now=Date.now
  let active=0,windowAt=now(),count=0,cooldownUntil=0;
  const ttl=300000,maxEntries=100,maxConcurrent=3,maxPerMinute=30;
  const response=(data:SearchResult,query:string)=>Response.json({...data,query},{headers:{"cache-control":"public, max-age=300"}});
+ // Reads search results from Kuryana (MyDramaList refuses requests from cloud hosts).
  async function lookup(query:string,page:string):Promise<SearchResult>{
-  const target=new URL("https://mydramalist.com/search");target.searchParams.set("q",query);target.searchParams.set("page",page);
-  const upstream=await fetcher(target,{redirect:"error",signal:AbortSignal.timeout(15000),headers:{Accept:"text/html"}});
-  if(upstream.status===429){
-   await upstream.body?.cancel();const raw=upstream.headers.get("retry-after")||"";
-   const seconds=/^\d+$/.test(raw)?Number(raw):Math.ceil((Date.parse(raw)-now())/1000);
-   const retry=Number.isFinite(seconds)?Math.max(5,Math.min(300,seconds)):30;
-   cooldownUntil=Math.max(cooldownUntil,now()+retry*1000);
-   throw new SearchFailure(429,TEXT.searchRetry,retry);
+  let data:any;
+  try{data=await kuryana(`/v2/search?q=${encodeURIComponent(query)}&page=${page}`,{fetcher});}
+  catch(error){
+   if(error instanceof KuryanaError&&error.status===429){cooldownUntil=Math.max(cooldownUntil,now()+30000);throw new SearchFailure(429,TEXT.searchRetry,30);}
+   if(error instanceof KuryanaError&&error.status===404)return {query,page:Number(page),dramas:[],hasNextPage:false};
+   if(error instanceof KuryanaError)throw new SearchFailure(502,"MyDramaList search is unavailable. Please try again.");
+   throw error;
   }
-  if(!upstream.ok){await upstream.body?.cancel();throw new SearchFailure(502,"MyDramaList search is unavailable. Please try again.");}
-  if(!upstream.headers.get("content-type")?.toLowerCase().includes("text/html")){await upstream.body?.cancel();throw new SearchFailure(502,"MyDramaList returned an unexpected search response.");}
-  const reader=upstream.body?.getReader();if(!reader)throw new SearchFailure(502,"MyDramaList returned an empty search response.");
-  const decoder=new TextDecoder();let html="",size=0;
-  try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>3000000)throw new SearchFailure(502,"MyDramaList returned an oversized search response.");html+=decoder.decode(value,{stream:true});}html+=decoder.decode();}
-  finally{await reader.cancel().catch(()=>{});}
-  if(upstream.headers.get("cf-mitigated")==="challenge"||/<title[^>]*>\s*(?:Just a moment|Attention Required)|cf-chl-|\/cdn-cgi\/challenge-platform/i.test(html))throw new SearchFailure(502,"MyDramaList returned an access challenge. Please try again later.");
-    const $ = load(html);
-    const clean = (s: string) => s.replace(/\s+/g, " ").trim();
-    if (!/Search results/i.test($("title").text())) throw new SearchFailure(502, "MyDramaList did not return a search results page.");
-    const seen = new Set<string>();
-    const dramas: { id: string; name: string; url: string; poster: string | null; details: string; score: string }[] = [];
-    $(".box[id]").each((_, el) => {
-      const card = $(el);
-      const id = card.attr("id")?.match(/^mdl-(\d+)$/)?.[1];
-      if (!id || seen.has(id)) return;
-      const title = card.find(".content .title > a[href]").first();
-      const name = clean(title.text());
-      let url: URL;
-      try { url = new URL(title.attr("href") || "", "https://mydramalist.com"); } catch { return; }
-      if (!name || url.origin !== "https://mydramalist.com" || !new RegExp("^/" + id + "-[A-Za-z0-9-]+/?$").test(url.pathname)) return;
-      let poster: string | null = null;
-      const image = card.find(".film-cover img").first();
-      try {
-        const imageUrl = new URL(image.attr("data-src") || image.attr("src") || "");
-        if (imageUrl.protocol === "https:" && imageUrl.hostname === "i.mydramalist.com" && !imageUrl.username && !imageUrl.password && !imageUrl.port) poster = imageUrl.href;
-      } catch { /* Missing poster is allowed. */ }
-      seen.add(id);
-      dramas.push({ id, name, url: url.origin + url.pathname, poster, details: clean(card.find(".content > .text-muted").first().text()), score: clean(card.find(".score").first().text()) });
-    });
-    const nextPage = $(".pagination a[href]").toArray().some(el => {
-      try {
-        const next = new URL($(el).attr("href")!, target);
-        return next.origin === target.origin && next.pathname === "/search" && Number(next.searchParams.get("page")) === Number(page) + 1;
-      } catch { return false; }
-    });
-  return {query,page:Number(page),dramas,hasNextPage:nextPage};
+  const seen=new Set<string>();
+  const dramas:SearchResult["dramas"]=[];
+  for(const item of (Array.isArray(data?.dramas)?data.dramas:[])){
+   const id=String(item?.id??"");
+   const url=mdlLink(item?.link);
+   const name=String(item?.title||"").replace(/\s+/g," ").trim();
+   if(!/^\d+$/.test(id)||seen.has(id)||!url||!name||!new RegExp("^https://mydramalist\\.com/"+id+"-[A-Za-z0-9-]+/?$").test(url))continue;
+   seen.add(id);
+   dramas.push({id,name,url,poster:mdlImage(item?.image),details:detailsLine(item),score:item?.rating==null?"":Number(item.rating).toFixed(1)});
+  }
+  const pageNumber=Number(data?.pagination?.page)||Number(page),total=Number(data?.pagination?.total_pages)||pageNumber;
+  return {query,page:Number(page),dramas,hasNextPage:pageNumber<total};
  }
  return async function(req:Request):Promise<Response>{
   const fail=(status:number,error:string,retryAfter?:number)=>Response.json({error},{status,headers:{"cache-control":"no-store",...(retryAfter?{"retry-after":String(retryAfter)}:{})}});
