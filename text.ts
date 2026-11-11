@@ -57,7 +57,7 @@ export const TEXT = {
   catalogSaved: "Showing saved MyDramaList titles.",
   catalogDetailsUnavailable: "Details are temporarily unavailable.",
   catalogArtworkCredit:
-    "Catalog rankings from MyDramaList. Weekly collections and matched artwork use TMDB.",
+    "Country catalogs, weekly collections and artwork use TMDB. Rankings follow TMDB’s audience and differ from MyDramaList’s.",
   viewFilmography: "View titles",
   selectFilmography: "Select filmography",
   addFilmography: "+ Add filmography",

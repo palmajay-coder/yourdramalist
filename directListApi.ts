@@ -18,7 +18,7 @@ export function extractDirectList(html:string,url:string){
 type List=ReturnType<typeof extractDirectList>;
 // Kuryana version of extractDirectList (MyDramaList refuses cloud hosts). It returns the same
 // fields; owner, loves and avatar are not available from Kuryana, and the UI already allows that.
-async function listFromKuryana(url:string,fetcher:typeof fetch):Promise<List>{
+export async function listFromKuryana(url:string,fetcher:typeof fetch):Promise<List>{
  const listId=new URL(url).pathname.split('/')[2];
  let first:any;
  try{first=await kuryana(`/v2/lists/${encodeURIComponent(listId)}?page=1`,{fetcher,timeoutMs:8000});}

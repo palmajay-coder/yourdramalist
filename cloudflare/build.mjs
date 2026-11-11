@@ -34,9 +34,9 @@ const URL_REWRITES = [
     to: PUBLIC_ORIGIN,
   },
   {
-    label: "Add-on and reviews logo (Mdl-lists logo.ts, image not copied yet)",
+    label: "Add-on and reviews logo (the same YDL image as the add-on icon, served by this app)",
     from: /https:\/\/niwa710--443e318cd88f11f1b1661607ee4eb77e\.web\.val\.run\//gi,
-    to: null,
+    to: PUBLIC_ORIGIN + "/assets/ydl-classic-blue-v1.png",
   },
 ];
 

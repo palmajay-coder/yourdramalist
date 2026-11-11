@@ -1,4 +1,4 @@
-import {extractDirectList} from "./directListApi.ts";
+import {listFromKuryana} from "./directListApi.ts";
 import {nextPacificMidnight} from "./pacificTime.ts";
 import {TEXT} from "./text.ts";
 
@@ -79,22 +79,9 @@ function boundedPageText(response: Response): Promise<string> {
 
 async function readCuratedList(id: string, fetcher: typeof fetch): Promise<BannerCard> {
   const url = `${origin}/list/${id}`;
-  const response = await fetcher(url, {
-    redirect: "error",
-    signal: AbortSignal.timeout(8000),
-    headers: {Accept: "text/html"},
-  });
-  if (!response.ok || !response.headers.get("content-type")?.includes("text/html") ||
-      response.headers.get("cf-mitigated") === "challenge" || !response.body) {
-    await response.body?.cancel();
-    throw new Error("MyDramaList list is unavailable.");
-  }
-  const html = await boundedPageText(response);
-  if (/cf-chl-|Just a moment|\/cdn-cgi\/challenge-platform/i.test(html)) {
-    throw new Error("MyDramaList restricted access to this list.");
-  }
-  const list = extractDirectList(html, url);
-  if (list.listId !== id || !list.name) throw new Error("Unexpected MyDramaList list page.");
+  // MyDramaList refuses cloud hosts, so the curated lists come from Kuryana.
+  const list = await listFromKuryana(url, fetcher);
+  if (list.listId !== id || !list.name) throw new Error("Unexpected MyDramaList list.");
   return {
     id,
     url,

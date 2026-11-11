@@ -1,5 +1,6 @@
 import { blob } from "https://esm.town/v/std/blob/main.ts";
 import { createDetailsService, dramaUrl, type Entry } from './dramaDetails.ts';
+import { tmdbDetails } from './tmdbExplore.ts';
 
 // One bounded, val-scoped snapshot. Never reads or writes YDL-V2 storage.
 const key = 'drama-details:v1';
@@ -26,6 +27,9 @@ const details = createDetailsService({
 export async function handleDramaDetails(req: Request) {
   if (req.method !== 'GET') return new Response('Method not allowed', {status:405,headers:{Allow:'GET'}});
   const raw = new URL(req.url).searchParams.get('url') || '';
+  if (/^https:\/\/www\.themoviedb\.org\//.test(raw)) {
+    try { const data = await tmdbDetails(raw); if (data) return Response.json(data, {headers:{'cache-control':'no-store'}}); } catch { return Response.json({status:'unavailable', warning:'Details are temporarily unavailable.'}, {headers:{'cache-control':'no-store'}}); }
+  }
   if (!dramaUrl(raw)) return Response.json({error:'Provide an HTTPS MyDramaList drama URL.'},{status:400});
   return Response.json(await details(raw), {headers:{'cache-control':'no-store'}});
 }

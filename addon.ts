@@ -3,6 +3,7 @@ import {normalizeTitle,weeklyCatalog} from './collections.ts';
 import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
 import {personUrl} from './people.ts';
+import {tmdbExploreItems} from './tmdbExplore.ts';
 import {handlePeople} from './peopleApi.ts';
 import {loadWatchlist,loadWatchlistCategory,loadMDLTitlePoster,WATCHLIST_CARDS} from './addonScrape.ts';
 import {Ee,X,G,K,Je,Te} from './addonCore.ts';
@@ -84,6 +85,11 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
    const hidden=[...(watched[2]||[]),...(watched[5]||[])];
    items=items.filter((item:any)=>!hidden.some((x:any)=>x.title&&normalizeTitle(x.title)===normalizeTitle(item.name)&&(!x.year||String(x.year)===item.date.slice(0,4))));
   }
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyExternalPoster);
+  return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
+ }
+ if(entry.explore){
+  const items=await ((deps as any).exploreItems??tmdbExploreItems)(entry.explore.category,entry.explore.country,skip+30);
   const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }

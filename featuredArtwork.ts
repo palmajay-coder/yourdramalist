@@ -1,4 +1,4 @@
-import {St} from "./addonScrape.ts";
+import {rt} from "./addonScrape.ts";
 import {collections} from "./collectionService.ts";
 import type {BannerCard, FeaturedBannerData} from "./featured.ts";
 
@@ -28,7 +28,7 @@ async function enrichCard(card: BannerCard): Promise<BannerCard> {
   try {
     return await Promise.race([
       (async () => {
-        const list = await St(card.id, 1);
+        const list = await rt(card.id, 1);
         const items = list.items.slice(0, 5);
         const images = await Promise.all(items.map(async (item, index) => {
           const mdlImage = safeMdlPoster(item.image) || fallback[index] || "";

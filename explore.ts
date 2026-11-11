@@ -1,14 +1,14 @@
 import {load} from "npm:cheerio@1.0.0";
 export const COUNTRIES=[["","All countries"],["3","South Korea"],["2","China"],["1","Japan"],["5","Taiwan"],["6","Thailand"]];
 export const CATEGORIES=[
- ["top-shows","Top Shows","ty=68&so=top","series"],
- ["popular-shows","Most Popular Shows","ty=68&so=popular","series"],
+ ["top-shows","Top Rated Shows","ty=68&so=top","series"],
+ ["popular-shows","Popular Shows","ty=68&so=popular","series"],
  ["newest-shows","Newest Shows","ty=68&so=newest&or=desc","series"],
  ["upcoming-shows","Upcoming Shows","ty=68&st=2&so=date","series"],
- ["airing-shows","Top Airing","ty=68&st=1&so=top","series"],
+ ["airing-shows","Top Airing Shows","ty=68&st=1&so=top","series"],
  ["variety-shows","Variety Shows","ty=86&fm=6&so=popular","series"],
- ["top-movies","Top Movies","ty=77&so=top","movie"],
- ["popular-movies","Most Popular Movies","ty=77&so=popular","movie"],
+ ["top-movies","Top Rated Movies","ty=77&so=top","movie"],
+ ["popular-movies","Popular Movies","ty=77&so=popular","movie"],
  ["newest-movies","Newest Movies","ty=77&so=newest&or=desc","movie"],
  ["upcoming-movies","Upcoming Movies","ty=77&st=2&so=date","movie"]
 ];
@@ -18,7 +18,7 @@ export function exploreCatalog(category:string,country=""){
  const path="search?adv=titles&"+k[2]+(country?"&co="+country:"");
  // Same encoded source identity as the original MDL-lists Explore catalogs.
  const id="p."+btoa(path).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
- return {kind:"explore",url:id,catalogId:id,category,country,profile:"MyDramaList",name:"MyDramaList’s "+k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:k[1]+" on MyDramaList"+(country?", from "+c[1]:"")+".",posters:[] as string[]};
+ return {kind:"explore",url:id,catalogId:id,category,country,profile:"TMDB",name:k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:k[1]+(country?" from "+c[1]:"")+", from TMDB. Rankings follow TMDB's audience, not MyDramaList's.",posters:[] as string[]};
 }
 export function userListName(list:any){
  // Filtered catalogs keep their base name in originalName and add ": filter" once; custom lists then drop the word "list".

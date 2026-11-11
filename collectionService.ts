@@ -65,6 +65,7 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
  }
  async function artwork(item:any,country=""){
   if(!keyFor())return item;
+  if(typeof item?.poster==="string"&&item.poster.startsWith("https://image.tmdb.org/"))return item;
   const kind=/movie|special/i.test(item.details||"")?"movie":"tv";
   const poster=await memo("art:"+item.url,7*86400000,async()=>{const data=await request("search/"+kind,{query:item.name,include_adult:"false",language:"en-US"});return matchArtwork(item,data.results||[],kind,country)}).catch(()=>null);
   return poster?{...item,poster,posterSource:"TMDB"}:item;
