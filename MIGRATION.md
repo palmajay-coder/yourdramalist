@@ -92,6 +92,12 @@ Approach: the app code is used **unchanged**. `cloudflare/build.mjs` bundles it 
 - [ ] Copy the Mdl-lists `logo.jpg` image and serve it from the main Worker.
 - [ ] Port the test files to Vitest.
 
+### To do later (agreed November 11)
+
+- [ ] **Upgrade Cloudflare to the Workers Paid plan ($5 a month).** The free plan allows about 50 outgoing requests per visit, and the genre lookups already hit that limit ("Too many subrequests" in the logs). This Week's Picks asks TMDB for far more than 50 things when it builds a week, so it will likely fail on the free plan. The paid plan raises the limit to about 1,000. User approved the cost.
+- [ ] **Test This Week's Picks** on the test site once the paid plan is on. TMDB_API_KEY is already set.
+- [ ] **Admin login.** The admin pages (`/admin`, `/api/admin/*`) refuse everyone because Val Town's login does not exist on Cloudflare. Plan: an owner password. The user enters `ADMIN_PASSWORD` as a Worker secret in the Cloudflare dashboard; `/auth/login` checks it and sets a signed cookie; the code's existing owner check then passes only for that session. User approved this approach.
+
 ### Phase 5: Parallel run
 
 - [x] Deploy to the `workers.dev` test address. *Done November 11.* Both Workers are live at their test addresses.
