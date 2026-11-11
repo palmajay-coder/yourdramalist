@@ -1,0 +1,27 @@
+# Cloudflare Worker for YourDramaList. Build with `node build.mjs` before deploying.
+name = "yourdramalist"
+main = "dist/worker.js"
+no_bundle = true
+account_id = "237eb07bd074765796da94d428949daf"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Same schedule as the Val Town interval file weeklyRefresh.ts (UTC).
+[triggers]
+crons = ["0 7,8 * * *"]
+
+# Stand-in for Val Town's SQLite database.
+[[d1_databases]]
+binding = "DB"
+database_name = "ydl-db"
+database_id = "c4cdaaf7-cbf1-4b53-b243-0beaebe50d8c"
+
+# Stand-in for Val Town's blob storage.
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "ydl-data"
+
+# Secrets are set in the Cloudflare dashboard or with `wrangler secret put`, never in this file:
+#   TMDB_API_KEY         same value as on Val Town
+#   YDL_MANIFEST_SECRET  must be the exact Val Town value, or existing install links stop working

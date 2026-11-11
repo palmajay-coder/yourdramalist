@@ -1,0 +1,18 @@
+{
+  "name": "yourdramalist-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs && wrangler dev",
+    "deploy": "node build.mjs && wrangler deploy"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "wrangler": "^4.160.0"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "hono": "^4.13.17"
+  }
+}

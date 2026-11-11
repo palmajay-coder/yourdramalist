@@ -1,0 +1,15 @@
+# Cloudflare Worker for YDL-V2, the profile and avatar service used by YourDramaList.
+# Build with `node build.mjs`, deploy with `wrangler deploy -c wrangler.ydl-v2.toml`.
+name = "ydl-v2"
+main = "dist/ydl-v2.js"
+no_bundle = true
+account_id = "237eb07bd074765796da94d428949daf"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Stand-in for YDL-V2's own Val Town blob storage. Kept separate from YourDramaList's
+# bucket so the two services' keys can never collide.
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "ydl-v2-data"

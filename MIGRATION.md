@@ -4,7 +4,7 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 
 ## Key dates
 
-- **December 10, 2026:** Val Town code becomes read-only. The export must be finished before this date.
+- **December 10, 2026:** Val Town code becomes read-only, and `*.val.run` redirects can no longer be added or changed. The data copy, the switch, and the redirect must all happen before this date.
 - **January 10, 2027:** Val Town stops running the app.
 
 ## Decisions so far
@@ -15,7 +15,8 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 - **Val Town app:** Keeps running untouched until the cutover is approved.
 - **Test address:** A `workers.dev` address until the domain is decided.
 - **Domain:** `yourdramalist.net` is preferred. It is not owned yet.
-- **Scope:** Only YourDramaList moves. The probe is left behind. YDL-V2 and Mdl-lists are not yet confirmed.
+- **Scope:** YourDramaList moves, plus two pieces it depends on. **YDL-V2** (`vals/YDL-V2/main.ts`) answers YourDramaList's `/api/mdl/profile` and `/api/mdl/avatar` calls, so it moves as a second Worker. **Mdl-lists** `logo.ts` serves the add-on and reviews logo image, which moves into the main Worker once the image is copied. The probe is left behind.
+- **Test addresses:** `https://yourdramalist.palmajay.workers.dev` (main site) and `https://ydl-v2.palmajay.workers.dev` (profile and avatar service).
 
 ## Data decision
 
@@ -51,20 +52,26 @@ Progress checklist for moving YourDramaList off Val Town. Update the status and 
 
 ### Phase 4: Build on Cloudflare
 
-- [ ] Replace the Deno and Val Town imports with Workers equivalents.
-- [ ] Replace `Deno.env.get()` with the Workers `env` binding.
-- [ ] Replace the blob calls with R2.
-- [ ] Add a scheduled handler for the weekly job, at `0 7,8 * * *` UTC. Keep the Pacific midnight check.
-- [ ] Replace the Val Town OAuth middleware with Cloudflare Access for the admin area.
+Approach: the app code is used **unchanged**. `cloudflare/build.mjs` bundles it and swaps each Val Town platform import for a Cloudflare stand-in in `cloudflare/shims/`. This keeps the app identical to the live copy and easy to compare.
+
+- [x] Replace the Deno and Val Town imports with Workers equivalents. *Done November 11.* Blob, SQLite, utils, and OAuth imports map to `cloudflare/shims/`. `npm:cheerio` and `npm:hono` map to installed packages.
+- [x] Replace `Deno.env.get()` with the Workers `env` binding. *Done November 11.* `shims/deno-env.ts` provides `Deno.env` from Worker secrets and variables.
+- [x] Replace the blob calls with R2. *Done November 11.* Same key names, bucket `ydl-data` (YDL-V2 uses its own bucket, `ydl-v2-data`).
+- [x] Replace the SQLite calls with D1. *Done November 11.* Rows work by index and by column name, as on Val Town.
+- [x] Serve the browser files Val Town served at `/__immutable/`. *Done November 11.* Transpiled at build time.
+- [x] Add a scheduled handler for the weekly job, at `0 7,8 * * *` UTC. *Done November 11.* The Pacific midnight check is unchanged.
+- [ ] Replace the Val Town OAuth middleware with Cloudflare Access for the admin area. For now the admin area refuses everyone (fails closed). Public pages are unaffected.
 - [ ] Replace the owner ID check in `wallpaper.ts` with the Access rule.
-- [ ] Replace the profile and avatar routes that depend on the original service.
-- [ ] Replace the hard-coded `Niwa710` URLs in `addonIcon.ts`, `app.ts`, and `addonText.ts`.
+- [x] Move the profile and avatar service. *Done November 11.* YDL-V2 runs as the `ydl-v2` Worker, and the build points YourDramaList at it.
+- [x] Replace the hard-coded Val Town addresses. *Partly done November 11.* The build rewrites the YDL-V2 address and the add-on icon address. The logo address in `addonText.ts` keeps the old Mdl-lists address until the logo image is copied. The build fails on any unmapped `val.run` address.
+- [ ] Copy the Mdl-lists `logo.jpg` image and serve it from the main Worker.
 - [ ] Port the test files to Vitest.
 
 ### Phase 5: Parallel run
 
-- [ ] Deploy to the `workers.dev` test address.
-- [ ] Compare Val Town and Cloudflare responses for the same requests.
+- [x] Deploy to the `workers.dev` test address. *Done November 11.* Both Workers are live at their test addresses.
+- [ ] Add the secrets `TMDB_API_KEY` and `YDL_MANIFEST_SECRET` to the `yourdramalist` Worker in the Cloudflare dashboard, using the exact Val Town values.
+- [ ] Compare Val Town and Cloudflare responses for the same requests. *Started November 11.* The privacy page matches exactly. The home page's first 20,000 characters match; the live page is 3,450 characters longer overall, most likely from content Val Town adds to served pages. Confirm with a side-by-side check.
 - [ ] Confirm that the manifest link decrypts with the same secret.
 - [ ] Check that MyDramaList scraping works from Cloudflare's network.
 - [ ] Check the weekly job on a test run.
