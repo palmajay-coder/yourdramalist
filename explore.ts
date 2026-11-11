@@ -18,7 +18,7 @@ export function exploreCatalog(category:string,country=""){
  const path="search?adv=titles&"+k[2]+(country?"&co="+country:"");
  // Same encoded source identity as the original MDL-lists Explore catalogs.
  const id="p."+btoa(path).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
- return {kind:"explore",url:id,catalogId:id,category,country,profile:"TMDB",name:k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:k[1]+(country?" from "+c[1]:"")+", from TMDB. Rankings follow TMDB's audience, not MyDramaList's.",posters:[] as string[]};
+ return {kind:"explore",url:id,catalogId:id,category,country,profile:"TMDB",name:k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:"",posters:[] as string[]};
 }
 export function userListName(list:any){
  // Filtered catalogs keep their base name in originalName and add ": filter" once; custom lists then drop the word "list".

@@ -11,7 +11,7 @@ export const TEXT = {
   weeklySaved:
     "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",
-  catalogMore: "More from MyDramaList",
+  catalogMore: "Explore Asian Dramas",
   catalogAdd: "+ Add catalog",
   catalogAdded: "✓ Added",
   catalogSelect: "Select catalog",
@@ -57,7 +57,7 @@ export const TEXT = {
   catalogSaved: "Showing saved MyDramaList titles.",
   catalogDetailsUnavailable: "Details are temporarily unavailable.",
   catalogArtworkCredit:
-    "Country catalogs, weekly collections and artwork use TMDB. Rankings follow TMDB’s audience and differ from MyDramaList’s.",
+    "Country catalogs, weekly picks and artwork use TMDB.",
   viewFilmography: "View titles",
   selectFilmography: "Select filmography",
   addFilmography: "+ Add filmography",
