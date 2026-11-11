@@ -1,6 +1,7 @@
 import {load} from "npm:cheerio@1.0.0";
 import {blob} from "https://esm.town/v/std/blob/main.ts";
 import {listUrl,extractListOwner} from './listOwnerApi.ts';
+import {kuryana,KuryanaError} from './kuryana.ts';
 function imageUrl(raw:string|undefined):string|null{try{const u=new URL(raw||'');return u.protocol==='https:'&&u.hostname==='i.mydramalist.com'&&!u.username&&!u.password&&!u.port?u.href:null}catch{return null}}
 export function extractDirectList(html:string,url:string){
  const $=load(html);if(listUrl($('link[rel=canonical]').attr('href')||'')!==url)throw Error('MyDramaList returned an unexpected list page.');
@@ -15,6 +16,22 @@ export function extractDirectList(html:string,url:string){
  return {url,listId:new URL(url).pathname.split('/')[2],name,description,posters,count:countText?number(countText):null,loves:number(bars.find('.like-cntb-nohl').first().text()),comments:null,...(owner||{}),profileAvatar:imageUrl(box.find('.list-author img').first().attr('src'))};
 }
 type List=ReturnType<typeof extractDirectList>;
+// Kuryana version of extractDirectList (MyDramaList refuses cloud hosts). It returns the same
+// fields; owner, loves and avatar are not available from Kuryana, and the UI already allows that.
+async function listFromKuryana(url:string,fetcher:typeof fetch):Promise<List>{
+ const listId=new URL(url).pathname.split('/')[2];
+ let first:any;
+ try{first=await kuryana(`/v2/lists/${encodeURIComponent(listId)}?page=1`,{fetcher,timeoutMs:8000});}
+ catch(e){if(e instanceof KuryanaError&&(e.status===404||e.status===400))throw Error('List not found, or it is private. Check the link.');throw Error('MyDramaList could not load this list. It may be private or temporarily unavailable.');}
+ const name=String(first?.title||'').replace(/\s+/g,' ').trim();
+ const items=(Array.isArray(first?.items)?first.items:[]).filter((x:any)=>x?.kind!=='person');
+ if(!name)throw Error('This public list could not be read. It may be private or unavailable.');
+ const posters:string[]=[];for(const item of items){const src=imageUrl(item?.image);if(src&&!posters.includes(src)&&posters.length<5)posters.push(src)}
+ // Exact title count: all pages but the last are full, so count the last page too.
+ const pages=Number(first?.pagination?.total_pages)||1;let count:number|null=pages<=1?items.length:null;
+ if(pages>1){try{const last=await kuryana(`/v2/lists/${encodeURIComponent(listId)}?page=${pages}`,{fetcher,timeoutMs:8000});const lastItems=(Array.isArray(last?.items)?last.items:[]).filter((x:any)=>x?.kind!=='person');count=(pages-1)*items.length+lastItems.length}catch{count=null}}
+ return {url,listId,name,description:String(first?.description||'').trim(),posters,count,loves:null,comments:null,profileAvatar:null} as any;
+}
 async function storageDeadline<T>(promise:Promise<T>):Promise<T|undefined>{
  let timer:ReturnType<typeof setTimeout>|undefined;
  try{return await Promise.race([promise,new Promise<undefined>(resolve=>{timer=setTimeout(()=>resolve(undefined),1000)})])}finally{clearTimeout(timer)}
@@ -30,13 +47,7 @@ export function createDirectListService(fetcher:typeof fetch=fetch,now=Date.now,
  if(now()-windowAt>=60000){windowAt=now();count=0}if(count>=30)return {error:'List request limit reached. Please try again shortly.',code:429};
  const p=(async()=>{active++;count++;let entry;
  try{
- const r=await fetcher(url,{redirect:'error',signal:AbortSignal.timeout(8000),headers:{Accept:'text/html'}});
- if(!r.ok){await r.body?.cancel();throw Error(r.status===404?'List not found. Check the link.':'MyDramaList could not load this list. It may be private or temporarily restricted.')}
- if(!r.headers.get('content-type')?.includes('text/html')){await r.body?.cancel();throw Error('MyDramaList returned an unexpected response.')}
- const reader=r.body!.getReader();const decoder=new TextDecoder();let html='',size=0;
- try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4000000)throw Error('This list page is too large to load.');html+=decoder.decode(value,{stream:true})}html+=decoder.decode()}finally{await reader.cancel().catch(()=>{})}
- if(r.headers.get('cf-mitigated')==='challenge'||/<title[^>]*>\s*(?:Just a moment|Attention Required)|cf-chl-|\/cdn-cgi\/challenge-platform/i.test(html))throw Error('MyDramaList restricted access to this list. Please try again later.');
- entry={data:extractDirectList(html,url),expires:now()+600000};
+ entry={data:await listFromKuryana(url,fetcher),expires:now()+600000};
  }catch(e){entry={data:null,expires:now()+30000,error:e instanceof Error&&e.name!=='TimeoutError'&&e.name!=='AbortError'?e.message:'MyDramaList took too long. Please try again.'}}finally{active--}
  cache.delete(url);cache.set(url,entry);while(cache.size>100)cache.delete(cache.keys().next().value!);
  if(storage){const snapshot=[...cache];saving=saving.catch(()=>{}).then(async()=>{await storage.save(snapshot)});await storageDeadline(saving).catch(()=>{})}

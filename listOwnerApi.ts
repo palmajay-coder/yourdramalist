@@ -1,4 +1,5 @@
 import { load } from "npm:cheerio@1.0.0";
+import { kuryana } from "./kuryana.ts";
 export function listUrl(raw: string): string | null {
  try {const u=new URL(raw);return u.protocol==='https:'&&['mydramalist.com','www.mydramalist.com'].includes(u.hostname)&&!u.port&&!u.username&&!u.password&&/^\/list\/[A-Za-z0-9_-]{1,80}\/?$/.test(u.pathname)&&!/^\/list\/create\/?$/i.test(u.pathname)?'https://mydramalist.com'+u.pathname.replace(/\/$/,''):null;}catch{return null}
 }
@@ -25,12 +26,10 @@ async function resolve(url:string):Promise<Owner|null>{
  if(Date.now()-windowAt>=60000){windowAt=Date.now();count=0}if(count>=60)return null;
  const p=(async()=>{active++;count++;let owner:Owner|null=null;
  try{
- const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(8000),headers:{Accept:'text/html'}});
- if(!r.ok||!r.headers.get('content-type')?.includes('text/html')){await r.body?.cancel();throw Error('List unavailable')}
- const reader=r.body!.getReader();const decoder=new TextDecoder();let html='',size=0;
- try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2000000)throw Error('List too large');html+=decoder.decode(value,{stream:true});}html+=decoder.decode()}finally{await reader.cancel().catch(()=>{})}
- if(r.headers.get('cf-mitigated')==='challenge'||/<title[^>]*>\s*(?:Just a moment|Attention Required)|cf-chl-/i.test(html))throw Error('Restricted');
- owner=extractListOwner(html,url);
+ const listId=new URL(url).pathname.split('/')[2];
+ const data=await kuryana(`/v2/lists/${encodeURIComponent(listId)}?page=1`,{timeoutMs:8000});
+ const who=data?.author&&typeof data.author==='object'?data.author:null;const slug=String(who?.slug||who?.id||'');
+ if(/^[A-Za-z0-9_-]{1,60}$/.test(slug))owner={profile:slug,profileName:String(who?.name||slug).replace(/\s+/g,' ').trim()||slug};
  }catch{}finally{active--}
  cache.delete(url);cache.set(url,{owner,expires:Date.now()+(owner?21600000:300000)});while(cache.size>200)cache.delete(cache.keys().next().value!);
  return owner;

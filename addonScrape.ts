@@ -218,20 +218,17 @@ export async function St(t, e) {
 }
 
 export async function rt(t, e) {
-  const n = await E(`${q}/v2/lists/${encodeURIComponent(t)}?page=${e}`, {
-      headers: { Accept: "application/json" },
-    }),
-    s = await n.json().catch(() => ({}));
-  if (!n.ok || !s.data) {
-    const r = new Error(
-      s?.description?.title || s?.error || `Fallback API ${n.status}`,
-    );
-    throw ((n.status === 404 || n.status === 400) && (r.code = "PRIVATE"), r);
+  let a;
+  try {
+    a = await kuryana(`/v2/lists/${encodeURIComponent(t)}?page=${e}`);
+  } catch (error) {
+    const r = new Error(error?.message || "List service unavailable");
+    if (error instanceof KuryanaError && (error.status === 404 || error.status === 400)) r.code = "PRIVATE";
+    throw r;
   }
-  const a = s.data;
   return {
     title: a.title || "",
-    author: a.author?.name || a.user?.name || a.author || "",
+    author: a.author?.name || a.user?.name || (typeof a.author === "string" ? a.author : "") || "",
     totalPages: a.pagination?.total_pages || 1,
     items: (a.items || [])
       .filter((r) => r.kind !== "person")
@@ -250,14 +247,8 @@ export async function rt(t, e) {
   };
 }
 
-export async function ie(t, e, n) {
-  if (n === "fallback") return rt(t, e);
-  try {
-    return await St(t, e);
-  } catch (s) {
-    if (s.code === "PRIVATE") throw s;
-    return rt(t, e);
-  }
+export async function ie(t, e, _n) {
+  return rt(t, e);
 }
 
 export const Lt = /^s\.[A-Za-z0-9_-]{2,60}$/,
@@ -366,14 +357,9 @@ export function de(t) {
 
 export function Dt(t) {
   return D(`list:${t}`, H, async () => {
-    let e = "direct",
-      n;
-    try {
-      n = await St(t, 1);
-    } catch (l) {
-      if (l.code === "PRIVATE") throw l;
-      ((e = "fallback"), (n = await rt(t, 1)));
-    }
+    // MyDramaList refuses requests from cloud hosts, so lists come from Kuryana.
+    const e = "fallback",
+      n = await rt(t, 1);
     const s = [...n.items],
       a = Math.min(n.totalPages || 1, kt),
       r = await Promise.all(
