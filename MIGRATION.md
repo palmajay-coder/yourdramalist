@@ -73,7 +73,8 @@ Approach: the app code is used **unchanged**. `cloudflare/build.mjs` bundles it 
 - [ ] Add the secrets `TMDB_API_KEY` and `YDL_MANIFEST_SECRET` to the `yourdramalist` Worker in the Cloudflare dashboard, using the exact Val Town values.
 - [ ] Compare Val Town and Cloudflare responses for the same requests. *Started November 11.* The privacy page matches exactly. The home page's first 20,000 characters match; the live page is 3,450 characters longer overall, most likely from content Val Town adds to served pages. Confirm with a side-by-side check.
 - [ ] Confirm that the manifest link decrypts with the same secret.
-- [ ] Check that MyDramaList scraping works from Cloudflare's network.
+- [x] Check that MyDramaList scraping works from Cloudflare's network. *Checked November 11: it does not.* Workers Logs show `mydramalist.com` answering **403** to requests from the Worker, while the same requests work from Val Town (which runs on Render). The app depends on MyDramaList for search, lists, and profiles, so Cloudflare Workers cannot host it as-is. Working around MyDramaList's bot protection is not an option. Next step: choose a host that MyDramaList accepts, or get MyDramaList's permission.
+- [ ] Separate issue, same logs: the main Worker's call to `ydl-v2.palmajay.workers.dev` returned 404 without reaching YDL-V2. Workers on the same `workers.dev` subdomain cannot call each other by URL; a service binding would fix it if both stay on Cloudflare.
 - [ ] Check the weekly job on a test run.
 
 ### Phase 6: Cutover (needs your approval)
