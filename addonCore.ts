@@ -841,8 +841,7 @@ async function qe(t) {
         year: a.year ?? null,
       }));
   } catch {}
-  const e = await E(`${T}/search?q=${encodeURIComponent(t)}`, { headers: B });
-  return e.ok ? Zt(await e.text()) : [];
+  return [];
 }
 
 function Gt(t) {
@@ -947,9 +946,8 @@ function Xt(t) {
 
 function Fe(t) {
   return D(`rev:${t}`, Yt, async () => {
-    const e = E(`${T}/${t}/reviews?sort=helpful`, { headers: B })
-        .then(async (d) => (d.ok ? Xt(await d.text()) : []))
-        .catch(() => []),
+    // MyDramaList refuses cloud hosts, so reviews come only from Kuryana.
+    const e = Promise.resolve([]),
       n = (d) =>
         E(`${q}/v2/dramas/${encodeURIComponent(t)}/reviews?page=${d}`, {
           headers: { Accept: "application/json" },

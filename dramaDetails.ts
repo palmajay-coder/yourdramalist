@@ -1,4 +1,5 @@
 import { load } from "npm:cheerio@1.0.0";
+import { kuryana, KuryanaError } from "./kuryana.ts";
 
 export function dramaUrl(raw: string): string | null {
   try {
@@ -29,6 +30,16 @@ export function extractDramaDetails(html: string, expectedUrl: string) {
   const scoreRaw = field('Score').match(/^(\d+(?:\.\d+)?)(?:\s|$)/)?.[1];
   const score = scoreRaw && Number(scoreRaw) > 0 && Number(scoreRaw) <= 10 ? Number(scoreRaw) : null;
   return { sourceUrl: canonical, synopsis, score, rank: positive(field('Ranked')), popularity: positive(field('Popularity')) };
+}
+
+// Kuryana version of extractDramaDetails (MyDramaList refuses cloud hosts). Same fields.
+export function detailsFromKuryana(data: any, expectedUrl: string): Details {
+  const id = expectedUrl.match(/^https:\/\/mydramalist.com\/(\d+)-/)?.[1];
+  if (!id || String(data?.id) !== id) throw Error("Unexpected drama page");
+  const positive = (value: unknown) => { const n = Number(value); return Number.isSafeInteger(n) && n > 0 ? n : null; };
+  const rating = Number(data?.rating);
+  const synopsis = String(data?.synopsis || "").replace(/\r\n/g, "\n").trim() || null;
+  return { sourceUrl: expectedUrl, synopsis, score: Number.isFinite(rating) && rating > 0 && rating <= 10 ? rating : null, rank: positive(data?.ranked), popularity: positive(data?.popularity) };
 }
 
 export type Details = ReturnType<typeof extractDramaDetails>;
@@ -68,12 +79,10 @@ export function createDetailsService(cache: Cache, fetcher: typeof fetch = fetch
       if (now() - windowAt >= 60_000) { windowAt = now(); requests = 0; }
       if (requests >= 60) throw Error('Details request limit reached. Please try again shortly.');
       requests++;
-      const r = await fetcher(url, { redirect: 'error', signal: AbortSignal.timeout(8000), headers: { Accept: 'text/html' } });
-      if (!r.ok) { await r.body?.cancel(); throw Error('MyDramaList details unavailable (HTTP ' + r.status + ').'); }
-      if (!r.headers.get('content-type')?.includes('text/html')) { await r.body?.cancel(); throw Error('Unexpected MyDramaList response.'); }
-      const html = await readHtml(r);
-      if (r.headers.get('cf-mitigated') === 'challenge' || /<title[^>]*>\s*(?:Just a moment|Attention Required)|cf-chl-|\/cdn-cgi\/challenge-platform/i.test(html)) throw Error('MyDramaList restricted access to this drama page.');
-      const data = extractDramaDetails(html, url);
+      let payload: any;
+      try { payload = await kuryana('/v2/dramas/' + new URL(url).pathname.slice(1), { fetcher, timeoutMs: 8000 }); }
+      catch (e) { throw Error('MyDramaList details unavailable (HTTP ' + (e instanceof KuryanaError ? e.status : 502) + ').'); }
+      const data = detailsFromKuryana(payload, url);
       const fetchedAt = now();
       await cache.set(url, { data, fetchedAt, retryAt: fetchedAt + 6 * 3600_000 }).catch(()=>{});
       return { ...data, status: 'live', fetchedAt: new Date(fetchedAt).toISOString() };

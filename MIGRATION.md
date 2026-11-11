@@ -92,6 +92,10 @@ Approach: the app code is used **unchanged**. `cloudflare/build.mjs` bundles it 
 - [ ] Copy the Mdl-lists `logo.jpg` image and serve it from the main Worker.
 - [ ] Port the test files to Vitest.
 
+### Switched to Kuryana so far (November 11)
+
+Drama search, actor and director search, actor filmographies, watchlists by username, custom lists by link, drama details (synopsis, score, rank, popularity), and the reviews in Nuvio. Director filmographies come from TMDB. Not yet done: Discover catalogs by country (planned from TMDB) and the featured list; Popular lists (no substitute) and viewer verdicts are dropped.
+
 ### To do later (agreed November 11)
 
 - [ ] **Upgrade Cloudflare to the Workers Paid plan ($5 a month).** The free plan allows about 50 outgoing requests per visit, and the genre lookups already hit that limit ("Too many subrequests" in the logs). This Week's Picks asks TMDB for far more than 50 things when it builds a week, so it will likely fail on the free plan. The paid plan raises the limit to about 1,000. User approved the cost.
