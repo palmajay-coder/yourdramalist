@@ -36,26 +36,6 @@ serve({ fetch: (request: Request) => handleApp(publicRequest(request)), port, ho
   console.log(`YourDramaList listening on port ${port}`);
 });
 
-// Temporary migration check: does the Kuryana API (the app's existing MyDramaList fallback)
-// answer this server? Logs one line at startup. Remove once the data source is decided.
-(async () => {
-  const base = process.env.KURYANA_URL || "https://kuryana.tbdh.app";
-  // Director filmography check: how does Kuryana group Park Chan Wook's credits?
-  try {
-    const search = await (await fetch(base + "/v2/search?q=park%20chan%20wook&page=1", { headers: { Accept: "application/json" } })).json();
-    const person = (search?.data?.people || [])[0];
-    console.log(JSON.stringify({ kuryanaCheck: "search", first: person?.slug, name: person?.name }));
-    if (person?.slug) {
-      const data = (await (await fetch(base + "/v2/people/" + person.slug, { headers: { Accept: "application/json" } })).json())?.data;
-      for (const [group, list] of Object.entries<any>(data?.works || {})) {
-        console.log(JSON.stringify({ kuryanaCheck: "works", group, count: list.length, items: list.map((w: any) => `${w.year}|${w.title}|${w.role}`).join(" ; ").slice(0, 900) }));
-      }
-    }
-  } catch (error) {
-    console.log(JSON.stringify({ kuryanaCheck: "people", error: String(error).slice(0, 200) }));
-  }
-})();
-
 // Same schedule as the Val Town interval: 0 7,8 * * * (UTC). weeklyRefresh.ts itself skips
 // runs that are not midnight Pacific, exactly as before.
 let lastScheduledRun = "";
