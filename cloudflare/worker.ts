@@ -2,6 +2,7 @@
 // The app code at the repository root is used unchanged. Val Town's platform pieces
 // (blob, sqlite, utils, oauth, Deno.env) are swapped for Cloudflare versions in ./shims.
 import "./shims/deno-env.ts"; // Must stay first: app modules read Deno.env while loading.
+import "./shims/fetch-compat.ts"; // Before the app: lets fetch accept redirect: "error", as on Val Town.
 import app from "../app.ts";
 import weeklyRefresh from "../weeklyRefresh.ts";
 
