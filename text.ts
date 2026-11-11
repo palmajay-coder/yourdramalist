@@ -11,7 +11,8 @@ export const TEXT = {
   weeklySaved:
     "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",
-  catalogMore: "Explore Asian Dramas",
+  catalogMore: "K-Drama & Beyond",
+  catalogMoreNote: "Top rated, popular and upcoming dramas and films from across Asia",
   catalogAdd: "+ Add catalog",
   catalogAdded: "✓ Added",
   catalogSelect: "Select catalog",
