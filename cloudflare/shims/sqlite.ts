@@ -25,9 +25,11 @@ function prepare(statement: Statement): D1PreparedStatement {
 function toResultSet(result: D1Result<Record<string, unknown>>) {
   const objects = result.results ?? [];
   const columns = objects.length ? Object.keys(objects[0]) : [];
+  // Each row is readable by position (row[0]) and by name (row.day). It is a plain object that
+  // also carries the position keys, so it still serializes to JSON with its column names.
   const rows = objects.map((object) => {
-    const row: any = columns.map((column) => object[column]);
-    for (const column of columns) row[column] = object[column];
+    const row: Record<string | number, unknown> = {};
+    columns.forEach((column, index) => { row[index] = object[column]; row[column] = object[column]; });
     return row;
   });
   return {
