@@ -35,18 +35,21 @@ export default {
       const headers = { "content-type": "application/json", "trakt-api-version": "2", "trakt-api-key": key };
       const out: any[] = [];
       for (const title of titles) {
-        const search = await fetch("https://api.trakt.tv/search/show?limit=3&query=" + encodeURIComponent(title), { headers });
-        const hits = search.ok ? await search.json() as any[] : [];
-        const top = hits[0]?.show;
-        const probes: any = {};
-        if (top?.ids?.slug) {
-          for (const path of [`/shows/${top.ids.slug}/lists/popular?limit=5`, `/shows/${top.ids.slug}/lists/personal/popular?limit=5`, `/shows/${top.ids.slug}/lists?limit=5`]) {
-            const r = await fetch("https://api.trakt.tv" + path, { headers });
-            const body = await r.text();
-            probes[path] = { status: r.status, sample: body.slice(0, 350) };
+        for (const kind of ["show", "movie"]) {
+          const search = await fetch(`https://api.trakt.tv/search/${kind}?limit=3&query=` + encodeURIComponent(title), { headers });
+          const hits = search.ok ? await search.json() as any[] : [];
+          const item = hits[0]?.[kind];
+          const probes: any = {};
+          if (item?.ids?.slug) {
+            const base = kind === "show" ? "shows" : "movies";
+            for (const path of [`/${base}/${item.ids.slug}/lists/popular?limit=5`, `/${base}/${item.ids.slug}/lists?limit=5`]) {
+              const r = await fetch("https://api.trakt.tv" + path, { headers });
+              const body = await r.text();
+              probes[path] = { status: r.status, sample: body.slice(0, 300) };
+            }
           }
+          out.push({ title, kind, searchStatus: search.status, candidates: hits.slice(0, 3).map((h: any) => ({ title: h[kind]?.title, year: h[kind]?.year, slug: h[kind]?.ids?.slug, trakt: h[kind]?.ids?.trakt, imdb: h[kind]?.ids?.imdb })), probes });
         }
-        out.push({ title, searchStatus: search.status, candidates: hits.slice(0, 3).map((h: any) => ({ title: h.show?.title, year: h.show?.year, slug: h.show?.ids?.slug, trakt: h.show?.ids?.trakt, imdb: h.show?.ids?.imdb })), probes });
       }
       return Response.json(out, { headers: { "cache-control": "no-store" } });
     }
