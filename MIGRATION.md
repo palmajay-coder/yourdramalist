@@ -39,6 +39,7 @@ These features are gone or different, and we agreed they are acceptable:
 - "Date added" sorting for watchlists.
 - EasyPosters, removed from new setups. Existing setups keep it.
 - Dependence on Kuryana, which is unofficial and may stop or be blocked.
+- Related lists under a drama, even though two replacements were investigated and dropped (November 11). **Trakt** has the lists, but its protection rate-limited every request from Cloudflare's shared Worker addresses (error 1015, with a wait that never counted down). **MDBList** has an official API with a country field on list items, but no request that returns the public lists containing a title (only the signed-in user's own lists), and its free tier allows 1,000 requests a day for the whole account. MDBList could be revisited by asking its maintainer for such a request.
 
 ## Before the cutover
 
