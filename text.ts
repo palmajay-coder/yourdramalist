@@ -236,7 +236,7 @@ export const TEXT = {
   profilePlaceholder:
     "For example: Jaesan or https://mydramalist.com/list/Ln8NRep4",
   discoverSearchLabel:
-    "Discover new lists by entering the name of any drama, actor or director and select your choice.",
+    "Discover new catalogs by entering the name of any actor or director and select your choice.",
   dramas: "Dramas",
   actors: "Actors",
   directors: "Directors",
