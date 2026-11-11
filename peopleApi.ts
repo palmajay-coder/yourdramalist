@@ -2,16 +2,18 @@ import {collections} from './collectionService.ts';
 import {blob} from 'https://esm.town/v/std/blob/main.ts';
 import {personUrl,personFromKuryana,personSummary,peopleSearchFromKuryana,makeFilmography,remoteImage,type Mode} from './people.ts';
 import {kuryana,KuryanaError} from './kuryana.ts';
-import {tmdbDirectorCredits} from './tmdbPeople.ts';
+import {tmdbPersonCredits} from './tmdbPeople.ts';
 type Entry={data:any;at:number;expires:number;error?:string};
 type Storage={load:()=>Promise<any>;save:(snapshot:any)=>Promise<unknown>};
 async function bounded<T>(promise:Promise<T>):Promise<T|undefined>{let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([promise,new Promise<undefined>(resolve=>{timer=setTimeout(()=>resolve(undefined),1000)})])}finally{clearTimeout(timer)}}
-// Director credits come from TMDB (Kuryana leaves many out). If TMDB is not configured or has
-// no matching person, keep Kuryana's director credits rather than showing nothing.
-async function withTmdbDirectors(person:ReturnType<typeof personFromKuryana>,fetcher:typeof fetch){
- const credits=await tmdbDirectorCredits(person,{fetcher});
- if(!credits||!credits.length)return person;
- return {...person,filmographies:{...person.filmographies,director:credits},sections:{...person.sections,director:Math.max(1,person.sections.director)}};
+// Acting and directing credits come from TMDB (Kuryana leaves many out). If TMDB is not
+// configured or has no matching person, keep Kuryana's credits rather than showing nothing.
+async function withTmdbCredits(person:ReturnType<typeof personFromKuryana>,fetcher:typeof fetch){
+ const credits=await tmdbPersonCredits(person,{fetcher});
+ if(!credits)return person;
+ const filmographies={actor:credits.actor.length?credits.actor:person.filmographies.actor,director:credits.director.length?credits.director:person.filmographies.director};
+ const sections={actor:Math.max(credits.actor.length?1:0,person.sections.actor),director:Math.max(credits.director.length?1:0,person.sections.director)};
+ return {...person,filmographies,sections};
 }
 // Poster from the title's MyDramaList page via Kuryana, remembered for a day.
 const posterMemo=new Map<string,{poster:string|null;expires:number}>();
@@ -44,7 +46,7 @@ export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,
   })().finally(()=>pending.delete(key));pending.set(key,p);return p;
  }
  return {
-  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbDirectors(personFromKuryana(data,url),fetcher),6*3600000)},
+  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
   async search(query:string,pageNumber:number){return page('search:'+query.toLowerCase()+':'+pageNumber,'/v2/search?q='+encodeURIComponent(query)+'&page='+pageNumber,data=>peopleSearchFromKuryana(data,pageNumber),300000)}
  };
 }
