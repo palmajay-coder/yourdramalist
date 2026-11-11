@@ -33,7 +33,7 @@ export default {
       const key = (_env as any)?.TRAKT_CLIENT_ID || (globalThis as any).__TRAKT_KEY || "";
       const titles = ["Our Sticky Love", "100 Days of Deception", "Tale of Two Sisters", "Bullet in the Head", "Long Vacation"];
       const headers = { "content-type": "application/json", "trakt-api-version": "2", "trakt-api-key": key };
-      const out: any[] = [];
+      const out: any[] = [{ keyPresent: key.length > 0, keyLength: key.length, probeHeaders: Object.keys(headers) }];
       for (const title of titles) {
         for (const kind of ["show", "movie"]) {
           const search = await fetch(`https://api.trakt.tv/search/${kind}?limit=3&query=` + encodeURIComponent(title), { headers });
@@ -48,7 +48,8 @@ export default {
               probes[path] = { status: r.status, sample: body.slice(0, 300) };
             }
           }
-          out.push({ title, kind, searchStatus: search.status, candidates: hits.slice(0, 3).map((h: any) => ({ title: h[kind]?.title, year: h[kind]?.year, slug: h[kind]?.ids?.slug, trakt: h[kind]?.ids?.trakt, imdb: h[kind]?.ids?.imdb })), probes });
+          const searchBody = search.ok ? "" : (await search.text()).slice(0, 200);
+          out.push({ title, kind, searchStatus: search.status, searchBody, candidates: hits.slice(0, 3).map((h: any) => ({ title: h[kind]?.title, year: h[kind]?.year, slug: h[kind]?.ids?.slug, trakt: h[kind]?.ids?.trakt, imdb: h[kind]?.ids?.imdb })), probes });
         }
       }
       return Response.json(out, { headers: { "cache-control": "no-store" } });
