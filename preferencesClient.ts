@@ -75,7 +75,10 @@ export function installPreferencesUI(api: {
   let posterStyle: "standard" | "ratings" | "better" | "posterplus" | "rpdb" = prefs.posters ? "ratings" : "standard";
   const artworkMode = () => posterStyle;
   const artwork = node("select", "prefSelect"); artwork.id = "prefPosterStyle"; artwork.setAttribute("aria-label", copy.posterArtwork);
+  // EasyPosters is no longer offered to new setups (its free provider is unreliable and few people used it).
+  // Anyone who already chose it keeps it selectable, so their existing install links keep working.
   for (const [value, label] of [["standard", copy.posterStandard], ["ratings", copy.posterRatingsTitle], ["better", copy.posterBetter], ["posterplus", copy.posterPlus], ["rpdb", copy.posterRpdb]] as const) {
+    if (value === "ratings" && posterStyle !== "ratings") continue;
     const option = node("option", "", label); option.value = value; artwork.append(option);
   }
   artwork.value = posterStyle;
