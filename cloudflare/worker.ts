@@ -32,7 +32,8 @@ export default {
       if (!(await getOAuthUserData(request))) return new Response("Sign in to the admin page first.", { status: 401 });
       const key = (_env as any)?.TRAKT_CLIENT_ID || (globalThis as any).__TRAKT_KEY || "";
       const titles = ["Our Sticky Love", "100 Days of Deception", "Tale of Two Sisters", "Bullet in the Head", "Long Vacation"];
-      const headers = { "content-type": "application/json", "trakt-api-version": "2", "trakt-api-key": key };
+      // An honest User-Agent naming this app; Trakt refuses unidentified clients.
+      const headers = { "content-type": "application/json", "trakt-api-version": "2", "trakt-api-key": key, "user-agent": "YourDramaList/1.1.3 (+https://yourdramalist.palmajay.workers.dev)" };
       const out: any[] = [{ keyPresent: key.length > 0, keyLength: key.length, probeHeaders: Object.keys(headers) }];
       for (const title of titles) {
         for (const kind of ["show", "movie"]) {
