@@ -60,3 +60,49 @@ export function extractPeopleSearch(html:string,target:URL){
  const hasNextPage=$('.pagination a[href]').toArray().some(el=>{try{const u=new URL($(el).attr('href')!,target);return u.origin===origin&&u.pathname==='/search'&&Number(u.searchParams.get('page'))===page+1}catch{return false}});
  return {people,hasNextPage};
 }
+
+// Kuryana versions of extractPerson and extractPeopleSearch (MyDramaList refuses cloud hosts).
+// They return the same shapes, so makeFilmography, personSummary and the client are unchanged.
+const kYear=(value:unknown)=>{const year=Number(value);return Number.isInteger(year)&&year>=1800&&year<2200?year:null};
+const kCredit=(item:any,type:string,role:string|null):Credit|null=>{
+ let url:URL;try{url=new URL(String(item?.link||''))}catch{return null}
+ const match=url.pathname.match(/^\/([1-9]\d*)-[A-Za-z0-9-]+\/?$/);const name=clean(String(item?.title||''));
+ if(url.origin!==origin||url.username||url.password||!match||!name)return null;
+ return {id:match[1],name,url:origin+url.pathname.replace(/\/$/,''),year:kYear(item?.year),type,role,poster:null};
+};
+export function personFromKuryana(data:any,expected:string){
+ const id=expected.match(/\/people\/(\d+)-/)?.[1];const name=clean(String(data?.name||''));
+ if(!id||!name)throw Error('This person page could not be read.');
+ const nativeName=clean(String(data?.native_name||''))||null;
+ const filmographies:{actor:Credit[];director:Credit[]}={actor:[],director:[]};
+ const sections:{actor:number;director:number}={actor:0,director:0};
+ const works=data?.works&&typeof data.works==='object'?data.works:{};
+ for(const [heading,list] of Object.entries(works)){
+  if(!Array.isArray(list))continue;
+  // Same sections the MyDramaList page parser used: Drama and Movie for acting,
+  // Screenwriter & Director (Kuryana may split it into Director and Screenwriter) for directing.
+  const mode:Mode|null=heading==='Drama'||heading==='Movie'?'actor':/director|screenwriter/i.test(heading)?'director':null;
+  if(!mode)continue;sections[mode]++;
+  for(const item of list){
+   const credit=mode==='actor'?kCredit(item,heading,clean(String(item?.role||''))||null):kCredit(item,clean(String(item?.role||''))||'Title','Screenwriter & Director');
+   if(credit)filmographies[mode].push(credit);
+  }
+ }
+ for(const mode of ['actor','director'] as const){
+  const unique=new Map<string,Credit>();for(const credit of filmographies[mode])if(!unique.has(credit.id))unique.set(credit.id,credit);
+  filmographies[mode]=[...unique.values()].sort((a,b)=>(b.year??-1)-(a.year??-1));
+ }
+ const nationality=clean(String(data?.nationality||''))||null;const born=clean(String(data?.born||''))||null;
+ const biography=String(data?.about||'').trim()||null;
+ return {id,name,nativeName,displayName:name+(nativeName?' ('+nativeName+')':''),nationality,born,biography,poster:remoteImage(data?.image),url:expected,filmographies,sections};
+}
+export function peopleSearchFromKuryana(data:any,page:number){
+ const people:{id:string;name:string;url:string;poster:string|null;nationality:string|null;biography:string|null}[]=[];const seen=new Set<string>();
+ for(const item of Array.isArray(data?.people)?data.people:[]){
+  const url=personUrl(String(item?.link||''));if(!url)continue;const id=url.match(/\/people\/(\d+)-/)![1];const name=clean(String(item?.name||''));
+  if(!name||seen.has(id))continue;seen.add(id);
+  people.push({id,name,url,poster:remoteImage(item?.image),nationality:clean(String(item?.nationality||''))||null,biography:null});
+ }
+ const total=Number(data?.pagination?.total_pages)||page;
+ return {people,hasNextPage:people.length>0&&page<total};
+}
