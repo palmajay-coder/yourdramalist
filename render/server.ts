@@ -36,6 +36,22 @@ serve({ fetch: (request: Request) => handleApp(publicRequest(request)), port, ho
   console.log(`YourDramaList listening on port ${port}`);
 });
 
+// Temporary migration check: does the Kuryana API (the app's existing MyDramaList fallback)
+// answer this server? Logs one line at startup. Remove once the data source is decided.
+(async () => {
+  const base = process.env.KURYANA_URL || "https://kuryana.tbdh.app";
+  for (const path of ["/v2/lists/Ln8NRep4?page=1", "/search/q/goblin"]) {
+    const started = Date.now();
+    try {
+      const response = await fetch(base + path, { headers: { Accept: "application/json" } });
+      const body = await response.text();
+      console.log(JSON.stringify({ kuryanaCheck: path, status: response.status, ms: Date.now() - started, bytes: body.length, start: body.slice(0, 120) }));
+    } catch (error) {
+      console.log(JSON.stringify({ kuryanaCheck: path, error: String(error).slice(0, 200) }));
+    }
+  }
+})();
+
 // Same schedule as the Val Town interval: 0 7,8 * * * (UTC). weeklyRefresh.ts itself skips
 // runs that are not midnight Pacific, exactly as before.
 let lastScheduledRun = "";
