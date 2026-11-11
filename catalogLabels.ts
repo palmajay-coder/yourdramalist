@@ -39,14 +39,38 @@ const CATEGORY_LABELS:Record<string,string[]>={
  "zh-CN":["热门剧集","最受欢迎的剧集","最新剧集","即将播出的剧集","热门在播剧集","综艺节目","热门电影","最受欢迎的电影","最新电影","即将上映的电影"]
 };
 const COUNTRIES:Record<string,string>={"1":"JP","2":"CN","3":"KR","5":"TW","6":"TH"};
+// How a name and a label read together in each language. Languages that use a particle or
+// suffix say it that way; languages with no possessive put the name first and the label after.
+const OWNER_PATTERN:Record<string,string>={
+ "en-US":"{name}’s {label}",
+ "es-ES":"{label} de {name}",
+ "fr-FR":"{label} de {name}",
+ "de-DE":"{label} von {name}",
+ "it-IT":"{label} di {name}",
+ "pt-BR":"{label} de {name}",
+ "nl-NL":"{label} van {name}",
+ "pl-PL":"{label} {name}",
+ "tr-TR":"{name} {label}",
+ "ru-RU":"{label}: {name}",
+ "uk-UA":"{label}: {name}",
+ "ar-SA":"{label}: {name}",
+ "he-IL":"{label}: {name}",
+ "hi-IN":"{label}: {name}",
+ "ja-JP":"{name}の{label}",
+ "ko-KR":"{name}의 {label}",
+ "zh-CN":"{name}的{label}",
+};
+export function ownedLabel(name:string,label:string,language="en-US"){
+ return (OWNER_PATTERN[language]||OWNER_PATTERN["en-US"]).replace("{name}",name).replace("{label}",label);
+}
 export function localizedCatalogName(entry:any,language="en-US",personNames:Record<string,string>={}){
  const copy=LABELS[language];
  const username=()=>String(entry.name||"").match(/^(.+?)[’']s (?:Currently Watching|Completed|On Hold|Dropped|Plan to Watch|Undecided|Not Interested|All Dramas & Films)$/i)?.[1]||entry.watchlist||"";
  if(entry.weekly)return weeklyCatalog(entry.weekly.country,entry.weekly.slot,language).name;
- if(entry.explore){const c=entry.explore,index=CATEGORY_INDEX[c.category],base=exploreCatalog(c.category,c.country);if(!copy||index===undefined)return base.name;const country=c.country?new Intl.DisplayNames([language],{type:"region"}).of(COUNTRIES[c.country])||"":"";return "MyDramaList’s "+CATEGORY_LABELS[language][index]+(country?" ("+country+")":"");}
- if(entry.watchlistStatus){const status=WATCHLIST_CARDS_LABEL[entry.watchlistStatus];const translated=copy?.watchlists[STATUS_INDEX[entry.watchlistStatus]]||status;return username()+"’s "+translated;}
- if(entry.watchlist&&entry.watchlistAll)return username()+"’s "+(copy?.all||"All Dramas & Films");
- if(entry.person&&entry.mode){const personName=String(entry.name||"").replace(/[’']s Filmography$/i,"");return (personNames[entry.person]||personName)+"’s "+(copy?.filmography||"Filmography");}
+ if(entry.explore){const c=entry.explore,index=CATEGORY_INDEX[c.category],base=exploreCatalog(c.category,c.country);if(!copy||index===undefined)return base.name;const country=c.country?new Intl.DisplayNames([language],{type:"region"}).of(COUNTRIES[c.country])||"":"";return CATEGORY_LABELS[language][index]+(country?" ("+country+")":"");}
+ if(entry.watchlistStatus){const status=WATCHLIST_CARDS_LABEL[entry.watchlistStatus];const translated=copy?.watchlists[STATUS_INDEX[entry.watchlistStatus]]||status;return ownedLabel(username(),translated,language);}
+ if(entry.watchlist&&entry.watchlistAll)return ownedLabel(username(),copy?.all||"All Dramas & Films",language);
+ if(entry.person&&entry.mode){const personName=String(entry.name||"").replace(/[’']s Filmography$/i,"");return ownedLabel(personNames[entry.person]||personName,copy?.filmography||"Filmography",language);}
  return entry.name;
 }
 const WATCHLIST_CARDS_LABEL:Record<string,string>={watching:"Currently Watching",completed:"Completed",on_hold:"On Hold",dropped:"Dropped",plan_to_watch:"Plan to Watch",undecided:"Undecided",not_interested:"Not Interested"};
