@@ -98,3 +98,28 @@ export async function tmdbPersonCredits(
     return null;
   }
 }
+
+// A person's name in the chosen TMDB language (for example 木村拓哉 for ja-JP), or null.
+const localizedMemo = new Map<string, { name: string | null; expires: number }>();
+export async function tmdbPersonLocalizedName(
+  name: string, language: string,
+  { fetcher = fetch, key = (typeof Deno < "u" && Deno.env.get("TMDB_API_KEY")) || "" } = {},
+): Promise<string | null> {
+  if (!key || !name || !language || language === "en-US") return null;
+  const memo = `${normalize(name)}|${language}`;
+  const hit = localizedMemo.get(memo);
+  if (hit && hit.expires > Date.now()) return hit.name;
+  let localized: string | null = null;
+  try {
+    const search = await tmdbJson("/search/person", { query: name, include_adult: "false" }, fetcher, key);
+    const chosen = (Array.isArray(search?.results) ? search.results : []).find((r: any) => sameName(r?.name, name));
+    if (chosen) {
+      const person = await tmdbJson(`/person/${Number(chosen.id)}`, { language }, fetcher, key);
+      const text = String(person?.name || "").trim();
+      if (text) localized = text;
+    }
+  } catch { /* Keep the name as entered. */ }
+  localizedMemo.set(memo, { name: localized, expires: Date.now() + (localized ? 86400000 : 600000) });
+  while (localizedMemo.size > 500) localizedMemo.delete(localizedMemo.keys().next().value!);
+  return localized;
+}

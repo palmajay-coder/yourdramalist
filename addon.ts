@@ -4,6 +4,7 @@ import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
 import {personUrl} from './people.ts';
 import {tmdbExploreItems} from './tmdbExplore.ts';
+import {tmdbPersonLocalizedName} from './tmdbPeople.ts';
 import {handlePeople} from './peopleApi.ts';
 import {loadWatchlist,loadWatchlistCategory,loadMDLTitlePoster,WATCHLIST_CARDS} from './addonScrape.ts';
 import {Ee,X,G,K,Je,Te} from './addonCore.ts';
@@ -58,7 +59,19 @@ export function createTokenCodec(secret:string){
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
-export function makeManifest(config:AddonConfig){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+// Actor and director names in the chosen TMDB language, so catalog names are fully localized.
+async function personNamesFor(config:AddonConfig):Promise<Record<string,string>>{
+ const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';
+ const names:Record<string,string>={};
+ if(language==='en-US')return names;
+ await Promise.all((config.entries as any[]).filter(e=>e.person&&e.mode).map(async e=>{
+  const personName=String(e.name||'').replace(/[’']s Filmography$/i,'');
+  const localized=await tmdbPersonLocalizedName(personName,language).catch(()=>null);
+  if(localized)names[e.person]=localized;
+ }));
+ return names;
+}
+export function makeManifest(config:AddonConfig,personNames:Record<string,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your MyDramaList catalogs, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language,personNames)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
@@ -193,7 +206,7 @@ export async function handleAddon(req:Request){
  if(req.method!=='GET'&&req.method!=='HEAD')return fail('method',405);
  const parts=u.pathname.split('/').filter(Boolean);if(parts[0]!=='addon'||parts.length<3)return fail('path',404);
  let config:AddonConfig;try{config=await tokens().open(parts[1]);}catch{return fail('configuration',404);}
- if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config),{headers});
+ if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config,await personNamesFor(config)),{headers});
  if(!await catalogLimiter.acquire())return fail('busy',429);
  try{
   if(parts[2]==='catalog'&&parts.length>=5){const id=parts[4].replace(/\.json$/,''),match=id.match(/^ydl_(\d+)$/);if(!match)return fail('catalog',404);const i=Number(match[1]);if(config.entries[i]?.type!==parts[3])return fail('catalog',404);const extra=new URLSearchParams(decodeURIComponent((parts[5]||'').replace(/\.json$/,'')));const raw=extra.get('skip')||u.searchParams.get('skip')||'0';if(!/^\d{1,5}$/.test(raw))return fail('skip');return Response.json(await loadCatalog(config,i,Number(raw),u.origin+'/addon/'+parts[1]),{headers});}

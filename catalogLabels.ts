@@ -39,14 +39,14 @@ const CATEGORY_LABELS:Record<string,string[]>={
  "zh-CN":["热门剧集","最受欢迎的剧集","最新剧集","即将播出的剧集","热门在播剧集","综艺节目","热门电影","最受欢迎的电影","最新电影","即将上映的电影"]
 };
 const COUNTRIES:Record<string,string>={"1":"JP","2":"CN","3":"KR","5":"TW","6":"TH"};
-export function localizedCatalogName(entry:any,language="en-US"){
+export function localizedCatalogName(entry:any,language="en-US",personNames:Record<string,string>={}){
  const copy=LABELS[language];
  const username=()=>String(entry.name||"").match(/^(.+?)[’']s (?:Currently Watching|Completed|On Hold|Dropped|Plan to Watch|Undecided|Not Interested|All Dramas & Films)$/i)?.[1]||entry.watchlist||"";
  if(entry.weekly)return weeklyCatalog(entry.weekly.country,entry.weekly.slot,language).name;
  if(entry.explore){const c=entry.explore,index=CATEGORY_INDEX[c.category],base=exploreCatalog(c.category,c.country);if(!copy||index===undefined)return base.name;const country=c.country?new Intl.DisplayNames([language],{type:"region"}).of(COUNTRIES[c.country])||"":"";return "MyDramaList’s "+CATEGORY_LABELS[language][index]+(country?" ("+country+")":"");}
  if(entry.watchlistStatus){const status=WATCHLIST_CARDS_LABEL[entry.watchlistStatus];const translated=copy?.watchlists[STATUS_INDEX[entry.watchlistStatus]]||status;return username()+"’s "+translated;}
  if(entry.watchlist&&entry.watchlistAll)return username()+"’s "+(copy?.all||"All Dramas & Films");
- if(entry.person&&entry.mode){const personName=String(entry.name||"").replace(/[’']s Filmography$/i,"");return personName+"’s "+(copy?.filmography||"Filmography");}
+ if(entry.person&&entry.mode){const personName=String(entry.name||"").replace(/[’']s Filmography$/i,"");return (personNames[entry.person]||personName)+"’s "+(copy?.filmography||"Filmography");}
  return entry.name;
 }
 const WATCHLIST_CARDS_LABEL:Record<string,string>={watching:"Currently Watching",completed:"Completed",on_hold:"On Hold",dropped:"Dropped",plan_to_watch:"Plan to Watch",undecided:"Undecided",not_interested:"Not Interested"};
