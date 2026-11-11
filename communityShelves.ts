@@ -96,7 +96,7 @@ export function installCommunityShelves(){
   const grid=node('div','shelfFilterGrid');
   grid.append(field(copy.shelfFrom,select([['',copy.shelfAny],...years],String(d.from||''),v=>{d.from=v;update()})));
   grid.append(field(copy.shelfTo,select([['',copy.shelfAny],...years],String(d.to||''),v=>{d.to=v;update()})));
-  grid.append(field(copy.shelfSort,select([['',copy.shelfSortDefault],...(rows.some(r=>r.list.kind==='watchlist'&&filterable(r))?[['added',copy.shelfSortAdded]]:[]),['newest',copy.shelfSortNewest],['oldest',copy.shelfSortOldest],['az',copy.shelfSortAz]],d.sort,v=>{d.sort=v;update()})));
+  grid.append(field(copy.shelfSort,select([['',copy.shelfSortDefault],...(rows.some(r=>r.list.kind==='watchlist'&&filterable(r)&&(r.items||[]).some(x=>x.added>0))?[['added',copy.shelfSortAdded]]:[]),['newest',copy.shelfSortNewest],['oldest',copy.shelfSortOldest],['az',copy.shelfSortAz]],d.sort,v=>{d.sort=v;update()})));
   panel.append(grid);
   if(countries.length)panel.append(node('p','shelfGroupLabel',copy.shelfCountry),choiceGroup(copy.shelfCountry,countries.map(([c])=>[c,countryNames[c]||c]),d.countries,v=>{d.countries=d.countries.includes(v)?d.countries.filter(x=>x!==v):[...d.countries,v];update()}));
   panel.append(node('p','shelfGroupLabel',copy.shelfGenre));
