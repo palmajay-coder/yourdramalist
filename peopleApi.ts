@@ -1,6 +1,6 @@
 import {collections} from './collectionService.ts';
 import {blob} from 'https://esm.town/v/std/blob/main.ts';
-import {personUrl,personFromKuryana,personSummary,peopleSearchFromKuryana,makeFilmography,type Mode} from './people.ts';
+import {personUrl,personFromKuryana,personSummary,peopleSearchFromKuryana,makeFilmography,remoteImage,type Mode} from './people.ts';
 import {kuryana,KuryanaError} from './kuryana.ts';
 import {tmdbDirectorCredits} from './tmdbPeople.ts';
 type Entry={data:any;at:number;expires:number;error?:string};
@@ -12,6 +12,15 @@ async function withTmdbDirectors(person:ReturnType<typeof personFromKuryana>,fet
  const credits=await tmdbDirectorCredits(person,{fetcher});
  if(!credits||!credits.length)return person;
  return {...person,filmographies:{...person.filmographies,director:credits},sections:{...person.sections,director:Math.max(1,person.sections.director)}};
+}
+// Poster from the title's MyDramaList page via Kuryana, remembered for a day.
+const posterMemo=new Map<string,{poster:string|null;expires:number}>();
+async function mdlPoster(url:string):Promise<string|null>{
+ const hit=posterMemo.get(url);if(hit&&hit.expires>Date.now())return hit.poster;
+ let poster:string|null=null;
+ try{const data=await kuryana('/v2/dramas/'+new URL(url).pathname.slice(1),{timeoutMs:6000});poster=remoteImage(data?.poster)}catch{}
+ posterMemo.set(url,{poster,expires:Date.now()+(poster?86400000:600000)});while(posterMemo.size>500)posterMemo.delete(posterMemo.keys().next().value!);
+ return poster;
 }
 export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,now=Date.now){
  let cache=new Map<string,Entry>(),ready:Promise<void>|undefined,saving=Promise.resolve();const pending=new Map<string,Promise<any>>();let active=0,windowAt=now(),requests=0;
@@ -56,7 +65,10 @@ export async function handlePeople(req:Request){
   const result=await service.person(raw);
   if(u.pathname==='/api/mdl/filmography-artwork'){
    const data=makeFilmography(result.data,mode as Mode);
-   const items=await Promise.all(data.items.slice(Number(offset),Number(offset)+5).map(item=>collections.artwork({...item,details:item.type+' - '+(item.year||'')})));
+   const matched=await Promise.all(data.items.slice(Number(offset),Number(offset)+5).map(item=>collections.artwork({...item,details:item.type+' - '+(item.year||'')})));
+   // Kuryana's credits carry no pictures, and TMDB cannot match every title (older Japanese
+   // specials in particular), so fall back to the title's own MyDramaList poster.
+   const items=await Promise.all(matched.map(async(item:any)=>{if(item.poster||!/^\d+$/.test(String(item.id)))return item;const poster=await mdlPoster(item.url);return poster?{...item,poster,posterSource:'MyDramaList'}:item}));
    return Response.json({items:items.map(({id,poster,posterSource})=>({id,poster,posterSource:posterSource||'MyDramaList'}))},{headers:{'cache-control':'no-store'}});
   }
   if(u.pathname==='/api/mdl/filmography')return Response.json({...makeFilmography(result.data,mode as Mode),person:personSummary(result.data),status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}});
