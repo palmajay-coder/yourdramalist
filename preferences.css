@@ -8,3 +8,5 @@
 .prefBadgeChoices[hidden]{display:none!important}
 @media(max-width:600px){.prefProviderUrlRow{flex-wrap:wrap}.prefProviderUrlRow input{flex-basis:100%}.prefProviderUrlRow .prefProviderConfig,.prefProviderUrlRow .prefVerifyButton{flex:1}.prefRatingsVerify{width:100%}}
 #prefRpdbPanel[hidden]{display:none!important}
+/* Provider fields sit directly under the style menu with the same gap every time. */
+.prefPosterStylePanels>div{margin-top:12px}
