@@ -31,26 +31,28 @@ export default {
     if (new URL(request.url).pathname === "/api/trakt-check") {
       if (!(await getOAuthUserData(request))) return new Response("Sign in to the admin page first.", { status: 401 });
       const key = (_env as any)?.TRAKT_CLIENT_ID || (globalThis as any).__TRAKT_KEY || "";
-      const titles = ["Our Sticky Love", "100 Days of Deception", "Tale of Two Sisters", "Bullet in the Head", "Long Vacation"];
+      // One title per visit, paced slowly: /api/trakt-check?title=Long%20Vacation&kind=show
+      const params = new URL(request.url).searchParams;
+      const title = params.get("title") || "Long Vacation";
+      const kind = params.get("kind") === "movie" ? "movie" : "show";
+      const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      const key = (_env as any)?.TRAKT_CLIENT_ID || "";
       // An honest User-Agent naming this app; Trakt refuses unidentified clients.
       const headers = { "content-type": "application/json", "trakt-api-version": "2", "trakt-api-key": key, "user-agent": "YourDramaList/1.1.3 (+https://yourdramalist.palmajay.workers.dev)" };
-      const out: any[] = [{ keyPresent: key.length > 0, keyLength: key.length, probeHeaders: Object.keys(headers) }];
-      for (const title of titles) {
-        for (const kind of ["show", "movie"]) {
-          const search = await fetch(`https://api.trakt.tv/search/${kind}?limit=3&query=` + encodeURIComponent(title), { headers });
-          const hits = search.ok ? await search.json() as any[] : [];
-          const item = hits[0]?.[kind];
-          const probes: any = {};
-          if (item?.ids?.slug) {
-            const base = kind === "show" ? "shows" : "movies";
-            for (const path of [`/${base}/${item.ids.slug}/lists/popular?limit=5`, `/${base}/${item.ids.slug}/lists?limit=5`]) {
-              const r = await fetch("https://api.trakt.tv" + path, { headers });
-              const body = await r.text();
-              probes[path] = { status: r.status, sample: body.slice(0, 300) };
-            }
-          }
-          const searchBody = search.ok ? "" : (await search.text()).slice(0, 200);
-          out.push({ title, kind, searchStatus: search.status, searchBody, candidates: hits.slice(0, 3).map((h: any) => ({ title: h[kind]?.title, year: h[kind]?.year, slug: h[kind]?.ids?.slug, trakt: h[kind]?.ids?.trakt, imdb: h[kind]?.ids?.imdb })), probes });
+      const out: any[] = [{ keyPresent: key.length > 0, keyLength: key.length, title, kind }];
+      const search = await fetch(`https://api.trakt.tv/search/${kind}?limit=3&query=` + encodeURIComponent(title), { headers });
+      const searchText = await search.text();
+      let hits: any[] = [];
+      try { hits = search.ok ? JSON.parse(searchText) : []; } catch { /* Reported below. */ }
+      const item = hits[0]?.[kind];
+      out.push({ step: "search", status: search.status, retryAfter: search.headers.get("retry-after"), body: search.ok ? "" : searchText.slice(0, 160), candidates: hits.slice(0, 3).map((h: any) => ({ title: h[kind]?.title, year: h[kind]?.year, slug: h[kind]?.ids?.slug, imdb: h[kind]?.ids?.imdb })) });
+      if (item?.ids?.slug) {
+        const base = kind === "show" ? "shows" : "movies";
+        for (const path of [`/${base}/${item.ids.slug}/lists/popular?limit=5`]) {
+          await pause(1500);
+          const r = await fetch("https://api.trakt.tv" + path, { headers });
+          const body = await r.text();
+          out.push({ step: "lists", path, status: r.status, retryAfter: r.headers.get("retry-after"), sample: body.slice(0, 500) });
         }
       }
       return Response.json(out, { headers: { "cache-control": "no-store" } });
