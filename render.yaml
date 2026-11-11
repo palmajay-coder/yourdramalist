@@ -1,25 +1,31 @@
 # Render Blueprint for YourDramaList (replaces Val Town hosting).
 # One web service runs YourDramaList and YDL-V2 together; see render/server.ts.
+#
+# TEST SETUP (free plan): checks that MyDramaList accepts requests from Render before paying.
+# Free services sleep when idle and have no persistent disk, so saved data is temporary.
+# For the real site, switch to the paid setup:
+#   plan: starter, and add back:
+#     disk:
+#       name: ydl-data
+#       mountPath: /var/data
+#       sizeGB: 1
+#   and set DATA_DIR to /var/data.
 services:
   - type: web
     name: yourdramalist
     runtime: node
-    plan: starter            # Paid plan: always on, and required for a persistent disk.
+    plan: free               # Test only. The real site needs starter (paid) for a persistent disk.
     region: ohio             # Close to where Val Town's servers answered from (Columbus).
     branch: migration/cloudflare
     autoDeploy: true
     buildCommand: cd render && npm ci && npm run build
     startCommand: cd render && npm start
     healthCheckPath: /privacy
-    disk:
-      name: ydl-data
-      mountPath: /var/data   # Saved data (blobs) and the SQLite database live here.
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
       - key: DATA_DIR
-        value: /var/data
+        value: /tmp/ydl-data   # Temporary on the free plan; /var/data on the paid disk.
       # Secrets: entered in the Render dashboard, never stored in this file.
       - key: TMDB_API_KEY
         sync: false
