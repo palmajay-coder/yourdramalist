@@ -1,8 +1,19 @@
 /** Browser installer embedded by app.ts; no network or DOM work runs on the server. */
 export function installPeopleUI(){
  let lastSearch=null,shelfState=null;
- function cleanup(){if(shelfState){shelfState.observer?.disconnect();shelfState.abort.abort();shelfState.dialog.remove();shelfState=null}}
- function sync(){if(!shelfState)return;const selected=state.selection.some(x=>x.url===shelfState.list.url);shelfState.add.setAttribute('aria-pressed',String(selected));shelfState.add.textContent=selected?copy.catalogAdded:copy.addFilmography;}
+ const compactButtons=new Map();
+ function cleanup(){compactButtons.clear();if(shelfState){shelfState.observer?.disconnect();shelfState.abort.abort();shelfState.dialog.remove();shelfState=null}}
+ function sync(){
+  for(const [url,button] of compactButtons){
+   const added=state.selection.some(item=>item.url===url);
+   button.textContent=added?copy.catalogAdded:copy.addFilmography;
+   button.setAttribute('aria-pressed',String(added));
+  }
+  if(!shelfState)return;
+  const selected=state.selection.some(x=>x.url===shelfState.list.url);
+  shelfState.add.setAttribute('aria-pressed',String(selected));
+  shelfState.add.textContent=selected?copy.catalogAdded:copy.addFilmography;
+ }
  const personApi=(url,mode)=>'/api/mdl/person?mode='+mode+'&url='+encodeURIComponent(url);
  async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(15000)});const data=await response.json();if(!response.ok)throw Error(data.error||'MyDramaList lookup failed.');return data;}
  function backButton(){if(!lastSearch)return;const back=document.createElement('button');back.type='button';back.className='secondary';back.textContent=copy.filmographyBack;back.onclick=()=>{listRequest++;renderMatches(lastSearch)};$('results').append(document.createTextNode(' '),back);}
@@ -45,12 +56,92 @@ export function installPeopleUI(){
   load(0);
  }
 
+ function compactPerson(person,mode){
+  const requestId=listRequest;
+  const url='ydl-filmography:'+mode+':'+person.id;
+  const name=person.displayName||person.name;
+  const card=document.createElement('article');
+  card.className='catalogShelf compactCatalogRow';
+  const head=document.createElement('div');
+  head.className='catalogShelfHead';
+  const {button:preview}=compactPreviewButton(name,[]);
+  if(person.poster){
+   const photo=document.createElement('img');
+   photo.className='compactPersonPhoto';
+   photo.alt='';
+   photo.src=person.poster;
+   photo.loading='lazy';
+   photo.decoding='async';
+   photo.referrerPolicy='no-referrer';
+   preview.prepend(photo);
+  }
+  const add=document.createElement('button');
+  add.type='button';
+  add.className='secondary catalogAdd';
+  add.setAttribute('aria-label',copy.selectFilmography+' '+name);
+  compactButtons.set(url,add);
+  const credits=document.createElement('div');
+  credits.className='compactPreview';
+  credits.hidden=true;
+  const status=document.createElement('p');
+  status.className='catalogShelfStatus';
+  status.setAttribute('role','status');
+  status.hidden=true;
+  head.append(preview,add);
+  card.append(head,status,credits);
+  let request;
+  function load(){
+   return request??=json('/api/mdl/filmography?mode='+mode+'&url='+encodeURIComponent(person.url))
+    .catch(error=>{request=undefined;throw error});
+  }
+  function showStatus(message){
+   status.textContent=message;
+   status.hidden=!message;
+  }
+  const empty=mode==='director'?'No directing credits found.':'No acting credits found.';
+  add.onclick=async()=>{
+   const selected=state.selection.find(item=>item.url===url);
+   if(selected){toggleList(selected);return}
+   add.disabled=true;
+   showStatus(copy.loadingLists);
+   try{
+    const data=await load();
+    if(requestId!==listRequest||!card.isConnected)return;
+    if(!data.sectionFound||!data.items.length){showStatus(empty);return}
+    toggleList({...data.list,posters:[],analyticsSource:mode==='director'?'discover-director-filmography':'discover-actor-filmography'});
+    showStatus('');
+   }catch{if(requestId===listRequest&&card.isConnected)showStatus(copy.popularUnavailable)}
+   finally{add.disabled=false}
+  };
+  preview.onclick=async()=>{
+   credits.hidden=!credits.hidden;
+   preview.setAttribute('aria-expanded',String(!credits.hidden));
+   if(credits.hidden)return;
+   credits.textContent=copy.loadingLists;
+   try{
+    const data=await load();
+    if(requestId!==listRequest||!card.isConnected||credits.hidden)return;
+    if(!data.items.length){credits.textContent=empty;return}
+    const list=document.createElement('ul');
+    list.className='compactPersonCredits';
+    for(const credit of data.items.slice(0,5)){
+     const item=document.createElement('li');
+     item.textContent=[credit.name,credit.year].filter(Boolean).join(' · ');
+     list.append(item);
+    }
+    credits.replaceChildren(list);
+   }catch{if(requestId===listRequest&&!credits.hidden)credits.textContent=copy.popularUnavailable}
+  };
+  return card;
+ }
+
  function renderMatches(data){
   cleanup();
   const requestId=listRequest,jobs=[];const mode=data.mode;
   $('listItems').replaceChildren();$('results').textContent=data.people.length?'':'No matching people found. Try another name.';
   if(data.warning)$('results').append(document.createTextNode(' · '+data.warning));
   for(const person of data.people){
+   if(compactAndroid){$('listItems').append(compactPerson(person,mode));continue}
    const card=document.createElement('article');card.className='dramaMatch personMatch';card.dataset.personId=person.id;
    const photo=document.createElement('img');photo.alt=person.name+' photo';photo.loading='lazy';photo.referrerPolicy='no-referrer';if(person.poster){photo.src=person.poster;card.append(photo)}
    const info=document.createElement('div');info.className='dramaMatchInfo';
@@ -64,7 +155,7 @@ export function installPeopleUI(){
    if(!person.enriched)jobs.push({person,apply,status});
   }
   let cursor=0;async function worker(){while(cursor<jobs.length){if(requestId!==listRequest)return;const job=jobs[cursor++];try{const result=await json(personApi(job.person.url,mode));if(requestId!==listRequest)return;job.person.enriched=true;job.apply(result.person,result.status==='stale'?'Showing saved MyDramaList details.':'')}catch{if(requestId===listRequest)job.status.textContent='Some person details are temporarily unavailable.'}}}
-  Promise.all([worker(),worker()]);
+  if(compactAndroid)sync();else Promise.all([worker(),worker()]);
   if(data.page>1||data.hasNextPage){const nav=document.createElement('nav');nav.className='searchPages';nav.setAttribute('aria-label','People search result pages');
    for(const step of [-1,1]){if(step===-1&&data.page===1||step===1&&!data.hasNextPage)continue;const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=step===-1?'Previous matches':'More matches';button.onclick=()=>search(data.query,data.page+step,mode);nav.append(button)}$('listItems').append(nav);}
  }

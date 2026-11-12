@@ -16,25 +16,97 @@ export function installExploreUI(){
   try{const response=await fetch('/api/mdl/drama-details?url='+encodeURIComponent(item.url),{signal:AbortSignal.timeout(15000)});const data=await response.json();if(request!==detailRequest||!dialog.open)return;if(!response.ok)throw Error();renderScore(score,data.score??item.score);renderSynopsis(synopsis,data.synopsis);if(data.popularity)pop.textContent=copy.catalogPopularity+' #'+data.popularity.toLocaleString();if(data.status==='unavailable'&&!data.synopsis)synopsis.textContent=copy.catalogDetailsUnavailable;}catch{if(request===detailRequest)synopsis.textContent=copy.catalogDetailsUnavailable}
  }
  let observer,renderId=0,countdown,selectedCountry=select.value;const buttons=new Map();let workers=0;const jobs=[];
- function sync(){for(const [url,button]of buttons){const on=state.selection.some(x=>x.url===url);button.textContent=on?copy.catalogAdded:copy.catalogAdd;button.setAttribute('aria-pressed',String(on))}}
+ function sync(){for(const [url,button]of buttons){const on=state.selection.some(x=>x.url===url);button.textContent=on?copy.catalogAdded:compactAndroid?copy.compactCatalogAdd:copy.catalogAdd;button.setAttribute('aria-pressed',String(on))}}
  function enqueue(job){jobs.push(job);pump()}
  function pump(){while(workers<2&&jobs.length){const job=jobs.shift();workers++;job().finally(()=>{workers--;pump()})}}
+ function compactShelf(c,parent){
+  const card=document.createElement('article');
+  card.className='catalogShelf compactCatalogRow';
+  const head=document.createElement('div');
+  head.className='catalogShelfHead';
+  const preview=compactPreviewButton(c.name,c.posters);
+  const add=document.createElement('button');
+  add.type='button';
+  add.className='secondary catalogAdd';
+  add.setAttribute('aria-label',copy.catalogSelect+' '+c.name);
+  add.onclick=()=>toggleList(c);
+  buttons.set(c.url,add);
+  const track=document.createElement('div');
+  track.className='compactPreview';
+  track.hidden=true;
+  head.append(preview.button,add);
+  card.append(head,track);
+  parent.append(card);
+  const row={card,track,loaded:false,onPreview:null,fill(items){
+   row.loaded=true;
+   track.replaceChildren();
+   c.posters=items.map(item=>item.poster).filter(Boolean).slice(0,3);
+   preview.showPosters(c.posters);
+   for(const item of items){
+    const title=document.createElement('button');
+    title.type='button';
+    title.className='compactTitle';
+    title.textContent=item.name;
+    title.onclick=()=>details(item);
+    track.append(title);
+   }
+   if(!items.length)track.textContent=copy.catalogEmpty;
+  }};
+  preview.button.onclick=()=>{
+   track.hidden=!track.hidden;
+   preview.button.setAttribute('aria-expanded',String(!track.hidden));
+   if(!track.hidden&&!row.loaded)row.onPreview?.();
+  };
+  return row;
+ }
  function shelf(c,parent){
+  if(compactAndroid)return compactShelf(c,parent);
   const card=document.createElement('article');card.className='catalogShelf';const head=document.createElement('div');head.className='catalogShelfHead';const info=document.createElement('div'),h=document.createElement('h3'),p=document.createElement('p');h.textContent=c.name;if(c.description){p.textContent=c.description;info.append(h,p)}else info.append(h);const actions=document.createElement('div');actions.className='catalogRowActions';const add=document.createElement('button');add.type='button';add.className='secondary catalogAdd';add.setAttribute('aria-label',copy.catalogSelect+' '+c.name);add.onclick=()=>toggleList(c);buttons.set(c.url,add);actions.append(add);head.append(info,actions);const track=document.createElement('div');track.className='catalogShelfTrack';track.setAttribute('aria-label',c.name);card.append(head,track);parent.append(card);
   function fill(items){track.replaceChildren();for(const item of items){const button=document.createElement('button');button.type='button';button.className='catalogPoster';button.setAttribute('aria-label',copy.catalogTitlePreview+': '+item.name);if(item.poster){const img=document.createElement('img');img.src=item.poster;img.alt=item.name;img.loading='lazy';img.referrerPolicy='no-referrer';button.append(img)}const title=document.createElement('strong');title.textContent=item.name;const year=document.createElement('small');year.textContent=item.date?.slice(0,4)||item.details?.match(/\b(?:19|20)\d{2}\b/)?.[0]||'';button.append(title,year);button.onclick=()=>details(item);track.append(button)}c.posters=items.map(x=>x.poster).filter(Boolean).slice(0,5);const selected=state.selection.find(x=>x.url===c.url);if(selected){Object.assign(selected,{posters:c.posters,name:c.name,description:c.description});renderSelection()}if(items.length>5&&!actions.querySelector('.catalogArrow'))for(const [text,amount]of [['‹',-1],['›',1]]){const b=document.createElement('button');b.type='button';b.className='secondary catalogArrow';b.textContent=text;b.setAttribute('aria-label',amount<0?copy.catalogPrevious:copy.catalogNext);b.onclick=()=>track.scrollBy({left:amount*track.clientWidth,behavior:'smooth'});actions.insertBefore(b,add)}if(!items.length){const empty=document.createElement('p');empty.className='catalogShelfStatus';empty.textContent=copy.catalogEmpty;track.append(empty)}}
   return{card,track,fill};
  }
- function skeleton(track){track.innerHTML='<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>'}
+ function skeleton(track){if(compactAndroid){track.textContent=copy.loadingLists;return}track.innerHTML='<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>'}
  function render(){
   if(state.tab!=='discover'||state.filter!=='catalogs')return;const id=++renderId,request=++listRequest;selectedCountry=select.value;try{localStorage.setItem('ydl-catalog-country',select.value);localStorage.setItem('ydl-catalog-sort',sortSelect.value)}catch{}
   observer?.disconnect();clearInterval(countdown);jobs.length=0;buttons.clear();$('results').replaceChildren();$('listItems').replaceChildren();
-  const weekly=document.createElement('section'),heading=document.createElement('h2');heading.className='catalogSectionTitle';heading.textContent=copy.weeklyTitle;const note=document.createElement('div');note.className='catalogSectionNote';const caption=document.createElement('span');caption.textContent=copy.weeklyDescription;const clock=document.createElement('span');clock.className='collectionClock';note.append(caption,clock);weekly.append(heading,note);$('listItems').append(weekly);
+  const weekly=document.createElement('section'),heading=document.createElement('h2');heading.className='catalogSectionTitle';heading.textContent=copy.weeklyTitle;const note=document.createElement('div');note.className='catalogSectionNote';const caption=document.createElement('span');caption.textContent=copy.weeklyDescription;const clock=document.createElement('span');clock.className='collectionClock';note.append(caption,clock);weekly.append(heading);if(!compactAndroid)weekly.append(note);$('listItems').append(weekly);
   const weeklyRows=document.createElement('div');weekly.append(weeklyRows);skeleton(weeklyRows);
   function weeklyLoad(){enqueue(async()=>{if(id!==renderId||request!==listRequest)return;try{const response=await fetch('/api/catalogs/weekly?country='+selectedCountry,{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId||request!==listRequest)return;if(!response.ok||!Array.isArray(data.collections)||!Number.isFinite(Date.parse(data.nextRefresh)))throw Error();weeklyRows.replaceChildren();for(const collection of data.collections||[]){const row=shelf(collection.catalog,weeklyRows);row.fill(collection.items)}if(data.warning){const warning=document.createElement('p');warning.className='catalogShelfStatus';warning.textContent=copy.weeklySaved;weeklyRows.prepend(warning)}function tick(){const remaining=Math.max(0,Date.parse(data.nextRefresh)-Date.now());if(!remaining){clock.textContent=copy.weeklyRefreshing;clearInterval(countdown);if(data.status!=='stale')render();return}const hours=Math.floor(remaining/3600000);clock.textContent='◷ '+Math.floor(hours/24)+'d '+hours%24+'h';clock.title=copy.weeklyRefreshTimezone}tick();countdown=setInterval(tick,60000);sync()}catch{if(id!==renderId||request!==listRequest)return;weeklyRows.replaceChildren();const message=document.createElement('p');message.className='catalogShelfStatus';message.textContent=copy.weeklyUnavailable;const retry=document.createElement('button');retry.type='button';retry.className='secondary catalogRetry';retry.textContent=copy.catalogRetry;retry.onclick=()=>{retry.disabled=true;weeklyLoad()};weeklyRows.append(message,retry);clock.hidden=true}})}weeklyLoad();
-  const more=document.createElement('section');more.className='catalogMore';const moreHeading=document.createElement('h2');moreHeading.className='catalogSectionTitle';moreHeading.textContent=copy.catalogMore;const moreNote=document.createElement('div');moreNote.className='catalogSectionNote';const moreCaption=document.createElement('span');moreCaption.textContent=copy.catalogMoreNote;moreNote.append(moreCaption,sortLabel,sortSelect);more.append(moreHeading,moreNote);$('listItems').append(more);
-  const loadRow=(row,c)=>enqueue(async()=>{if(id!==renderId||request!==listRequest)return;skeleton(row.track);try{const response=await fetch('/api/catalogs/shelf?category='+c.category+'&country='+c.country+(sortSelect.value?'&sort='+sortSelect.value:''),{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId||request!==listRequest)return;if(!response.ok)throw Error();row.fill(data.items||[]);if(data.warning){const p=document.createElement('p');p.className='catalogShelfStatus';p.textContent=copy.catalogSaved;row.card.append(p)}}catch{if(id!==renderId||request!==listRequest)return;row.track.replaceChildren();const p=document.createElement('p');p.className='catalogShelfStatus';p.textContent=copy.catalogUnavailable;const retry=document.createElement('button');retry.type='button';retry.className='secondary catalogRetry';retry.textContent=copy.catalogRetry;retry.onclick=()=>loadRow(row,c);row.track.append(p,retry)}});
-  const targets=new Map();for(const k of exploreCategories){const c=exploreCatalog(k[0],select.value);if(sortSelect.value){const f={sort:sortSelect.value};c.url+='?ydlf='+shelfFilterKey(f);c.filter=f;c.filterLabel=''}const row=shelf(c,more);targets.set(row.card,()=>loadRow(row,c));skeleton(row.track)}
-  if(typeof IntersectionObserver!=='undefined'){observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){observer.unobserve(entry.target);targets.get(entry.target)?.()}},{rootMargin:'200px'});for(const card of targets.keys())observer.observe(card)}else{for(const fn of targets.values())fn()}
+  const more=document.createElement('section');more.className='catalogMore';const moreHeading=document.createElement('h2');moreHeading.className='catalogSectionTitle';moreHeading.textContent=copy.catalogMore;const moreNote=document.createElement('div');moreNote.className='catalogSectionNote';const moreCaption=document.createElement('span');moreCaption.textContent=copy.catalogMoreNote;if(!compactAndroid)moreNote.append(moreCaption);moreNote.append(sortLabel,sortSelect);more.append(moreHeading,moreNote);$('listItems').append(more);
+  function loadRow(row,c){
+   if(row.loading||row.loaded)return;
+   row.loading=true;
+   enqueue(async()=>{
+    try{
+     if(id!==renderId||request!==listRequest)return;
+     skeleton(row.track);
+     const response=await fetch('/api/catalogs/shelf?category='+c.category+'&country='+c.country+(sortSelect.value?'&sort='+sortSelect.value:''),{signal:AbortSignal.timeout(45000)});
+     const data=await response.json();
+     if(id!==renderId||request!==listRequest)return;
+     if(!response.ok)throw Error();
+     row.fill(data.items||[]);
+     if(data.warning){const warning=document.createElement('p');warning.className='catalogShelfStatus';warning.textContent=copy.catalogSaved;row.card.append(warning)}
+    }catch{
+     if(id!==renderId||request!==listRequest)return;
+     row.track.replaceChildren();
+     const message=document.createElement('p');message.className='catalogShelfStatus';message.textContent=copy.catalogUnavailable;
+     const retry=document.createElement('button');retry.type='button';retry.className='secondary catalogRetry';retry.textContent=copy.catalogRetry;retry.onclick=()=>loadRow(row,c);
+     row.track.append(message,retry);
+    }finally{row.loading=false}
+   });
+  }
+  const targets=new Map();
+  for(const k of exploreCategories){
+   const c=exploreCatalog(k[0],select.value);
+   if(sortSelect.value){const f={sort:sortSelect.value};c.url+='?ydlf='+shelfFilterKey(f);c.filter=f;c.filterLabel=''}
+   const row=shelf(c,more);
+   if(compactAndroid)row.onPreview=()=>loadRow(row,c);
+   else {targets.set(row.card,()=>loadRow(row,c));skeleton(row.track)}
+  }
+  if(!compactAndroid){
+   if(typeof IntersectionObserver!=='undefined'){observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){observer.unobserve(entry.target);targets.get(entry.target)?.()}},{rootMargin:'200px'});for(const card of targets.keys())observer.observe(card)}
+   else for(const fn of targets.values())fn();
+  }
   const credit=document.createElement('p');credit.className='catalogArtworkCredit';credit.textContent=copy.catalogArtworkCredit;more.append(credit);sync();requestAnimationFrame(alignSelection);
  }
  select.onchange=render;sortSelect.onchange=render;return{render,sync};

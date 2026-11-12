@@ -89,6 +89,43 @@ const page = `<!doctype html>
 </main><footer><span id="landingFooter">${TEXT.footer}</span><span id="buildFooter"><a href="https://github.com/palmajay-coder/yourdramalist" target="_blank" rel="noopener noreferrer">Valtown public build</a> · v${APP_VERSION} · <a href="/privacy">Privacy</a></span><section class="tmdbAttribution" id="tmdb-attribution" aria-label="TMDB Attribution Notice"><strong>TMDB Attribution Notice</strong><div class="tmdbAttributionContent"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div></section></footer>
 <script>
 const copy = ${JSON.stringify(TEXT)};
+// The test APK loads this host in Android WebView. Phone browsers keep the web layout.
+const compactAndroid=location.hostname==='yourdramalist-mobile-test.palmajay.workers.dev'
+ && navigator.userAgent.includes('Android') && navigator.userAgent.includes('; wv');
+function compactPosterStack(){
+ const stack=document.createElement('span');
+ stack.className='compactPosterStack';
+ stack.setAttribute('aria-hidden','true');
+ let previous='';
+ return {element:stack,show(posters){
+  const urls=[...new Set(posters.filter(Boolean))].slice(0,3);
+  const signature=JSON.stringify(urls);
+  if(previous===signature)return;
+  previous=signature;
+  stack.replaceChildren(...urls.map(url=>{
+   const image=document.createElement('img');
+   image.src=url.replace(/^https:\\/\\/image\\.tmdb\\.org\\/t\\/p\\/(?:w\\d+|original)\\//,'https://image.tmdb.org/t/p/w92/');
+   image.alt='';
+   image.addEventListener('error',()=>image.remove(),{once:true});
+   image.loading='lazy';
+   image.decoding='async';
+   image.referrerPolicy='no-referrer';
+   return image;
+  }));
+ }};
+}
+function compactPreviewButton(name,posters){
+ const button=document.createElement('button');
+ button.type='button';
+ button.className='compactPreviewButton';
+ button.setAttribute('aria-expanded','false');
+ const stack=compactPosterStack();
+ const label=document.createElement('span');
+ label.textContent=name;
+ button.append(stack.element,label);
+ stack.show(posters||[]);
+ return {button,showPosters:stack.show};
+}
 const MAX_CATALOGS = ${MAX_CATALOGS};
 const notices=(${installFloatingNotice.toString()})(copy);
 const $=id=>document.getElementById(id);const seasonThemes={fall:{bar:'#713b2d',accent:'#d79455',buttonText:'#281b18',linkDark:'#efad6e',linkLight:'#854a21',tabDark:'#3b2a24',tabLight:'#f4e8de',bannerTint:'40,27,24'},winter:{bar:'#31515a',accent:'#b6dde4',buttonText:'#18323a',linkDark:'#b8e6ec',linkLight:'#205d69',tabDark:'#25383d',tabLight:'#e7f2f3',bannerTint:'26,43,49'},spring:{bar:'#49634b',accent:'#a6c879',buttonText:'#24321f',linkDark:'#bddc91',linkLight:'#496b32',tabDark:'#2a3b2c',tabLight:'#e8f0e1',bannerTint:'34,47,34'},summer:{bar:'#145e58',accent:'#f1bc60',buttonText:'#362714',linkDark:'#f3c768',linkLight:'#80520b',tabDark:'#233e3b',tabLight:'#e6f1e8',bannerTint:'18,43,39'}};

@@ -31,7 +31,7 @@ export function installCommunityShelves(){
  function pump(){while(workers<2&&jobs.length){const job=jobs.shift();workers++;Promise.resolve().then(job).catch(()=>{}).finally(()=>{workers--;pump()})}}
  function skeleton(track){track.innerHTML='<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>'}
  function decode(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value}
- function refresh(){for(const r of rows)if(r.items)r.paint();renderPanel()}
+ function refresh(){for(const r of rows){if(r.items)r.paint();else r.paintThumbnails?.()}renderPanel()}
  async function loadFacts(row,subset){
   // Genres and posters come from TMDB in batches of 40, two at a time; shelves and filter choices update as they arrive.
   // Titles a batch could not finish in time are asked for again, so the filter covers the whole list.
@@ -66,7 +66,7 @@ export function installCommunityShelves(){
  toggle.onclick=()=>{panelOpen=!panelOpen;panel.hidden=!panelOpen;toggle.setAttribute('aria-expanded',String(panelOpen));if(panelOpen){renderPanel();ensureGenres()}};
  clear.onclick=()=>{drafts[viewKey]=null;update()};
  // Opening the panel loads genres so the genre choices can appear.
- function ensureGenres(){for(const r of rows)if(r.items&&filterable(r))loadFacts(r)}
+ function ensureGenres(){for(const r of rows)if(filterable(r)){if(r.items)loadFacts(r);else if(compactAndroid)r.load()}}
  function choiceGroup(label,values,selected,onToggle){
   const group=node('div','shelfChoiceGroup');group.setAttribute('role','group');group.setAttribute('aria-label',label);
   for(const [value,text] of values){const b=node('button','shelfChip',text);b.type='button';b.setAttribute('aria-pressed',String(selected.includes(value)));b.onclick=()=>onToggle(value);group.append(b)}
@@ -74,7 +74,7 @@ export function installCommunityShelves(){
  }
  function field(label,control){const wrap=node('label','shelfField');wrap.append(node('span',null,label),control);return wrap}
  function select(options,value,onChange){const s=document.createElement('select');for(const [v,t] of options){const o=node('option',null,t);o.value=v;if(String(v)===String(value??''))o.setAttribute('selected','');s.append(o)}s.onchange=()=>onChange(s.value);return s}
- function update(){filter=normalizeShelfFilter(draft());for(const r of rows){r.card.hidden=!!filter&&!filterable(r);if(r.items)r.paint();r.sync()}renderBar();ensureFacts()}
+ function update(){filter=normalizeShelfFilter(draft());for(const r of rows){r.card.hidden=!!filter&&!filterable(r);if(r.items)r.paint();r.sync()}renderBar();ensureFacts();if(compactAndroid&&filter)for(const r of rows)if(filterable(r)&&!r.items)r.load()}
  function renderBar(){
   const label=filter?shelfFilterLabel(filter):'';
   summary.textContent=label?fill(copy.shelfFiltering,{label}):'';clear.hidden=!filter;
@@ -107,15 +107,42 @@ export function installCommunityShelves(){
  function shelf(l,parent){
   const row={list:l,items:null};rows.push(row);
   const card=node('article','catalogShelf communityShelf'),head=node('div','catalogShelfHead'),info=node('div');row.card=card;
-  const description=decode(l.description);const stats=[];
-  if(typeof l.count==='number')stats.push('▣ '+l.count+' titles');if(typeof l.loves==='number')stats.push('♡ '+l.loves+' loves');if(typeof l.comments==='number')stats.push('▤ '+l.comments+' comments');
-  info.append(node('h3',null,userListName(l)||copy.untitledList));
-  if(description)info.append(node('p',null,description));
-  if(stats.length)info.append(node('p','shelfStats',stats.join(' · ')));
+  const title=userListName(l)||copy.untitledList;
+  const preview=compactAndroid?compactPreviewButton(title,l.posters):null;
+  const count=node('p','shelfStats');
+  function showCount(total){
+   count.hidden=typeof total!=='number';
+   count.textContent=count.hidden?'':copy.filmographyTitles.replace('{count}',String(total));
+  }
+  if(preview){
+   card.classList.add('compactCatalogRow');
+   showCount(l.count);
+   info.append(preview.button,count);
+  }else{
+   const description=decode(l.description),stats=[];
+   if(typeof l.count==='number')stats.push('▣ '+l.count+' titles');if(typeof l.loves==='number')stats.push('♡ '+l.loves+' loves');if(typeof l.comments==='number')stats.push('▤ '+l.comments+' comments');
+   info.append(node('h3',null,title));
+   if(description)info.append(node('p',null,description));
+   if(stats.length)info.append(node('p','shelfStats',stats.join(' · ')));
+  }
   const actions=node('div','catalogRowActions'),add=node('button','secondary catalogAdd');add.type='button';
   actions.append(add);head.append(info,actions);
   const status=node('p','shelfStatus');const track=node('div','catalogShelfTrack');track.setAttribute('aria-label',userListName(l)||copy.untitledList);
   card.append(head,status,track);parent.append(card);card.hidden=!!filter&&!filterable(row);
+  if(preview){
+   track.className='compactPreview';
+   track.hidden=true;
+   preview.button.onclick=()=>{
+    track.hidden=!track.hidden;
+    preview.button.setAttribute('aria-expanded',String(!track.hidden));
+    if(!track.hidden){if(row.items)row.paint();else row.load()}
+   };
+   row.paintThumbnails=()=>{
+    const items=row.shown||row.sample||[];
+    const posters=items.map(posterOf).filter(Boolean);
+    preview.showPosters(posters.length||rowFilter()?posters:(l.posters||[]));
+   };
+  }
   const rowFilter=()=>filterable(row)?filter:null;
   row.url=()=>rowFilter()?l.url+(l.url.includes('?')?'&':'?')+'ydlf='+shelfFilterKey(rowFilter()):l.url;
   row.selectionItem=()=>{
@@ -127,11 +154,25 @@ export function installCommunityShelves(){
   };
   row.factsPending=()=>!!rowFilter()&&shelfNeedsFacts(rowFilter(),row.items||[])&&(row.items||[]).some(x=>!facts.has(x.slug))&&!failedRows.has(row);
   add.onclick=()=>{if(rowFilter()&&row.items&&!row.shown?.length&&!row.factsPending()){notices.show(copy.shelfNoMatches);return}toggleList(row.selectionItem())};
-  row.sync=()=>{const on=state.selection.some(x=>x.url===row.url());add.textContent=on?copy.catalogAdded:copy.catalogAdd;add.setAttribute('aria-pressed',String(on));add.setAttribute('aria-label',(on?copy.catalogAdded:copy.catalogSelect)+' '+userListName(row.selectionItem()))};
+  row.sync=()=>{const on=state.selection.some(x=>x.url===row.url());add.textContent=on?copy.catalogAdded:compactAndroid?copy.compactCatalogAdd:copy.catalogAdd;add.setAttribute('aria-pressed',String(on));add.setAttribute('aria-label',(on?copy.catalogAdded:copy.catalogSelect)+' '+userListName(row.selectionItem()))};
   row.paint=()=>{
    if(!row.items)return;
    const f=rowFilter();
    row.shown=applyShelfFilter(row.items,f,Object.fromEntries(facts));
+   if(preview){
+    row.paintThumbnails();
+    row.sync();
+    if(track.hidden)return;
+    track.replaceChildren();
+    for(const item of (f?row.shown:row.shown.slice(0,60))){
+     const button=node('button','compactTitle',item.title);
+     button.type='button';
+     button.onclick=()=>details(item);
+     track.append(button);
+    }
+    if(!row.shown.length)track.append(node('p','catalogShelfStatus',row.factsPending()?copy.loadingLists:row.items.length?copy.shelfNoMatches:copy.shelfEmpty));
+    return;
+   }
    track.replaceChildren();
    // Unfiltered shelves show a sample; a filter shows every match.
    for(const item of (f?row.shown:row.shown.slice(0,60))){
@@ -146,19 +187,56 @@ export function installCommunityShelves(){
    status.textContent=f?fill(copy.shelfShowing,{shown:row.shown.length,total:row.items.length})+(row.factsPending()?' · '+fill(copy.shelfGenresLoading,{done:row.items.filter(x=>facts.has(x.slug)).length,total:row.items.length}):'')+' · '+fill(copy.shelfAddsAs,{name:userListName(row.selectionItem())}):'';
    row.sync();
   };
-  row.load=()=>enqueue(async()=>{
-   const id=renderId;if(l.empty){track.replaceChildren(node('p','catalogShelfStatus',copy.shelfEmpty));return}
-   skeleton(track);
-   try{
-    const response=await fetch('/api/mdl/shelf?url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(45000)});const data=await response.json();if(id!==renderId)return;if(!response.ok)throw Error(data.error);
-    row.items=data.items||[];row.paint();renderPanel();
-    const bare=row.items.slice(0,60).filter(x=>!x.poster);if(bare.length)loadFacts(row,bare);
-    if(filterable(row)&&(panelOpen||filter&&shelfNeedsFacts(filter,row.items)))loadFacts(row);
-   }
-   catch(e){if(id!==renderId)return;track.replaceChildren();const p=node('p','catalogShelfStatus',(e&&e.message)||copy.shelfUnavailable);const retry=node('button','secondary catalogRetry',copy.catalogRetry);retry.type='button';retry.onclick=()=>row.load();track.append(p,retry)}
-  });
+  row.load=()=>{
+   if(row.loading||row.items)return;
+   row.loading=true;
+   const id=renderId;
+   enqueue(async()=>{
+    try{
+     if(id!==renderId||!card.isConnected)return;
+     if(l.empty){track.replaceChildren(node('p','catalogShelfStatus',copy.shelfEmpty));return}
+     if(preview)track.replaceChildren(node('p','catalogShelfStatus',copy.loadingLists));
+     else skeleton(track);
+     const response=await fetch('/api/mdl/shelf?url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(45000)});
+     const data=await response.json();
+     if(id!==renderId||!card.isConnected)return;
+     if(!response.ok)throw Error(data.error);
+     row.items=data.items||[];
+     if(preview)showCount(data.total);
+     row.paint();renderPanel();
+     if(!preview){
+      const bare=row.items.slice(0,60).filter(x=>!x.poster);
+      if(bare.length)loadFacts(row,bare);
+     }
+     if(filterable(row)&&(panelOpen||filter&&shelfNeedsFacts(filter,row.items)))loadFacts(row);
+    }catch(e){
+     if(id!==renderId||!card.isConnected)return;
+     track.replaceChildren();
+     const p=node('p','catalogShelfStatus',(e&&e.message)||copy.shelfUnavailable),retry=node('button','secondary catalogRetry',copy.catalogRetry);
+     retry.type='button';retry.onclick=()=>row.load();track.append(p,retry);
+    }finally{row.loading=false}
+   });
+  };
+  row.loadThumbnails=()=>{
+   if(l.empty||l.posters?.length)return;
+   const id=renderId;
+   enqueue(async()=>{
+    if(id!==renderId||!card.isConnected)return;
+    try{
+     const response=await fetch('/api/mdl/shelf?preview=1&url='+encodeURIComponent(l.url),{signal:AbortSignal.timeout(15000)});
+     if(!response.ok)return;
+     const data=await response.json();
+     if(id!==renderId||!card.isConnected)return;
+     row.sample=(data.items||[]).slice(0,3);
+     showCount(data.total);
+     row.paintThumbnails();
+     const missing=row.sample.filter(item=>!item.poster);
+     if(missing.length)loadFacts(row,missing);
+    }catch{/* The catalog remains usable if its thumbnail is unavailable. */}
+   });
+  };
   if(l.empty)add.disabled=true;
-  row.sync();skeleton(track);
+  row.sync();if(!preview)skeleton(track);
   return{card,row};
  }
  function render(lists,key){
@@ -168,8 +246,8 @@ export function installCommunityShelves(){
   const targets=new Map();
   for(const l of lists){if(l.unavailable||!l.url)continue;const {card,row}=shelf(l,parent);targets.set(card,row)}
   renderBar();
-  if(typeof IntersectionObserver!=='undefined'){observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){observer.unobserve(entry.target);targets.get(entry.target)?.load()}},{rootMargin:'200px'});for(const card of targets.keys())observer.observe(card)}
-  else for(const row of targets.values())row.load();
+  if(typeof IntersectionObserver!=='undefined'){observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){observer.unobserve(entry.target);(compactAndroid?targets.get(entry.target)?.loadThumbnails:targets.get(entry.target)?.load)?.()}},{rootMargin:'200px'});for(const card of targets.keys())observer.observe(card)}
+  else if(!compactAndroid)for(const row of targets.values())row.load();
  }
  function sync(){for(const row of rows)row.sync()}
  // What Select all adds: every shelf on screen, with the current filter.

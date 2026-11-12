@@ -14,6 +14,7 @@ export const TEXT = {
   catalogMore: "K-Drama & Beyond",
   catalogMoreNote: "Top rated, popular and upcoming dramas and films from across Asia",
   catalogAdd: "+ Add catalog",
+  compactCatalogAdd: "Add",
   catalogAdded: "✓ Added",
   catalogSelect: "Select catalog",
   catalogTitlePreview: "Title preview",
