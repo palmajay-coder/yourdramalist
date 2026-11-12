@@ -1,6 +1,6 @@
 /** Filter rules shared by the setup page preview and the Nuvio catalog, so both show the same titles.
  * Every function here is self-contained: app.ts injects them into the browser with toString(). */
-export type ShelfFilter = {type?: "drama" | "movie"; countries?: string[]; from?: number; to?: number; genres?: string[]; sort?: "newest" | "oldest" | "az" | "added"};
+export type ShelfFilter = {type?: "drama" | "movie"; countries?: string[]; from?: number; to?: number; genres?: string[]; sort?: "newest" | "oldest" | "az" | "added" | "rating"};
 export type TitleFacts = {genres?: string[]; country?: string};
 
 export const FILTER_COUNTRIES: [string, string][] = [["KR", "South Korea"], ["CN", "China"], ["JP", "Japan"], ["TW", "Taiwan"], ["TH", "Thailand"], ["HK", "Hong Kong"], ["PH", "Philippines"], ["OTHER", "Other"]];
@@ -39,7 +39,7 @@ export function normalizeShelfFilter(raw: any): ShelfFilter | null {
   if (from && to && from > to) [from, to] = [to, from];
   if (from) out.from = from;
   if (to) out.to = to;
-  if (raw.sort === "newest" || raw.sort === "oldest" || raw.sort === "az" || raw.sort === "added") out.sort = raw.sort;
+  if (raw.sort === "newest" || raw.sort === "oldest" || raw.sort === "az" || raw.sort === "added" || raw.sort === "rating") out.sort = raw.sort;
   return Object.keys(out).length ? out : null;
 }
 
@@ -77,6 +77,7 @@ export function applyShelfFilter(items: any[], filter: any, facts: Record<string
   if (filter.sort === "newest") out = [...out].sort((a, b) => (year(b) || 0) - (year(a) || 0));
   else if (filter.sort === "oldest") out = [...out].sort((a, b) => (year(a) || 9999) - (year(b) || 9999));
   else if (filter.sort === "added") { if (out.some((item) => item.added)) out = [...out].sort((a, b) => (Number(b.added) || 0) - (Number(a.added) || 0)); }
+  else if (filter.sort === "rating") out = [...out].sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0) || String(a.title || a.name || "").localeCompare(String(b.title || b.name || "")));
   else if (filter.sort === "az") out = [...out].sort((a, b) => String(a.title || a.name || "").localeCompare(String(b.title || b.name || "")));
   return out;
 }

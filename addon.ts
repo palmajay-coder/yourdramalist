@@ -3,7 +3,7 @@ import {normalizeTitle,weeklyCatalog} from './collections.ts';
 import {collections} from './collectionService.ts';
 import {exploreCatalog} from './explore.ts';
 import {personUrl} from './people.ts';
-import {tmdbExploreItems} from './tmdbExplore.ts';
+import {tmdbExploreItems,sortExploreItems} from './tmdbExplore.ts';
 import {tmdbPersonLocalizedName} from './tmdbPeople.ts';
 import {handlePeople} from './peopleApi.ts';
 import {loadWatchlist,loadWatchlistCategory,loadMDLTitlePoster,WATCHLIST_CARDS} from './addonScrape.ts';
@@ -39,7 +39,7 @@ export function normalizeAddon(body:any){
  const entries:Entry[]=body.catalogs.map((item:any)=>{
   const name=String(item.name||'').trim().slice(0,180);if(!name)throw new InvalidConfig('catalog-entry');
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
-  if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return{id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}};}
+  if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return withFilter({id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}},item.filter);}
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
   const source=String(item.url||'');let id='';
   if(/^d\.[1-5]\.[a-zA-Z0-9_-]{1,60}$/.test(source))id=source;
@@ -106,8 +106,11 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.explore){
-  const items=await ((deps as any).exploreItems??tmdbExploreItems)(entry.explore.category,entry.explore.country,skip+NUVIO_PAGE);
-  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
+  const sort=(entry as any).filter?.sort;
+  const pool=await ((deps as any).exploreItems??tmdbExploreItems)(entry.explore.category,entry.explore.country,sort?100:skip+NUVIO_PAGE);
+  // Sort the whole pool, then look up IDs only for the titles on this page.
+  const items=sort?sortExploreItems(pool,sort).slice(skip,skip+NUVIO_PAGE):pool;
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=(sort?metas:metas.slice(skip,skip+NUVIO_PAGE)).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  let pool:any[];

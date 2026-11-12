@@ -1,6 +1,8 @@
 import {blob} from "https://esm.town/v/std/blob/main.ts";
 import {COLLECTION_COUNTRIES,weekWindow,weeklyCatalog,posterUrl,matchArtwork,normalizeTitle} from "./collections.ts";
 import {createExploreService} from "./exploreApi.ts";
+import {tmdbExploreItems,sortExploreItems} from "./tmdbExplore.ts";
+import {normalizeShelfFilter} from "./shelfFilters.ts";
 
 type Storage={load:()=>Promise<any>;save:(value:any)=>Promise<any>};
 export function createCollectionService(storage:Storage|undefined,keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now){
@@ -125,7 +127,8 @@ export async function handleCollections(req:Request){
   const category=u.searchParams.get("category")||"";
   // Validate before upstream work. No user-supplied URL or title reaches TMDB.
   const {exploreCatalog}=await import("./explore.ts");try{exploreCatalog(category,country)}catch{return Response.json({error:"Choose a catalog."},{status:400})}
-  const data=await explore(category,country,1),items=await Promise.all(data.items.slice(0,5).map(row=>collections.artwork(row,country)));
+  const sort=normalizeShelfFilter({sort:u.searchParams.get("sort")})?.sort;
+  const data=sort?{items:sortExploreItems(await tmdbExploreItems(category,country,100),sort)}:await explore(category,country,1),items=await Promise.all(data.items.slice(0,5).map(row=>collections.artwork(row,country)));
   return Response.json({...data,items},{headers:{"cache-control":"no-store"}});
  }catch{return Response.json({error:"Catalogs are temporarily unavailable. Please try again shortly."},{status:502,headers:{"cache-control":"no-store"}})}
 }

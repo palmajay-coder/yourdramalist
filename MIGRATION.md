@@ -23,6 +23,7 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 - Drama search, actor and director filmographies (from TMDB), watchlists by username, custom lists by pasted link, drama details, and reviews in Nuvio.
 - Discover catalogs by country, built from TMDB, with localized names.
 - The featured banner and This Week's Picks.
+- A Sort by menu on the Discover country catalogs (Default order, Newest, Oldest, Highest rated, A to Z), also saved into the install link.
 - Preferences, including poster styles, provider keys, and TMDB language.
 - Admin pages, with an owner password login.
 - Add-on manifest with CORS headers, so Nuvio can read it from a browser.

@@ -3,6 +3,7 @@
 // catalog is a TMDB "discover" query. Rankings follow TMDB's audience and will differ from
 // MyDramaList's. Catalog ids and categories are unchanged, so existing install links keep working.
 import { COLLECTION_COUNTRIES, posterUrl } from "./collections.ts";
+import { applyShelfFilter, normalizeShelfFilter } from "./shelfFilters.ts";
 
 const TMDB = "https://api.themoviedb.org/3";
 const ASIAN_COUNTRIES = Object.values(COLLECTION_COUNTRIES).join("|"); // KR|CN|JP|TW|TH
@@ -69,11 +70,28 @@ export async function tmdbExplorePage(
 }
 
 // Several pages at once, for the Nuvio catalog (20 titles a page, five pages at most).
+// The result is kept for 30 minutes so the site preview and Nuvio paging do not refetch every page.
+const poolMemo = new Map<string, { items: ExploreItem[]; expires: number }>();
 export async function tmdbExploreItems(category: string, country: string, count: number, deps = {}): Promise<ExploreItem[]> {
   const pages = Math.min(5, Math.max(1, Math.ceil(count / 20)));
+  const memo = `${category}|${country}`, hit = poolMemo.get(memo);
+  if (hit && hit.expires > Date.now() && hit.items.length >= Math.min(count, 20 * pages)) return hit.items;
   const results = await Promise.all(Array.from({ length: pages }, (_, i) => tmdbExplorePage(category, country, i + 1, deps).catch(() => ({ items: [] as ExploreItem[] }))));
   const seen = new Set<number>();
-  return results.flatMap((r) => r.items).filter((item) => !seen.has(item.id) && seen.add(item.id));
+  const items = results.flatMap((r) => r.items).filter((item) => !seen.has(item.id) && seen.add(item.id));
+  if (items.length && !Object.keys(deps).length) {
+    poolMemo.set(memo, { items, expires: Date.now() + 30 * 60_000 });
+    while (poolMemo.size > 60) poolMemo.delete(poolMemo.keys().next().value!);
+  }
+  return items;
+}
+
+// Reorders explore items (newest, oldest, highest rated, A to Z) with the same rules the Community tab uses.
+export function sortExploreItems<T extends { name: string; date: string; score?: number }>(items: T[], sort: unknown): T[] {
+  const filter = normalizeShelfFilter({ sort });
+  if (!filter) return items;
+  const view = items.map((item) => ({ item, year: Number(item.date.slice(0, 4)) || 0, title: item.name, score: item.score }));
+  return applyShelfFilter(view, filter).map((x: any) => x.item);
 }
 
 // Synopsis and score for the title dialog of a TMDB-sourced catalog item.
