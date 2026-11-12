@@ -76,6 +76,10 @@ const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.prefe
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
 export function listStatus(user:string,load=loadWatchlist){return async(slug:string)=>{const sections=await load(user.toLowerCase());for(const [id,items] of Object.entries(sections||{}))if(STATUS_LABELS[id]&&(items as any[]).some(x=>x.slug===slug))return STATUS_LABELS[id];return null}}
+// Titles Nuvio gets per catalog page. Each title costs about two outside requests (an ID lookup and a
+// poster lookup), and Cloudflare's free plan allows about 50 per visit, so 20 keeps a page under the limit.
+// With the Workers Paid plan this can go back to 30 or more.
+const NUVIO_PAGE=20;
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,mdlPoster:loadMDLTitlePoster}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
  const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus),rpdbKey=rpdbApiKey((config as any).rpdb?.apiKey);
@@ -98,12 +102,12 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
    const hidden=[...(watched[2]||[]),...(watched[5]||[])];
    items=items.filter((item:any)=>!hidden.some((x:any)=>x.title&&normalizeTitle(x.title)===normalizeTitle(item.name)&&(!x.year||String(x.year)===item.date.slice(0,4))));
   }
-  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyExternalPoster);
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.explore){
-  const items=await ((deps as any).exploreItems??tmdbExploreItems)(entry.explore.category,entry.explore.country,skip+30);
-  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+30).map(applyExternalPoster);
+  const items=await ((deps as any).exploreItems??tmdbExploreItems)(entry.explore.category,entry.explore.country,skip+NUVIO_PAGE);
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  let pool:any[];
@@ -125,7 +129,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  }
  const hidden=['completed','dropped'].includes(entry.watchlistStatus||'')?new Set():await deps.hidden(runtime),year=new Date().getFullYear();
  pool=pool.filter(x=>!hidden.has(x.slug)&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
- const selected=pool.slice(skip,skip+30),metas:any[]=Array(selected.length);
+ const selected=pool.slice(skip,skip+NUVIO_PAGE),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
  const matched=metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&a.findIndex(y=>y?.id===x.id)===i);
  const standardPoster=!pattern&&!plusPattern&&!rpdbKey&&!runtime.erdb;

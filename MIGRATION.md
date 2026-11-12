@@ -53,7 +53,7 @@ These features are gone or different, and we agreed they are acceptable:
 
 ## Upgrade in January
 
-- [ ] Upgrade Cloudflare to the Workers Paid plan. This removes the free plan's request limit, which currently causes some lookups to fall back (logs show "Too many subrequests" once a week per country).
+- [ ] Upgrade Cloudflare to the Workers Paid plan. Until then, Nuvio catalog pages are 20 titles instead of 30 (`NUVIO_PAGE` in `addon.ts`, and `Se` in `addonCore.ts`), added November 12 to stay under the free plan's 50-request limit. After the upgrade, raise both back to 30 or more. This removes the free plan's request limit, which currently causes some lookups to fall back (logs show "Too many subrequests" once a week per country).
 - [ ] Test This Week's Picks on the test site after the upgrade.
 
 ## Cutover (needs your approval)

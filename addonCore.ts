@@ -78,7 +78,7 @@ import {
   E,
   nativeName,
 } from "./addonScrape.ts";
-const Se = 30,
+const Se = 20, // Titles per catalog page; see NUVIO_PAGE in addon.ts.
   Q = "3.7.0";
 
 function v(t, e, n, s = "application/json", a = 0) {
