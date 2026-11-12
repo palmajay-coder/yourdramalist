@@ -10,3 +10,32 @@
 #prefRpdbPanel[hidden]{display:none!important}
 /* Provider fields sit directly under the style menu with the same gap every time. */
 .prefPosterStylePanels>div{margin-top:12px}
+
+.prefAdvancedTrigger,.prefMobileBack,.prefMobileCopy{display:none}
+.prefAdvancedGroup{display:grid;gap:inherit}
+@media(max-width:740px){
+  .prefAdvancedTrigger,.prefMobileBack,.prefMobileCopy{display:block}
+  #preferences .preferencesStack>.prefAdvancedGroup{display:none}
+  .prefAdvancedGroup{gap:12px}
+  .prefAdvancedDialog .prefAdvancedDone{width:100%;margin-top:12px}
+  body[data-page=preferences]{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+  body[data-page=confirm]{padding-bottom:calc(152px + env(safe-area-inset-bottom,0px))}
+  #preferences .prefActions,#confirm .prefManifest{position:fixed;inset:auto 0 0;z-index:4;background:var(--bg);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));border-top:1px solid var(--line)}
+  #preferences .prefActions{gap:10px}
+  #preferences .prefMobileBack{order:-1}
+  #preferences .prefActions button{min-height:48px;flex:1}
+  #preferences .prefActions .primary{flex:2}
+  #confirm .prefManifest{display:flex;flex-direction:column;gap:8px;max-height:55dvh;overflow:auto}
+  #confirm .prefInstall{order:-1;margin:0;min-height:48px}
+  #confirm .prefManifestRow{padding:0;border:0;background:transparent}
+  #confirm .prefManifestRow button{width:100%;min-height:44px;border:1px solid var(--line)}
+  #confirm .prefDesktopCopy,#confirm .prefManifest:not(.prefManualCopy) label,#confirm .prefManifest:not(.prefManualCopy) input{display:none}
+  #confirm .prefManualCopy .prefManifestRow button{width:auto;flex-shrink:0}
+  #confirm .prefConfirmHeading button{min-height:44px}
+}
+.prefMobileMetadata{display:none}
+@media(max-width:740px){
+  .prefMetadataCard{order:-1}
+  .prefMetadataCard .prefMetadataChoices{display:none!important}
+  .prefMetadataCard .prefMobileMetadata{display:block;width:100%;min-height:44px;font-size:16px}
+}

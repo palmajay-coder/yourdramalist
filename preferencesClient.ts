@@ -45,6 +45,18 @@ export function installPreferencesUI(api: {
   const metadataChoices = node("div", "prefMetadataChoices"); metadataChoices.style.display = "block"; metadataChoices.style.width = "100%";
   metadataChoices.setAttribute("role", "group"); metadataChoices.setAttribute("aria-labelledby", metadataHeading.id);
   const metadataToggles: HTMLInputElement[] = [];
+  const metadataSelect = node("select", "prefSelect prefMobileMetadata");
+  metadataSelect.setAttribute("aria-labelledby", metadataHeading.id);
+  function setMetadataProvider(provider: MetadataProvider) {
+    prefs.metadataProvider = provider;
+    metadataSelect.value = provider;
+    for (const choice of metadataToggles) {
+      choice.checked = choice.value === provider;
+      choice.setAttribute("aria-checked", String(choice.checked));
+    }
+    save();
+  }
+  metadataSelect.onchange = () => setMetadataProvider(metadataSelect.value as MetadataProvider);
   for (const provider of ["mdl", "tmdb"] as const) {
     const label = node("label", "prefSetting prefMetadataChoice"), text = node("span"), title = node("strong", "", metadataNames[provider]);
     if (provider === "mdl") title.append(node("small", "", copy.metadataDefault));
@@ -53,12 +65,14 @@ export function installPreferencesUI(api: {
     toggle.setAttribute("role", "switch"); toggle.setAttribute("aria-label", metadataNames[provider]); toggle.setAttribute("aria-checked", String(toggle.checked));
     toggle.onchange = () => {
       if (!toggle.checked) {toggle.checked = true; toggle.setAttribute("aria-checked", "true"); return;}
-      prefs.metadataProvider = provider;
-      for (const choice of metadataToggles) {choice.checked = choice.value === provider; choice.setAttribute("aria-checked", String(choice.checked));}
-      save();
+      setMetadataProvider(provider);
     };
+    const option = node("option", "", metadataNames[provider]);
+    option.value = provider;
+    metadataSelect.append(option);
     metadataToggles.push(toggle); label.append(text, toggle); metadataChoices.append(label);
   }
+  metadataSelect.value = prefs.metadataProvider;
   const languageField = node("div", "prefTmdbLanguage");
   const languageLabel = node("label", "", copy.tmdbLanguageLabel); languageLabel.htmlFor = "prefTmdbLanguage";
   const languageSelect = node("select", "prefSelect"); languageSelect.id = languageLabel.htmlFor;
@@ -68,7 +82,7 @@ export function installPreferencesUI(api: {
   languageSelect.value = prefs.tmdbLanguage;
   languageField.append(languageLabel, languageSelect, paragraph(copy.tmdbLanguageDescription, "prefHelp"));
   languageSelect.onchange = () => {prefs.tmdbLanguage = languageSelect.value as typeof prefs.tmdbLanguage; save();};
-  metadata.append(metadataHeading, metadataChoices, languageField); stack.append(metadata);
+  metadata.append(metadataHeading, metadataChoices, metadataSelect, languageField); stack.append(metadata);
 
   const posters = {card: node("section", "panel prefPanel")};
   const artworkNames = {standard: copy.posterStandard, ratings: copy.posterRatingsTitle, better: copy.posterBetter, posterplus: copy.posterPlus, rpdb: copy.posterRpdb};
@@ -151,8 +165,40 @@ export function installPreferencesUI(api: {
   const unreleased = filter(copy.hideUnreleased, "prefUnreleased", prefs.hideUnreleased);
   const completed = filter(copy.hideCompleted, "prefCompleted", prefs.hideCompleted);
   const completedHelp = paragraph(copy.completedNeedsAccount, "prefHelp prefCompletedHelp"); filterCard.append(completedHelp);
+  const mobileLayout = globalThis.matchMedia?.("(max-width:740px)");
+  const advancedTrigger = button(copy.advancedOptions, "secondary prefAdvancedTrigger");
+  advancedTrigger.setAttribute("aria-haspopup", "dialog");
+  const advancedGroup = node("div", "prefAdvancedGroup");
+  const advancedDialog = node("dialog", "mobileSelectionDialog prefAdvancedDialog");
+  const advancedTitle = node("h2", "", copy.advancedOptions);
+  advancedTitle.id = "prefAdvancedTitle";
+  advancedDialog.setAttribute("aria-labelledby", advancedTitle.id);
+  const advancedHeader = node("div", "selectionSheetHeader");
+  const closeAdvanced = button(copy.done, "primary prefAdvancedDone");
+  closeAdvanced.onclick = () => advancedDialog.close();
+  advancedHeader.append(advancedTitle);
+  advancedDialog.append(advancedHeader, closeAdvanced);
+  stack.append(advancedTrigger, advancedGroup);
+  advancedGroup.append(posters.card, filterCard);
+  root.append(advancedDialog);
+  function openAdvanced() {
+    if (!mobileLayout?.matches || advancedDialog.open) return;
+    advancedDialog.insertBefore(advancedGroup, closeAdvanced);
+    advancedDialog.insertBefore(error, closeAdvanced);
+    advancedDialog.showModal();
+  }
+  advancedTrigger.onclick = openAdvanced;
+  advancedDialog.addEventListener("close", () => {
+    if (!advancedDialog.open) {stack.append(advancedGroup); root.insertBefore(error, actions);}
+  });
+  mobileLayout?.addEventListener?.("change", () => {
+    if (!mobileLayout?.matches && advancedDialog.open) advancedDialog.close();
+  });
   const error = node("div", "prefError"); error.setAttribute("role", "alert"); root.append(error);
-  const actions = node("div", "prefActions"), next = button(copy.continue, "primary"); actions.append(next); root.append(actions);
+  const actions = node("div", "prefActions"), next = button(copy.continue, "primary");
+  const back = button(copy.back, "secondary prefMobileBack");
+  back.onclick = () => api.navigate("selection");
+  actions.append(next, back); root.append(actions);
   const keys = () => ({tmdb: tmdb.value.trim(), mdblist: mdblist.value.trim()});
   let request = 0, abort: AbortController | undefined, timer: ReturnType<typeof setTimeout> | undefined, objectUrl = "";
   function save() {try {savePreferences(localStorage, prefs);} catch {} error.textContent = ""; render();}
@@ -241,9 +287,9 @@ export function installPreferencesUI(api: {
   unreleased.onchange = () => {prefs.hideUnreleased = unreleased.checked; save();};
   completed.onchange = () => {prefs.hideCompleted = !!api.user() && completed.checked; save();};
   next.onclick = () => {
-    if (invalidPattern()) {error.textContent = artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid; (artworkMode()==="posterplus"?posterPlusField.input:artworkMode()==="rpdb"?rpdbInput:betterField.input).focus(); return;}
+    if (invalidPattern()) {openAdvanced();error.textContent = artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid; (artworkMode()==="posterplus"?posterPlusField.input:artworkMode()==="rpdb"?rpdbInput:betterField.input).focus(); return;}
     const issue = preferenceIssue({...prefs, posters: artworkMode() === "ratings"}, keys());
-    if(issue) {error.textContent = issue === "keys" ? copy.preferencesKeysRequired : copy.preferencesBadgesRequired; (issue === "keys" ? tmdb : choices.querySelector("input")!).focus(); return;}
+    if(issue) {openAdvanced();error.textContent = issue === "keys" ? copy.preferencesKeysRequired : copy.preferencesBadgesRequired; (issue === "keys" ? tmdb : choices.querySelector("input")!).focus(); return;}
     save(); api.navigate("confirm");
   };
   let manifestRequest=0,manifestSignature="",manifestValue="";
@@ -267,6 +313,9 @@ export function installPreferencesUI(api: {
     const row=node("div","prefManifestRow"),input=node("input"),copyButton=button(copy.copyManifest,"secondary");input.id="manifestUrl";input.readOnly=true;input.placeholder=copy.manifestUrl;input.setAttribute("aria-label",copy.manifestUrl);copyButton.disabled=true;
     const install=node("a","primary prefInstall",copy.installNuvio);install.setAttribute("aria-disabled","true");
     const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
+    const desktopCopy = node("span", "prefDesktopCopy", copy.copyManifest);
+    const mobileCopy = node("span", "prefMobileCopy", copy.copyInstallLink);
+    copyButton.replaceChildren(desktopCopy,mobileCopy);
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
     if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));
@@ -291,11 +340,11 @@ export function installPreferencesUI(api: {
       const url=new URL(result.url);if(url.origin!==location.origin||!url.pathname.startsWith("/addon/")||!url.pathname.endsWith("/manifest.json"))throw Error("url");
       manifestSignature=signature;manifestValue=url.href;apply(url.href);
     }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;retry.hidden=false;}}}
-    copyButton.onclick=async()=>{try{await navigator.clipboard.writeText(input.value);copyButton.textContent=copy.copiedManifest;}catch{input.focus();input.select();status.textContent=copy.manifestSelectToCopy;}};
+    copyButton.onclick=async()=>{try{await navigator.clipboard.writeText(input.value);desktopCopy.textContent=copy.copiedManifest;mobileCopy.textContent=copy.installLinkCopied;if(mobileLayout?.matches)status.textContent=copy.installLinkPaste;}catch{manifest.classList.add("prefManualCopy");input.focus();input.select();status.textContent=copy.manifestSelectToCopy;}};
     const selected=api.selection().length;
     if(selected>MAX_CATALOGS){status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
     retry.onclick=()=>{prepare();};prepare();
   }
   render();
-  return {show(page: string) {render(); if(page === "confirm") renderConfirm();}, values() {return {...normalizePreferences(prefs), hideCompleted: !!api.user() && prefs.hideCompleted};}};
+  return {closeAdvanced() {if(advancedDialog.open)advancedDialog.close();}, show(page: string) {render(); if(page === "confirm") renderConfirm();}, values() {return {...normalizePreferences(prefs), hideCompleted: !!api.user() && prefs.hideCompleted};}};
 }
