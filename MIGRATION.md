@@ -48,7 +48,7 @@ These features are gone or different, and we agreed they are acceptable:
 - [x] **Replace exposed keys.** TMDB: done November 11 (new key in the Cloudflare secret, confirmed working in the logs). MDBList: the user may regenerate their personal key on mdblist.com; the site does not use it.
 - [x] **Preferences check.** Done by the user, November 11: everything works.
 - [x] **Weekly job schedule.** Confirmed November 11: the job ran at 07:00 and 08:01 UTC, outcome ok, on `0 7,8 * * *`. Still to confirm: the real Monday refresh (next: Monday, November 16) rebuilds the weekly picks and banner.
-- [ ] **Save the other Val Town branches.** Export the nine branches besides `main`. The `legacy/` folder is already in the repository.
+- [x] **Save the other Val Town branches.** Recorded November 12 in `legacy/branches/README.md` (names, dates, and links). The branches are small November 6 to 7 experiments copied from `main`, so their contents are not copied here. Optional: download any of them from Val Town before January 10.
 - [ ] **Domain.** Check whether `yourdramalist.net` is available, register it, and decide the final address.
 - [ ] **Billing alert.** Set a Cloudflare alert for about $5.
 
