@@ -1,0 +1,8 @@
+{
+  "appId": "com.palmajay.yourdramalist.mobiletest",
+  "appName": "YourDramaList Test",
+  "webDir": "www",
+  "server": {
+    "url": "https://yourdramalist-mobile-test.palmajay.workers.dev"
+  }
+}
