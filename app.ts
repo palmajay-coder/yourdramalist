@@ -1,6 +1,5 @@
 import {NOTIFICATION_CSS,installFloatingNotice} from "./notifications.ts";
 import {addonIcon} from "./addonIcon.ts";
-import {Ee,K} from "./addonCore.ts";
 import {profileWatchlistCards,loadWatchlist} from "./addonScrape.ts";
 import {handleAddon} from "./addon.ts";
 import {immutableFileUrl,serveImmutableFile} from "https://esm.town/v/std/utils/index.ts";
@@ -13,7 +12,7 @@ import {handleFeatured} from "./featuredApi.ts";
 import {oauthMiddleware} from "https://esm.town/v/std/oauth/middleware.ts";
 import {handleWallpaper} from "./wallpaperApi.ts";
 import {handleExplore} from "./exploreApi.ts";
-import {collections,handleCollections} from "./collectionService.ts";
+import {handleCollections} from "./collectionService.ts";
 import {COUNTRIES,CATEGORIES,exploreCatalog,userListName} from "./explore.ts";
 import {installExploreUI} from "./exploreClient.ts";
 import { handlePeople } from './peopleApi.ts';
@@ -32,15 +31,6 @@ import { handlePopularLists } from './popularListsApi.ts';
 import { handleDramaDetails } from './dramaDetailsApi.ts';
 import { handleDramaSearch } from './dramaSearchApi.ts';
 import { privacyPage } from './privacyPage.ts';
-async function watchlistPreviewArtwork(item) {
- const isTmdbPoster=value=>/^https:\/\/image\.tmdb\.org\/t\/p\/w\d+\//.test(value||"");
- const matched=await collections.artwork({url:item.link,name:item.title,details:[item.type,item.year].filter(Boolean).join(" - ")},item.country||"");
- if(isTmdbPoster(matched.poster))return matched.poster;
- const [meta]=await Ee([item],K(item.type),null,true);
- if(!/^tt\d+$/.test(meta?.id||""))return null;
- const [artwork]=await collections.standardArtwork([meta]);
- return isTmdbPoster(artwork?.poster)?artwork.poster:null;
-}
 const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YourDramaList</title><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#181818">
 <link rel="stylesheet" href="${immutableFileUrl("/preferences.css")}">
@@ -85,18 +75,15 @@ const page = `<!doctype html>
   #connect #source,#selection .searchrow input{font-size:16px}
   #selection .tabs{margin:0 0 10px}
   #selection .tabs button{flex:1;min-height:44px}
-  #selection .featuredHero{min-height:0;padding:12px 36px;gap:5px;margin:12px 0}
-  #selection .featuredIntro h1{font-size:19px}
-  #selection .featuredIntro p,#selection .featuredHero.hasFeatured .featuredIntro{display:none}
-  #selection .featuredHero .featuredArrow{min-height:44px}
+  #selection .featuredHero{display:none}
   #selection .workspace{margin-top:0}
 }
 .mobileLandingBrand,.mobileLandingFooter,.mobilePasteList{display:none}
 </style></head><body><div id="wallpaper" hidden><div id="wallpaperTint"></div></div><header><div class="headerBackground" id="headerBackground" aria-hidden="true"></div><a class="brand" href="/" aria-label="YourDramaList home"><span>YourDramaList</span></a><nav class="steps" aria-label="Setup progress"><button id="step1" type="button" class="active" disabled>${TEXT.stepConnect}</button><button id="step2" type="button" disabled>${TEXT.stepLists}</button><button id="step3" type="button" disabled>${TEXT.stepPreferences}</button><button id="step4" type="button" disabled>${TEXT.stepConfirm}</button></nav><button id="themeToggle" class="secondary" type="button" aria-label="Switch color theme">☀ Light mode</button></header><main class="shell">
 <section id="landing" class="hero"><div class="mobileLandingBrand" aria-label="YourDramaList">YDL <span>v${APP_VERSION}</span></div><h1>${TEXT.siteName}</h1><p>${TEXT.subtitle}</p><button class="primary" id="start">${TEXT.getStarted}</button><p class="mobileLandingFooter">${TEXT.mobileFooter}</p></section>
 <div id="setup" class="hidden">
-<section id="connect" class="connect"><h1>${TEXT.connectTitle}</h1><p class="muted">${TEXT.connectDescription}</p><form class="panel" id="connectForm"><label for="source">${TEXT.usernameLabel}</label><input id="source" required maxlength="200" autocomplete="username" placeholder="${TEXT.usernamePlaceholder}"><button class="primary" type="submit">${TEXT.findLists}</button><span id="error" role="alert" style="color:#ff8e95"></span></form><div class="or">${TEXT.or}</div><button class="secondary" id="skip" style="width:100%">${TEXT.skipAccount}</button><button class="secondary mobilePasteList" id="pasteList" type="button">${TEXT.pasteList}</button></section>
-<section id="selection" class="hidden"><div class="featuredHero" id="featuredHero"><div class="featuredArt" id="featuredArt"></div><div class="featuredShade"></div><div class="featuredIntro"><h1 id="featuredHeading">${TEXT.listsTitle}</h1><p class="muted" id="featuredSubtitle">${TEXT.listsDescription}</p></div><div class="featuredCopy hidden" id="featuredCopy" aria-live="polite"><span class="featuredLabel" id="featuredLabel">${TEXT.featuredListLabel}</span><h2 id="featuredTitle"></h2><p class="featuredBy" id="featuredBy" hidden></p><a id="featuredLink" class="featuredAdd" href="#">${TEXT.featuredListAdd}</a></div><button type="button" class="featuredArrow hidden" id="featuredPrevious" aria-label="Previous banner">‹</button><button type="button" class="featuredArrow hidden" id="featuredNext" aria-label="Next banner">›</button></div><div class="tabs"><button data-tab="profiles">${TEXT.profilesTab}</button><button data-tab="discover">${TEXT.discoverTab}</button></div><div class="workspace"><div><div id="profileSearch"><form id="profileForm"><label for="profileInput">${TEXT.profileSearchLabel}</label><div class="searchrow"><input id="profileInput" placeholder="${TEXT.profilePlaceholder}" required><button class="primary">${TEXT.search}</button></div></form><div id="communityViews" class="filters discoverModes communityViews hidden" role="group" aria-label="${TEXT.communityListTypes}"><button type="button" data-community-view="watchlists" aria-pressed="true">${TEXT.communityWatchlists}</button><button type="button" id="communitySelectAll">${TEXT.communitySelectAll}</button></div></div><div id="discoverSearch" class="hidden"><div class="filters discoverModes" role="group" aria-label="Discover categories"><button data-filter="actor">${TEXT.actors}</button><button data-filter="director">${TEXT.directors}</button><button data-filter="catalogs">Catalogs</button></div><label id="discoverLabel" for="discoverInput">${TEXT.discoverSearchLabel}</label><form id="discoverForm" class="searchrow"><input id="discoverInput" aria-label="Drama name or MyDramaList URL" maxlength="500" required placeholder="Search dramas..."><button class="primary">Search</button></form><div id="exploreSearch" class="hidden"></div></div><div id="results" role="status"></div><div id="listItems"></div></div><aside class="panel sidebar"><div id="desktopSelection"><h3>${TEXT.selectionTitle} <span id="count">(0)</span></h3><div id="selectionControls"><div class="muted" id="selectionMessage">${TEXT.emptySelection}</div><button class="primary" disabled id="continue">${TEXT.continue}</button><button class="selectionClear hidden" type="button" id="clearSelection">${TEXT.clearSelection}</button></div></div><div class="popularCard" id="popularCard" hidden></div></aside></div>
+<section id="connect" class="connect"><h1>${TEXT.connectTitle}</h1><p class="muted">${TEXT.connectDescription}</p><form class="panel" id="connectForm"><label for="source">${TEXT.usernameLabel}</label><input id="source" required maxlength="200" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="${TEXT.usernamePlaceholder}"><button class="primary" type="submit">${TEXT.findLists}</button><span id="error" role="alert" style="color:#ff8e95"></span></form><div class="or">${TEXT.or}</div><button class="secondary" id="skip" style="width:100%">${TEXT.skipAccount}</button><button class="secondary mobilePasteList" id="pasteList" type="button">${TEXT.pasteList}</button></section>
+<section id="selection" class="hidden"><div class="featuredHero" id="featuredHero"><div class="featuredArt" id="featuredArt"></div><div class="featuredShade"></div><div class="featuredIntro"><h1 id="featuredHeading">${TEXT.listsTitle}</h1><p class="muted" id="featuredSubtitle">${TEXT.listsDescription}</p></div><div class="featuredCopy hidden" id="featuredCopy" aria-live="polite"><span class="featuredLabel" id="featuredLabel">${TEXT.featuredListLabel}</span><h2 id="featuredTitle"></h2><p class="featuredBy" id="featuredBy" hidden></p><a id="featuredLink" class="featuredAdd" href="#">${TEXT.featuredListAdd}</a></div><button type="button" class="featuredArrow hidden" id="featuredPrevious" aria-label="Previous banner">‹</button><button type="button" class="featuredArrow hidden" id="featuredNext" aria-label="Next banner">›</button></div><div class="tabs"><button data-tab="profiles">${TEXT.profilesTab}</button><button data-tab="discover">${TEXT.discoverTab}</button></div><div class="workspace"><div><div id="profileSearch"><form id="profileForm"><label for="profileInput">${TEXT.profileSearchLabel}</label><div class="searchrow"><input id="profileInput" autocapitalize="none" spellcheck="false" placeholder="${TEXT.profilePlaceholder}" required><button class="primary">${TEXT.search}</button></div></form><div id="communityViews" class="filters discoverModes communityViews hidden" role="group" aria-label="${TEXT.communityListTypes}"><button type="button" data-community-view="watchlists" aria-pressed="true">${TEXT.communityWatchlists}</button><button type="button" id="communitySelectAll">${TEXT.communitySelectAll}</button></div></div><div id="discoverSearch" class="hidden"><div class="filters discoverModes" role="group" aria-label="Discover categories"><button data-filter="actor">${TEXT.actors}</button><button data-filter="director">${TEXT.directors}</button><button data-filter="catalogs">Catalogs</button></div><label id="discoverLabel" for="discoverInput">${TEXT.discoverSearchLabel}</label><form id="discoverForm" class="searchrow"><input id="discoverInput" aria-label="Drama name or MyDramaList URL" maxlength="500" required placeholder="Search dramas..."><button class="primary">Search</button></form><div id="exploreSearch" class="hidden"></div></div><div id="results" role="status"></div><div id="listItems"></div></div><aside class="panel sidebar"><div id="desktopSelection"><h3>${TEXT.selectionTitle} <span id="count">(0)</span></h3><div id="selectionControls"><div class="muted" id="selectionMessage">${TEXT.emptySelection}</div><button class="primary" disabled id="continue">${TEXT.continue}</button><button class="selectionClear hidden" type="button" id="clearSelection">${TEXT.clearSelection}</button></div></div><div class="popularCard" id="popularCard" hidden></div></aside></div>
 <div class="mobileSelectionBar" id="mobileSelectionBar" hidden><button class="secondary" id="reviewSelection" type="button" aria-haspopup="dialog" aria-controls="selectionDialog"></button><button class="primary" id="mobileContinue" type="button">${TEXT.continue}</button></div>
 <dialog class="mobileSelectionDialog" id="selectionDialog" aria-labelledby="selectionDialogTitle"><div class="selectionSheetHeader"><h2 id="selectionDialogTitle">${TEXT.selectionTitle}</h2><button class="secondary" type="button" id="closeSelectionDialog" aria-label="${TEXT.closeSelection}">×</button></div></dialog></section><section id="preferences" class="preferencesPage prefPage hidden" aria-label="${TEXT.stepPreferences}"></section><section id="confirm" class="preferencesPage prefPage hidden" aria-label="${TEXT.stepConfirm}"></section></div>
 </main><footer><span id="landingFooter">${TEXT.footer}</span><span id="buildFooter"><a href="https://github.com/palmajay-coder/yourdramalist" target="_blank" rel="noopener noreferrer">Valtown public build</a> · v${APP_VERSION} · <a href="/privacy">Privacy</a></span><section class="tmdbAttribution" id="tmdb-attribution" aria-label="TMDB Attribution Notice"><strong>TMDB Attribution Notice</strong><div class="tmdbAttributionContent"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div></section></footer>
@@ -148,7 +135,7 @@ let bannerTouch;
 $("featuredHero").addEventListener("touchstart",event=>{bannerTouch=event.touches.length===1?event.touches[0]:null},{passive:true});
 $("featuredHero").addEventListener("touchend",event=>{if(!bannerTouch||bannerSlides.length<2)return;const end=event.changedTouches[0],dx=end.clientX-bannerTouch.clientX,dy=end.clientY-bannerTouch.clientY;bannerTouch=null;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy))showBanner(bannerIndex+(dx<0?1:-1))},{passive:true});
 function loadFeaturedBanner(){
- if(featuredExpires>Date.now()||featuredRequest)return featuredRequest;
+ if(mobileSelectionLayout.matches||featuredExpires>Date.now()||featuredRequest)return featuredRequest;
  featuredRequest=fetch("/api/mdl/featured",{signal:AbortSignal.timeout(12000)}).then(response=>response.ok?response.json():null).then(data=>{
   if(data?.season)applySeasonalCopy(data.season);
   const valid=slide=>slide&&typeof slide.title==="string"&&/^[A-Za-z0-9_-]{4,20}$/.test(slide.id)&&slide.url==="https://mydramalist.com/list/"+slide.id;
@@ -200,15 +187,9 @@ selectionDialog.addEventListener('close',()=>{
     activeTab?.focus({preventScroll:true});
   }
 });
-function positionFeaturedBanner(){
-  const banner=$('featuredHero');
-  if(mobileSelectionLayout.matches)$('results').before(banner);
-  else $('selection').prepend(banner);
-}
-positionFeaturedBanner();
 mobileSelectionLayout.addEventListener?.('change',event=>{
-  positionFeaturedBanner();
   if(!event.matches&&selectionDialog.open)selectionDialog.close();
+  if(!event.matches&&currentPage==='selection')loadFeaturedBanner();
 });
 window.visualViewport?.addEventListener('resize',()=>{
   const editing=document.activeElement instanceof HTMLInputElement;
@@ -222,7 +203,7 @@ function applyHeaderBackground(v){const layer=$('headerBackground');if(!layer)re
 const isWallpaperPreview=new URL(location.href).searchParams.get('wallpaper-preview')==='1';let previewReceived=false;
 if(isWallpaperPreview)window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===parent&&e.data?.type==='ydl-wallpaper-preview'){previewReceived=true;applyWallpaper(e.data.settings);applyHeaderBackground(e.data.settings)}});
 fetch('/api/appearance').then(r=>r.json()).then(v=>{if(!previewReceived){applyWallpaper(v);applyHeaderBackground(v)}}).catch(()=>{});
-function parseSource(raw){const s=raw.trim();if(/^[a-zA-Z0-9_-]{1,60}$/.test(s))return{type:'profile',value:s};let u;try{u=new URL(s)}catch{return null}if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname.toLowerCase())||!['https:','http:'].includes(u.protocol))return null;const parts=u.pathname.split('/').filter(Boolean);if(parts.length!==2||!['profile','dramalist','list'].includes(parts[0].toLowerCase())||!/^[a-zA-Z0-9_-]{1,60}$/.test(parts[1]))return null;return{type:parts[0].toLowerCase()==='list'?'list':'profile',value:parts[1]}}
+function parseSource(raw){const s=raw.trim();const username=s.replace(/^@/,'');if(/^[a-zA-Z0-9_-]{1,60}$/.test(username))return{type:'profile',value:username};let u;try{u=new URL(s)}catch{return null}if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname.toLowerCase())||!['https:','http:'].includes(u.protocol))return null;const parts=u.pathname.split('/').filter(Boolean);if(parts.length!==2||!['profile','dramalist','list'].includes(parts[0].toLowerCase())||!/^[a-zA-Z0-9_-]{1,60}$/.test(parts[1]))return null;return{type:parts[0].toLowerCase()==='list'?'list':'profile',value:parts[1]}}
 const selectionKey='ydl-v3-selection';try{state.selection=JSON.parse(localStorage.getItem(selectionKey)||'[]');if(!Array.isArray(state.selection))state.selection=[]}catch{state.selection=[]}
 let activeLists=[];let listRequest=0;
 const avatarRequests=new Map();
@@ -310,8 +291,9 @@ $('communitySelectAll').onclick=()=>{
 
 async function loadProfile(username){
  switchTab('profiles');const requestId=listRequest;
+ $('results').textContent=copy.loadingLists;
  try{
-  const response=await fetch('/api/mdl/profile?username='+encodeURIComponent(username));
+  const response=await fetch('/api/mdl/profile?username='+encodeURIComponent(username),{signal:AbortSignal.timeout(20000)});
   const data=await response.json();if(requestId!==listRequest)return;
   if(!response.ok)throw Error(data.error||'Profile lookup failed');
   const lists=(data.lists||[]).filter(l=>!l.unavailable&&l.url);
@@ -322,7 +304,7 @@ async function loadProfile(username){
   profileLists=[...combined,...watchlists,...custom].map(l=>({...l,profile:username,analyticsSource:l.kind==='watchlist'?'community-watchlist':'community-public-list'}));
   $('communityViews').classList.remove('hidden');
   showCommunityView('watchlists');
- }catch(e){if(requestId===listRequest)$('results').textContent=copy.loadFailed+e.message}
+ }catch(e){if(requestId===listRequest)$('results').textContent=copy.loadFailed+(['TimeoutError','AbortError'].includes(e.name)?copy.searchRetry:e.message)}
 }
 
 renderSelection();
@@ -426,8 +408,37 @@ const webAppManifest = {
   theme_color: "#181818",
   icons: [{src:"/assets/ydl-classic-blue-v1.png",sizes:"256x256",type:"image/png"}],
 };
+async function handleProfile(url: URL): Promise<Response> {
+  const username = url.searchParams.get("username") || "";
+  const headers = {"cache-control": "no-store"};
+  if (!/^[a-zA-Z0-9_-]{1,60}$/.test(username)) {
+    return Response.json({error: "Invalid username"}, {status: 400, headers});
+  }
+  try {
+    await loadWatchlist(username);
+    // The shelves load title artwork separately. Profile search only needs the watchlist categories.
+    const watchlists = await profileWatchlistCards(username, username);
+    const combined = {
+      name: username + "’s Watchlist",
+      url: "https://mydramalist.com/dramalist/" + username.toLowerCase(),
+      kind: "watchlist",
+      combined: true,
+      empty: watchlists.every(card => card.empty),
+      posters: [...new Set(watchlists.flatMap(card => card.posters))].slice(0, 5),
+    };
+    return Response.json({username, lists: [combined, ...watchlists], message: "Public watchlist found for " + username + "."}, {headers});
+  } catch (error) {
+    const missing = (error as {code?: string})?.code === "PRIVATE";
+    return Response.json({
+      error: missing
+        ? "Profile not found, or the watchlist is private. Check the username and try again."
+        : "MyDramaList data is temporarily unavailable. Please try again later.",
+    }, {status: missing ? 404 : 502, headers});
+  }
+}
+
 async function handler(req: Request): Promise<Response> {
 const url=new URL(req.url);
 if(url.pathname==='/site.webmanifest')return Response.json(webAppManifest,{headers:{'content-type':'application/manifest+json'}});
-if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(url.pathname==='/api/mdl/featured')return handleFeatured(req);if(['/admin','/api/appearance','/api/admin/appearance','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://www.val.town/x/Niwa710/YourDramaList'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography','/api/mdl/filmography-artwork'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/drama-search')return handleDramaSearch(req);if(url.pathname==='/api/mdl/popular-lists')return handlePopularLists(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/api/popular')return popularity.handle(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});try{let data:any;try{await loadWatchlist(username);data={username,lists:[{name:username+'’s Watchlist',url:'https://mydramalist.com/dramalist/'+username.toLowerCase(),posters:[]}],message:'Public watchlist found for '+username+'.'};}catch(error:any){return Response.json({error:error?.code==='PRIVATE'?'Profile not found, or the watchlist is private. Check the username and try again.':'MyDramaList data is temporarily unavailable. Please try again later.'},{status:error?.code==='PRIVATE'?404:502});}const all=data.lists||[];const watchlists=await profileWatchlistCards(username,data.profileName||username,undefined,watchlistPreviewArtwork);const fallbackPosters=[...new Set(watchlists.flatMap(card=>card.posters))].slice(0,5);const combined=all.filter(l=>(!l.unavailable||watchlists.some(card=>!card.empty))&&String(l.url||'').includes('/dramalist/')).map(l=>({...l,posters:l.posters?.length?l.posters:fallbackPosters,unavailable:false,kind:'watchlist',combined:true}));const custom=all.filter(l=>!String(l.url||'').includes('/dramalist/'));return Response.json({...data,lists:[...combined,...watchlists,...custom]},{headers:{'cache-control':'no-store'}})}catch{return Response.json({error:'Profile service unavailable'},{status:502})}}return new Response('Not found',{status:404})}
+if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(url.pathname==='/api/mdl/featured')return handleFeatured(req);if(['/admin','/api/appearance','/api/admin/appearance','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://www.val.town/x/Niwa710/YourDramaList'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography','/api/mdl/filmography-artwork'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/drama-search')return handleDramaSearch(req);if(url.pathname==='/api/mdl/popular-lists')return handlePopularLists(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/api/popular')return popularity.handle(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
 export default oauthMiddleware(handler);
