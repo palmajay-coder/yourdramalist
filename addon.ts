@@ -50,12 +50,38 @@ export function normalizeAddon(body:any){
  return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),...(posterPlus?{posterPlus}:{}),...(rpdb?{rpdb:{apiKey:rpdb}}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
 }
 export type AddonConfig=ReturnType<typeof normalizeAddon>;
+type StoredAddonConfig=AddonConfig & {setupId?:string};
 const encode=(value:Uint8Array)=>btoa(String.fromCharCode(...value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=(value:string)=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 export function createTokenCodec(secret:string){
  if(!/^[a-f0-9]{64}$/i.test(secret))throw Error('Manifest encryption is not configured');
- const key=crypto.subtle.importKey('raw',Uint8Array.from(secret.match(/../g)!,x=>parseInt(x,16)),'AES-GCM',false,['encrypt','decrypt']);
- return{async seal(value:AddonConfig){const iv=crypto.getRandomValues(new Uint8Array(12));const data=new TextEncoder().encode(JSON.stringify(value));const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await key,data));return encode(iv)+'.'+encode(encrypted);},async open(token:string):Promise<AddonConfig>{if(token.length>24000||!/^[-\w]+\.[-\w]+$/.test(token))throw Error('token');const[iv,data]=token.split('.');const value=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(iv)},await key,decode(data))));if(!value.entries?.length||value.entries.length>MAX_CATALOGS)throw Error('token');return value;}};
+ const secretBytes=Uint8Array.from(secret.match(/../g)!,x=>parseInt(x,16));
+ const encryptionKey=crypto.subtle.importKey('raw',secretBytes,'AES-GCM',false,['encrypt','decrypt']);
+ const encoder=new TextEncoder();
+ const setupKey=crypto.subtle.importKey('raw',secretBytes,'HKDF',false,['deriveKey']).then(key=>
+  crypto.subtle.deriveKey(
+   {name:'HKDF',hash:'SHA-256',salt:new Uint8Array(32),info:encoder.encode('YourDramaList setup identity v1')},
+   key,{name:'HMAC',hash:'SHA-256'},false,['sign'],
+  )
+ );
+ return {
+  async seal(value:AddonConfig){
+   // The configuration is normalized before sealing, so generating another link for the same setup keeps its identity.
+   const signature=new Uint8Array(await crypto.subtle.sign('HMAC',await setupKey,encoder.encode(JSON.stringify(value))));
+   const setupId=Array.from(signature.subarray(0,12),byte=>byte.toString(16).padStart(2,'0')).join('');
+   const iv=crypto.getRandomValues(new Uint8Array(12));
+   const data=encoder.encode(JSON.stringify({...value,setupId}));
+   const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await encryptionKey,data));
+   return encode(iv)+'.'+encode(encrypted);
+  },
+  async open(token:string):Promise<StoredAddonConfig>{
+   if(token.length>24000||!/^[-\w]+\.[-\w]+$/.test(token))throw Error('token');
+   const [iv,data]=token.split('.');
+   const value=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(iv)},await encryptionKey,decode(data))));
+   if(!value.entries?.length||value.entries.length>MAX_CATALOGS)throw Error('token');
+   return value;
+  },
+ };
 }
 let codec:ReturnType<typeof createTokenCodec>;
 function tokens(){return codec??=createTokenCodec(Deno.env.get('YDL_MANIFEST_SECRET')||'');}
@@ -71,7 +97,7 @@ async function personNamesFor(config:AddonConfig):Promise<Record<string,string>>
  }));
  return names;
 }
-export function makeManifest(config:AddonConfig,personNames:Record<string,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';return{id:'community.yourdramalist.v3',version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language,personNames)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language,personNames)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
@@ -212,7 +238,7 @@ export async function handleAddon(req:Request){
  if(req.method==='OPTIONS')return new Response(null,{status:204});
  if(req.method!=='GET'&&req.method!=='HEAD')return fail('method',405);
  const parts=u.pathname.split('/').filter(Boolean);if(parts[0]!=='addon'||parts.length<3)return fail('path',404);
- let config:AddonConfig;try{config=await tokens().open(parts[1]);}catch{return fail('configuration',404);}
+ let config:StoredAddonConfig;try{config=await tokens().open(parts[1]);}catch{return fail('configuration',404);}
  if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config,await personNamesFor(config)),{headers});
  if(!await catalogLimiter.acquire())return fail('busy',429);
  try{

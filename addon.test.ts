@@ -9,6 +9,20 @@ await test('classic MDL watchlist row keeps type/year/country for TMDB artwork m
 await test('MDL title poster parser rejects off-site image hosts',()=>{assert(extractMDLTitlePoster('<meta property="og:image" content="https://i.mydramalist.com/pulse.jpg">')==='https://i.mydramalist.com/pulse.jpg','MDL poster missing');assert(extractMDLTitlePoster('<meta property="og:image" content="https://evil.example/poster.jpg">')===null,'off-site poster accepted')});
 await test('watchlist preview fills five slots by checking later titles when artwork is missing',async()=>{const items=Array.from({length:8},(_,index)=>({slug:(index+1)+'-title',title:'Title '+(index+1),link:'https://mydramalist.com/'+(index+1)+'-title',type:'Movie',year:2020,country:'3',image:''}));const cards=await profileWatchlistCards('Example','Example',async(_username,status)=>status==='on_hold'?items:[],async(item)=>item.slug==='5-title'?null:'https://image.tmdb.org/t/p/w780/'+item.slug+'.jpg');const onHold=cards.find(card=>card.url.endsWith('/on_hold'));assert(onHold?.posters.length===5&&onHold.posters.includes('https://image.tmdb.org/t/p/w780/6-title.jpg'),'preview did not backfill fifth poster')});
 const body={catalogs:[{name:'My community list',url:'https://mydramalist.com/list/q1XvK6w3'}],preferences:{reviews:true},user:'TestUser'};
+await test('edited setups get distinct manifest identities while existing catalog links still work', async () => {
+ const codec = createTokenCodec('b'.repeat(64));
+ const original = normalizeAddon(body);
+ const replacement = normalizeAddon({...body,catalogs:[{name:'Replacement list',url:'https://mydramalist.com/list/q1XvK6w4'}]});
+ const settingsEdit = normalizeAddon({...body,preferences:{tmdbLanguage:'ko-KR',metadataProvider:'tmdb'}});
+ const legacy = makeManifest(original);
+ const first = makeManifest(await codec.open(await codec.seal(original)));
+ const same = makeManifest(await codec.open(await codec.seal(original)));
+ const changed = makeManifest(await codec.open(await codec.seal(replacement)));
+ const localized = makeManifest(await codec.open(await codec.seal(settingsEdit)));
+ assert(legacy.id==='community.yourdramalist.v3' && legacy.catalogs[0].id==='ydl_0','legacy manifest identity changed');
+ assert(first.id===same.id && first.id!==changed.id && first.id!==localized.id && legacy.id!==first.id,'setup manifest identity collided');
+ assert(first.catalogs[0].id===changed.catalogs[0].id && changed.catalogs[0].name==='Replacement list','catalog routing changed');
+});
 await test('manifest keeps names and order without upstream requests',()=>{const c=normalizeAddon({...body,catalogs:[...body.catalogs,exploreCatalog('top-movies','1')]});const m=makeManifest(c);assert(m.catalogs[0].name==='My community list'&&m.catalogs[1].type==='movie','catalog order/type');assert(m.resources.some((x:any)=>x.name==='stream'),'reviews resource missing')});
 await test('TMDB language localizes generated catalog names while preserving custom list titles',()=>{const catalogs=[{kind:'explore',category:'popular-shows',country:'3',name:'MyDramaList’s Most Popular Shows (South Korea)'},{name:'Seoby’s Currently Watching',url:'https://mydramalist.com/dramalist/Seoby/watching'},{name:'Chae Soo Bin’s Filmography',kind:'filmography',mode:'actor',personUrl:'https://mydramalist.com/people/123-chae-soo-bin'},{name:'Seoby’s Favorites list',url:'https://mydramalist.com/list/q1XvK6w4'}];const c=normalizeAddon({...body,catalogs,preferences:{metadataProvider:'tmdb',tmdbLanguage:'pt-BR'}});const names=makeManifest(c).catalogs.map((x:any)=>x.name);assert(names[0].includes('Séries mais populares'),'Explore name did not localize');assert(names[1]==='Seoby’s Assistindo','watchlist category did not localize');assert(names[2]==='Chae Soo Bin’s Filmografia','filmography name did not localize');assert(names[3]==='Seoby’s Favorites list','user-created title was modified')});
 await test('no review resource when disabled',()=>{assert(!makeManifest(normalizeAddon({...body,preferences:{}})).resources.some((x:any)=>x.name==='stream'),'review resource retained')});
