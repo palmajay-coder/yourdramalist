@@ -161,6 +161,8 @@ body.androidSetup .notice{background:#1b1e25}
 }
 .mobileLandingBrand,.mobileLandingFooter,.mobilePasteList{display:none}
 
+/* The app layout's top bar is a plain dark bar; the admin header picture is for the old web layout only. */
+body.androidSetup .headerBackground{display:none}
 /* Wide screens show the app layout in a centered phone-width column. */
 @media(min-width:560px){body.androidSetup>header,body.androidSetup .shell,body.androidSetup>footer{width:100%;max-width:480px;margin-inline:auto}body.androidSetup .androidBottomNav,body.androidSetup[data-page=selection] .mobileSelectionBar:not([hidden]){left:calc(50% - 240px);right:calc(50% - 240px)}body.androidSetup .androidDiscoverFilters{right:calc(50% - 228px)}}
 html.finePointer .rowScrollButtons{display:flex;justify-content:flex-end;gap:6px;margin:-4px 0 6px}html.finePointer .rowScrollButtons[hidden]{display:none}html.finePointer .rowScrollButton{min-width:34px;height:30px;padding:0 10px;border-radius:15px;font-size:17px;line-height:1}html.finePointer .rowScrollButton:disabled{opacity:.35;cursor:default}html.finePointer .androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack{scrollbar-width:thin}
