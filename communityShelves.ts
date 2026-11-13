@@ -1,6 +1,6 @@
 // @ts-nocheck -- installed into the existing browser scope.
 export function installCommunityShelves() {
-  let renderId = 0, observer = null, viewKey = "other", filter = null, panelOpen = false;
+  let renderId = 0, observer = null, filter = null, panelOpen = false;
   const rows = [], facts = new Map(), factsPending = new Set(), failedRows = new Set();
   const drafts = {};
   let pendingFilter = null, filterDialog = null;
@@ -13,7 +13,7 @@ export function installCommunityShelves() {
   const fill = (text3, values) => Object.entries(values).reduce((s, [k, v]) => s.replaceAll("{" + k + "}", String(v)), text3);
   const posterOf = (item) => item.poster || facts.get(item.slug)?.poster || null;
   const emptyFilter = () => ({ type: "", countries: [], genres: [], from: "", to: "", sort: "" });
-  const draft = () => drafts[compactAndroid ? "android" : viewKey] || (drafts[compactAndroid ? "android" : viewKey] = emptyFilter());
+  const draft = () => drafts.android || (drafts.android = emptyFilter());
   const filterable = (row) => !row.list.combined;
   const details = item => showCatalogTitle({ ...item, poster: posterOf(item) });
   let workers = 0;
@@ -33,9 +33,6 @@ export function installCommunityShelves() {
       });
     }
   }
-  function skeleton(track) {
-    track.innerHTML = '<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>';
-  }
   function decode2(html3) {
     const t = document.createElement("textarea");
     t.innerHTML = String(html3 || "");
@@ -46,8 +43,7 @@ export function installCommunityShelves() {
       if (r.items) r.paint();
       else r.paintThumbnails?.();
     }
-    if (!compactAndroid) renderPanel();
-    else if (panelOpen) updateMetadataStatus();
+    if (panelOpen) updateMetadataStatus();
   }
   async function loadFacts(row, subset) {
     const id = renderId, todo = (subset || row.items).filter((x) => !facts.has(x.slug) && !factsPending.has(x.slug));
@@ -92,30 +88,9 @@ export function installCommunityShelves() {
     if (!filter) return;
     for (const r of rows) if (r.items && filterable(r) && shelfNeedsFacts(filter, r.items)) loadFacts(r);
   }
-  const bar = node("div", "shelfFilterBar"), barHead = node("div", "shelfFilterBarHead");
-  const toggle = node("button", "secondary shelfFilterToggle", copy.shelfFilter);
-  toggle.type = "button";
-  toggle.setAttribute("aria-expanded", "false");
-  const summary = node("span", "shelfFilterSummary"), clear = node("button", "shelfReset", copy.shelfReset);
-  clear.type = "button";
   const panel = node("div", "shelfFilters");
   panel.hidden = true;
-  barHead.append(toggle, summary, clear);
-  bar.append(barHead, panel);
-  toggle.onclick = () => {
-    panelOpen = !panelOpen;
-    panel.hidden = !panelOpen;
-    toggle.setAttribute("aria-expanded", String(panelOpen));
-    if (panelOpen) {
-      renderPanel();
-      ensureGenres();
-    }
-  };
-  clear.onclick = () => {
-    drafts[viewKey] = null;
-    update2();
-  };
-  if (compactAndroid) {
+  {
     filterDialog = node("dialog", "androidFiltersDialog");
     filterDialog.setAttribute("aria-label", "Community filters");
     const header = node("div", "androidFilterHeader");
@@ -160,7 +135,7 @@ export function installCommunityShelves() {
   function ensureGenres() {
     for (const r of rows) if (filterable(r)) {
       if (r.items) loadFacts(r);
-      else if (compactAndroid) r.load();
+      else r.load();
     }
   }
   function choiceGroup(label, values, selected, onToggle) {
@@ -201,43 +176,26 @@ export function installCommunityShelves() {
     }
     renderBar();
     ensureFacts();
-    if (compactAndroid && filter) {
+    if (filter) {
       for (const r of rows) if (filterable(r) && !r.items) r.load();
     }
   }
   function renderBar() {
-    const label = filter ? shelfFilterLabel(filter) : "";
-    summary.textContent = label ? fill(copy.shelfFiltering, { label }) : "";
-    clear.hidden = !filter;
-    bar.hidden = compactAndroid || !rows.some(filterable);
-    if (compactAndroid) {
-      const badge = $("androidFilterCount");
-      if (badge) {
-        const count2 = Object.keys(filter || {}).length;
-        badge.textContent = String(count2);
-        badge.hidden = !count2;
-      }
+    const badge = $("androidFilterCount");
+    if (badge) {
+      const count2 = Object.keys(filter || {}).length;
+      badge.textContent = String(count2);
+      badge.hidden = !count2;
     }
     renderPanel();
   }
   function renderPanel() {
     if (!panelOpen) return;
-    const d = pendingFilter || draft(), seen = new Set(), items2 = [];
-    for (const r of rows) if (r.items && filterable(r)) {
-      for (const x of r.items) if (!seen.has(x.slug)) {
-        seen.add(x.slug);
-        items2.push(x);
-      }
-    }
-    const known = Object.fromEntries([...facts].filter(([s]) => seen.has(s)));
-    const countryNames = Object.fromEntries(FILTER_COUNTRIES);
-    const presentCountries = [...new Set(items2.map((x) => shelfCountry(x, known[x.slug])).filter(Boolean))];
-    const countries = compactAndroid ? FILTER_COUNTRIES : FILTER_COUNTRIES.filter(([c]) => presentCountries.includes(c) || d.countries.includes(c));
-    const presentGenres = new Set(items2.flatMap((x) => known[x.slug]?.genres || []));
-    const genres = FILTER_GENRES.filter((g) => compactAndroid || presentGenres.has(g) || d.genres.includes(g)).map((g) => [g, g]);
-    const years = [...new Set(items2.map((x) => Number(x.year)).filter(Boolean))].sort((a, b) => b - a).map((y) => [String(y), String(y)]);
+    const d = pendingFilter || draft();
+    const countries = FILTER_COUNTRIES;
+    const genres = FILTER_GENRES.map((g) => [g, g]);
     panel.replaceChildren();
-    if (compactAndroid) {
+    {
       const refreshDraft = () => renderPanel();
       const media = choiceGroup(copy.shelfFilterType, [["", "All"], ["movie", "Movies"], ["drama", "Shows"]], [d.type], (v) => {
         d.type = v;
@@ -279,37 +237,7 @@ export function installCommunityShelves() {
       status.setAttribute("role", "status");
       panel.append(status);
       updateMetadataStatus();
-      return;
     }
-    panel.append(node("p", "shelfGroupLabel", copy.shelfFilterType), choiceGroup(copy.shelfFilterType, [["drama", copy.shelfDramas], ["movie", copy.shelfMovies]], d.type ? [d.type] : [], (v) => {
-      d.type = d.type === v ? "" : v;
-      update2();
-    }));
-    const grid2 = node("div", "shelfFilterGrid");
-    grid2.append(field(copy.shelfFrom, select([["", copy.shelfAny], ...years], String(d.from || ""), (v) => {
-      d.from = v;
-      update2();
-    })));
-    grid2.append(field(copy.shelfTo, select([["", copy.shelfAny], ...years], String(d.to || ""), (v) => {
-      d.to = v;
-      update2();
-    })));
-    grid2.append(field(copy.shelfSort, select([["", copy.shelfSortDefault], ...rows.some((r) => r.list.kind === "watchlist" && filterable(r) && (r.items || []).some((x) => x.added > 0)) ? [["added", copy.shelfSortAdded]] : [], ["newest", copy.shelfSortNewest], ["oldest", copy.shelfSortOldest], ["az", copy.shelfSortAz]], d.sort, (v) => {
-      d.sort = v;
-      update2();
-    })));
-    panel.append(grid2);
-    if (countries.length) panel.append(node("p", "shelfGroupLabel", copy.shelfCountry), choiceGroup(copy.shelfCountry, countries.map(([c]) => [c, countryNames[c] || c]), d.countries, (v) => {
-      d.countries = d.countries.includes(v) ? d.countries.filter((x) => x !== v) : [...d.countries, v];
-      update2();
-    }));
-    panel.append(node("p", "shelfGroupLabel", copy.shelfGenre));
-    if (genres.length) panel.append(choiceGroup(copy.shelfGenre, genres, d.genres, (v) => {
-      d.genres = d.genres.includes(v) ? d.genres.filter((x) => x !== v) : [...d.genres, v];
-      update2();
-    }));
-    const done2 = items2.filter((x) => facts.has(x.slug)).length;
-    if (done2 < items2.length) panel.append(node("p", "shelfHint", failedRows.size ? copy.shelfGenresUnavailable : fill(copy.shelfGenresLoading, { done: done2, total: items2.length })));
   }
   function updateMetadataStatus() {
     const status = panel.querySelector(".androidFilterStatus");
@@ -340,7 +268,7 @@ export function installCommunityShelves() {
   watchlistBody.append(gridStatus, grid);
   watchlistDialog.append(watchlistHeader, watchlistBody);
   watchlistDialog.setAttribute("aria-labelledby", watchlistName.id);
-  if (compactAndroid) document.body.append(watchlistDialog);
+  document.body.append(watchlistDialog);
   let openRow = null, gridObserver, gridCards = [], gridQueue = new Set(), gridTask;
   watchlistDialog.addEventListener("close", () => {
     if (watchlistDialog.open) return;
@@ -455,9 +383,9 @@ export function installCommunityShelves() {
     rows.push(row);
     const card = node("article", "catalogShelf communityShelf"), head = node("div", "catalogShelfHead"), info = node("div");
     row.card = card;
-    const posterCard = compactAndroid && !!l.profile;
+    const posterCard = !!l.profile;
     const title = (posterCard ? l.originalName || l.name : userListName(l)) || copy.untitledList;
-    const preview = compactAndroid && !posterCard ? compactPreviewButton(title, l.posters) : null;
+    const preview = !posterCard ? compactPreviewButton(title, l.posters) : null;
     const count2 = node("p", "shelfStats");
     function showCount(total) {
       count2.hidden = typeof total !== "number";
@@ -533,7 +461,7 @@ export function installCommunityShelves() {
     };
     row.sync = () => {
       const on = state.selection.some((x) => x.url === row.url());
-      add2.textContent = on ? copy.catalogAdded : compactAndroid ? copy.compactCatalogAdd : copy.catalogAdd;
+      add2.textContent = on ? copy.catalogAdded : copy.compactCatalogAdd;
       add2.setAttribute("aria-pressed", String(on));
       add2.setAttribute("aria-label", (on ? copy.catalogAdded : copy.catalogSelect) + " " + userListName(row.selectionItem()));
     };
@@ -609,7 +537,6 @@ export function installCommunityShelves() {
             return;
           }
           if (preview) track.replaceChildren(node("p", "catalogShelfStatus", copy.loadingLists));
-          else if (!posterCard) skeleton(track);
           const items2 = [], url = "/api/mdl/shelf?url=" + encodeURIComponent(l.url);
           do {
             const response = await fetch(url + (items2.length ? "&offset=" + items2.length : ""), { signal: AbortSignal.timeout(45e3) });
@@ -623,12 +550,7 @@ export function installCommunityShelves() {
           row.items = items2;
           if (preview) showCount(row.total);
           row.paint();
-          if (compactAndroid) updateMetadataStatus();
-          else renderPanel();
-          if (!compactAndroid) {
-            const bare = row.items.slice(0, 60).filter((x) => !x.poster);
-            if (bare.length) loadFacts(row, bare);
-          }
+          updateMetadataStatus();
           if (filterable(row) && (panelOpen || filter && shelfNeedsFacts(filter, row.items))) loadFacts(row);
         } catch (e) {
           if (id !== renderId || !card.isConnected) return;
@@ -669,19 +591,17 @@ export function installCommunityShelves() {
     };
     if (l.empty) add2.disabled = true;
     row.sync();
-    if (!compactAndroid) skeleton(track);
     return { card, row };
   }
-  function render3(lists, key) {
+  function render3(lists) {
     renderId++;
     observer?.disconnect();
     rows.length = 0;
     jobs.length = 0;
     failedRows.clear();
-    viewKey = key || "other";
     filter = normalizeShelfFilter(draft());
     const parent2 = $("listItems");
-    parent2.replaceChildren(bar);
+    parent2.replaceChildren();
     activeLists = lists;
     const targets = new Map();
     for (const l of lists) {
@@ -692,7 +612,7 @@ export function installCommunityShelves() {
     renderBar();
     function loadVisible(row) {
       if (!row || row.card.hidden) return;
-      if (!compactAndroid || filter && filterable(row)) row.load();
+      if (filter && filterable(row)) row.load();
       else row.loadThumbnails();
     }
     if (typeof IntersectionObserver !== "undefined") {

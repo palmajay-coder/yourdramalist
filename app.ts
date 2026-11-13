@@ -166,7 +166,7 @@ const mobileWeb=!androidApp;
 const compactAndroid=true;
 // A mouse or trackpad with no touch screen: rows get ‹ › buttons and a scrollbar, since they cannot be swiped.
 const finePointer=matchMedia('(hover:hover) and (pointer:fine)').matches;
-if(compactAndroid&&finePointer)document.documentElement.classList.add('finePointer');
+if(finePointer)document.documentElement.classList.add('finePointer');
 function compactPosterStack(){
  const stack=document.createElement('span');
  stack.className='compactPosterStack';
@@ -203,20 +203,13 @@ function compactPreviewButton(name,posters){
 }
 const MAX_CATALOGS = ${MAX_CATALOGS};
 const notices=(${installFloatingNotice.toString()})(copy);
-const $=id=>document.getElementById(id);const seasonThemes={fall:{bar:'#713b2d',accent:'#d79455',buttonText:'#281b18',linkDark:'#efad6e',tabDark:'#3b2a24',bannerTint:'40,27,24'},winter:{bar:'#31515a',accent:'#b6dde4',buttonText:'#18323a',linkDark:'#b8e6ec',tabDark:'#25383d',bannerTint:'26,43,49'},spring:{bar:'#49634b',accent:'#a6c879',buttonText:'#24321f',linkDark:'#bddc91',tabDark:'#2a3b2c',bannerTint:'34,47,34'},summer:{bar:'#145e58',accent:'#f1bc60',buttonText:'#362714',linkDark:'#f3c768',tabDark:'#233e3b',bannerTint:'18,43,39'}};
-function applySeasonalTheme(season){const t=seasonThemes[season]||seasonThemes.fall,style=document.body.style;document.body.dataset.season=season;if(compactAndroid){style.setProperty('--season-bar','#17191e');style.setProperty('--season-highlight','#2674ec');style.setProperty('--banner-tint','18,20,25');style.setProperty('--button-text','#fff');style.setProperty('--accent','#2674ec');style.setProperty('--link','#75aaff');style.setProperty('--tab','#273141');return}style.setProperty('--season-bar',t.bar);style.setProperty('--season-highlight',t.accent);style.setProperty('--banner-tint',t.bannerTint);style.setProperty('--button-text',t.buttonText);style.setProperty('--accent',t.accent);style.setProperty('--link',t.linkDark);style.setProperty('--tab',t.tabDark)}
+const $=id=>document.getElementById(id);
+// The app's fixed dark colors.
+function applyAppTheme(){const style=document.body.style;for(const [k,v] of [['--season-bar','#17191e'],['--season-highlight','#2674ec'],['--banner-tint','18,20,25'],['--button-text','#fff'],['--accent','#2674ec'],['--link','#75aaff'],['--tab','#273141']])style.setProperty(k,v)}
 const userListName=${userListName.toString()};
 const state={tab:'discover',filter:'actor',source:null,selection:[],profile:''};
-if(compactAndroid)document.body.classList.add('androidSetup');
-function seasonForDate(){
- const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Los_Angeles",month:"numeric",day:"numeric"}).formatToParts(new Date());
- const month=Number(parts.find(part=>part.type==="month")?.value),day=Number(parts.find(part=>part.type==="day")?.value);
- if(month>=9&&month<=11)return "fall";
- if(month===12||month<=2)return "winter";
- if(month>=3&&month<=5)return "spring";
- return "summer";
-}
-applySeasonalTheme(seasonForDate());
+document.body.classList.add('androidSetup');
+applyAppTheme();
 
 const posterWall = (${installPosterWall.toString()})(${JSON.stringify(POSTER_SEEDS)},['connect']);
 let currentPage='',preferencesUI,preferencesReady,discoverScroll=0;
@@ -224,30 +217,30 @@ const androidFlow=['selection','preferences','confirm'];
 let connectedUser='';try{const saved=localStorage.getItem('ydl-v3-user')||'';if(/^[a-zA-Z0-9_-]{1,60}$/.test(saved))connectedUser=saved}catch{}
 function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}}
 const pageForPath=${pageForPath.toString()};
-function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser,androidFlow:compactAndroid,copyOnly:false});if(androidAbout)$('preferences').append(androidAbout);return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
+function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser,androidFlow:true,copyOnly:false});if(androidAbout)$('preferences').append(androidAbout);return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
 function navigate(page,push=true){
-if(['preferences','confirm'].includes(page)&&!state.selection.length&&!(compactAndroid&&page==='preferences'))page='selection';
+if(['preferences','confirm'].includes(page)&&!state.selection.length&&page!=='preferences')page='selection';
 if(page!=='selection'&&$('selectionDialog').open)$('selectionDialog').close();
-if(compactAndroid&&page!==currentPage){
+if(page!==currentPage){
  if(currentPage==='selection')discoverScroll=window.scrollY;
  requestAnimationFrame(()=>window.scrollTo(0,page==='selection'?discoverScroll:0));
 }
-currentPage=page;document.body.dataset.page=page;posterWall.update(page);requestAnimationFrame(alignSelection);window.syncAndroidNav?.(page);
+currentPage=page;document.body.dataset.page=page;posterWall.update(page);window.syncAndroidNav?.(page);
 $('setup').classList.remove('hidden');
 for(const id of ['connect','selection','preferences','confirm'])$(id).classList.toggle('hidden',page!==id);
 const order=['connect','selection','preferences','confirm'],index=order.indexOf(page);
 order.forEach((name,i)=>{const step=$('step'+(i+1)),active=name===page;step.classList.toggle('active',active);step.disabled=i>=index; if(active)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current')});
 const paths={connect:'/setup',selection:'/setup/lists',preferences:'/setup/preferences',confirm:'/setup/confirm'};const path=paths[page]||'/setup';if(push&&location.pathname!==path){
- const entry={ydlPage:page,...(compactAndroid?{ydlFlowStep:androidFlow.indexOf(page)}:{})};
- if(compactAndroid&&(history.state?.ydlDialog||(!mobileWeb&&page==='selection')))history.replaceState(entry,'',path);
+ const entry={ydlPage:page,ydlFlowStep:androidFlow.indexOf(page)};
+ if(history.state?.ydlDialog||(!mobileWeb&&page==='selection'))history.replaceState(entry,'',path);
  else history.pushState(entry,'',path);
 }
 if(['preferences','confirm'].includes(page))ensurePreferences().then(ui=>{if(ui&&currentPage===page)ui.show(page)});
 }
-$('step1').onclick=()=>navigate('connect');$('step2').onclick=()=>{if(compactAndroid&&currentPage==='connect'){if($('source').value.trim())$('connectForm').requestSubmit();else if(connectedUser)navigate('selection');else $('skip').click()}else navigate('selection')};$('step3').onclick=()=>navigate('preferences');
+$('step1').onclick=()=>navigate('connect');$('step2').onclick=()=>{if(currentPage==='connect'){if($('source').value.trim())$('connectForm').requestSubmit();else if(connectedUser)navigate('selection');else $('skip').click()}else navigate('selection')};$('step3').onclick=()=>navigate('preferences');
 $('continue').onclick=()=>navigate('preferences');
 $('mobileContinue').onclick=$('continue').onclick;
-if(compactAndroid)$('continue').textContent='Build add-on';
+$('continue').textContent='Build add-on';
 const selectionDialog=$('selectionDialog');
 let androidAbout=null;
 const androidDialogs=new Map();
@@ -263,7 +256,7 @@ function showAndroidDialog(dialog){
   if(history.state?.ydlDialog===token)history.back();
  },{once:true});
 }
-if(compactAndroid){
+{
  const about=document.createElement('details');
  about.className='androidAbout';
  const heading=document.createElement('summary');
@@ -275,23 +268,19 @@ if(compactAndroid){
  androidAbout=about;
 }
 // The app layout is narrow at every width, since wide screens show it in a phone-width column.
-const mobileSelectionLayout=compactAndroid?{matches:true,addEventListener(){}}:matchMedia('(max-width:740px)');
 $('reviewSelection').onclick=()=>{
   selectionDialog.append($('selectionControls'));
-  if(compactAndroid)showAndroidDialog(selectionDialog);else selectionDialog.showModal();
+  showAndroidDialog(selectionDialog);
   $('closeSelectionDialog').focus();
 };
 $('closeSelectionDialog').onclick=()=>selectionDialog.close();
 selectionDialog.addEventListener('close',()=>{
   if(selectionDialog.open)return;
   $('desktopSelection').append($('selectionControls'));
-  if(currentPage==='selection'&&mobileSelectionLayout.matches&&!state.selection.length){
+  if(currentPage==='selection'&&!state.selection.length){
     const activeTab=document.querySelector('#selection .tabs button.active');
     activeTab?.focus({preventScroll:true});
   }
-});
-mobileSelectionLayout.addEventListener?.('change',event=>{
-  if(!event.matches&&selectionDialog.open)selectionDialog.close();
 });
 window.visualViewport?.addEventListener('resize',()=>{
   const editing=document.activeElement instanceof HTMLInputElement;
@@ -300,13 +289,11 @@ window.visualViewport?.addEventListener('resize',()=>{
 document.addEventListener('focusout',()=>document.body.removeAttribute('data-keyboard-open'));
 document.querySelector('header .brand').onclick=e=>{e.preventDefault();navigate('connect')};
 window.addEventListener('popstate',()=>{
- if(compactAndroid){
   const active=history.state?.ydlDialog||0;
   for(const [token,dialog] of [...androidDialogs].reverse())if(token>active)dialog.close();
   const page=history.state?.ydlPage||pageForPath(location.pathname);
   if(currentPage===page)return;
   navigate(page,false);
- }else navigate(pageForPath(location.pathname),false);
 });
 function parseSource(raw){const s=raw.trim();const username=s.replace(/^@/,'');if(/^[a-zA-Z0-9_-]{1,60}$/.test(username))return{type:'profile',value:username};let u;try{u=new URL(s)}catch{return null}if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname.toLowerCase())||!['https:','http:'].includes(u.protocol))return null;const parts=u.pathname.split('/').filter(Boolean);if(parts.length!==2||!['profile','dramalist','list'].includes(parts[0].toLowerCase())||!/^[a-zA-Z0-9_-]{1,60}$/.test(parts[1]))return null;return{type:parts[0].toLowerCase()==='list'?'list':'profile',value:parts[1]}}
 const selectionKey='ydl-v3-selection';try{state.selection=JSON.parse(localStorage.getItem(selectionKey)||'[]');if(!Array.isArray(state.selection))state.selection=[]}catch{state.selection=[]}
@@ -317,32 +304,10 @@ if(avatarRequests.has(user))return avatarRequests.get(user);
 const request=fetch('/api/mdl/avatar?username='+encodeURIComponent(user)).then(r=>r.ok?r.json():null).catch(()=>null).then(data=>{if(!data?.avatar)avatarRequests.delete(user);return data});
 avatarRequests.set(user,request);return request;
 }
-const ownerQueued=new Set();const ownerQueue=[];let ownerActive=0;
-function resolveSelectedOwners(){
-return;
-for(const l of state.selection){if(l.kind==='filmography'||l.kind==='explore'||l.kind==='weekly'||l.profile&&l.profile!=='MyDramaList'||ownerQueued.has(l.url)||!l.url)continue;ownerQueued.add(l.url);ownerQueue.push(l.url)}
-while(ownerActive<3&&ownerQueue.length){const url=ownerQueue.shift();ownerActive++;
-(async()=>{let owner=null;try{const r=await fetch('/api/mdl/list-owner?url='+encodeURIComponent(url));if(r.ok)owner=await r.json()}catch{}
-const valid=owner&&typeof owner.profile==='string'&&/^[a-zA-Z0-9_-]{1,60}$/.test(owner.profile);
-state.selection=state.selection.map(l=>l.url===url&&(!l.profile||l.profile==='MyDramaList')?{...l,...(valid?{profile:owner.profile,profileName:owner.profileName}:{ownerUnavailable:true})}:l);
-for(const l of activeLists){if(l.url===url&&valid){l.profile=owner.profile;l.profileName=owner.profileName}}
-try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}
-ownerActive--;renderSelection();
-})();}
-}
-function alignSelection(){
-const workspace=document.querySelector('.workspace'),sidebar=document.querySelector('.sidebar');
-const input=$(state.tab==='profiles'?'profileInput':state.filter==='catalogs'?'exploreCountry':'discoverInput');
-if(!workspace||!sidebar||!input)return;
-sidebar.style.marginTop=mobileSelectionLayout.matches?'0px':Math.max(0,input.getBoundingClientRect().top-workspace.getBoundingClientRect().top)+'px';
-}
-window.addEventListener('resize',alignSelection);
-const searchResize=new ResizeObserver(()=>requestAnimationFrame(alignSelection));
-searchResize.observe($('profileSearch'));searchResize.observe($('discoverSearch'));searchResize.observe($('exploreSearch'));
-function renderSelection(){state.selection=state.selection.map(l=>({...l,originalName:l.originalName||l.name,name:userListName(l)}));try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}window.syncAndroidSelectionCount?.(state.selection.length);resolveSelectedOwners();const root=$('selectionMessage');root.replaceChildren();$('count').textContent='('+state.selection.length+')';
-$('mobileSelectionBar').hidden=compactAndroid||!state.selection.length;
+function renderSelection(){state.selection=state.selection.map(l=>({...l,originalName:l.originalName||l.name,name:userListName(l)}));try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}window.syncAndroidSelectionCount?.(state.selection.length);const root=$('selectionMessage');root.replaceChildren();$('count').textContent='('+state.selection.length+')';
+$('mobileSelectionBar').hidden=true;
 $('reviewSelection').textContent=copy.mobileSelectedCount.replace('{count}',state.selection.length);
-$('continue').disabled=!state.selection.length;if(compactAndroid)$('mobileContinue').disabled=!state.selection.length;$('clearSelection').classList.toggle('hidden',!state.selection.length);if(!state.selection.length){root.textContent=copy.emptySelection;return}const groups=new Map();for(const l of state.selection){const user='list:all';if(!groups.has(user))groups.set(user,[]);groups.get(user).push(l)}for(const [user,lists] of groups){const isFilm=lists[0].kind==='filmography',isExplore=lists[0].kind==='explore',ownerless=true;const groupName=isFilm?lists[0].personDisplayName||lists[0].personName:user;const heading=document.createElement('div');heading.className='profileHeading';const avatar=document.createElement('span');avatar.className='profileAvatar';avatar.textContent=groupName.charAt(0).toUpperCase();const name=document.createElement('span');name.className='profileName';name.textContent=groupName;heading.append(avatar,name);if(!ownerless)root.append(heading);if(!ownerless&&(isFilm||!['MyDramaList','YourDramaList'].includes(user)&&/^[a-zA-Z0-9_-]{1,60}$/.test(user))){Promise.resolve(lists.find(l=>l.profileAvatar)?.profileAvatar?{avatar:lists.find(l=>l.profileAvatar).profileAvatar}:isFilm?null:loadProfileAvatar(user)).then(d=>{if(d&&d.avatar){const img=document.createElement('img');img.src=d.avatar;img.alt='';img.referrerPolicy='no-referrer';avatar.replaceChildren(img)}}).catch(()=>{})}for(const l of lists){const row=document.createElement('div');row.className='selectedItem';const title=document.createElement('span');title.className='selectedTitle';title.textContent=userListName(l);title.title=userListName(l);const remove=document.createElement('button');remove.type='button';remove.textContent='\xD7';remove.setAttribute('aria-label',copy.remove+l.name);remove.onclick=()=>{
+$('continue').disabled=!state.selection.length;$('mobileContinue').disabled=!state.selection.length;$('clearSelection').classList.toggle('hidden',!state.selection.length);if(!state.selection.length){root.textContent=copy.emptySelection;return}const groups=new Map();for(const l of state.selection){const user='list:all';if(!groups.has(user))groups.set(user,[]);groups.get(user).push(l)}for(const [user,lists] of groups){const isFilm=lists[0].kind==='filmography',isExplore=lists[0].kind==='explore',ownerless=true;const groupName=isFilm?lists[0].personDisplayName||lists[0].personName:user;const heading=document.createElement('div');heading.className='profileHeading';const avatar=document.createElement('span');avatar.className='profileAvatar';avatar.textContent=groupName.charAt(0).toUpperCase();const name=document.createElement('span');name.className='profileName';name.textContent=groupName;heading.append(avatar,name);if(!ownerless)root.append(heading);if(!ownerless&&(isFilm||!['MyDramaList','YourDramaList'].includes(user)&&/^[a-zA-Z0-9_-]{1,60}$/.test(user))){Promise.resolve(lists.find(l=>l.profileAvatar)?.profileAvatar?{avatar:lists.find(l=>l.profileAvatar).profileAvatar}:isFilm?null:loadProfileAvatar(user)).then(d=>{if(d&&d.avatar){const img=document.createElement('img');img.src=d.avatar;img.alt='';img.referrerPolicy='no-referrer';avatar.replaceChildren(img)}}).catch(()=>{})}for(const l of lists){const row=document.createElement('div');row.className='selectedItem';const title=document.createElement('span');title.className='selectedTitle';title.textContent=userListName(l);title.title=userListName(l);const remove=document.createElement('button');remove.type='button';remove.textContent='\xD7';remove.setAttribute('aria-label',copy.remove+l.name);remove.onclick=()=>{
   const nextIndex=state.selection.indexOf(l);
   toggleList(l);
   if(selectionDialog.open){
@@ -358,13 +323,13 @@ function addWatchlistPlaceholder(posters,empty){const placeholder=document.creat
 function renderLists(lists){communityUI.render(lists)}
 async function loadDirectList(value){
 $('communityViews').classList.add('hidden');profileLists=null;
-const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent=compactAndroid?copy.loadingLists:'';
+const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent=copy.loadingLists;
 try{const response=await fetch('/api/mdl/list?url='+encodeURIComponent('https://mydramalist.com/list/'+value),{signal:AbortSignal.timeout(15000)});const data=await response.json();if(requestId!==listRequest)return;if(!response.ok)throw Error(data.error||'Unable to load this list.');
 const list={...data.list,analyticsSource:'community-direct-list'};
 state.selection=state.selection.map(l=>l.url===list.url?{...l,...list}:l);
 try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}
 renderSelection();renderLists([list]);$('results').textContent='';
-if(compactAndroid){
+{
  if(state.selection.some(item=>item.url===list.url))$('results').textContent='List already added.';
  else if(state.selection.length<MAX_CATALOGS){toggleList(list);$('results').textContent='List added.'}
  else $('results').textContent=copy.catalogLimitReached.replace('{max}',MAX_CATALOGS);
@@ -380,7 +345,7 @@ function showCommunityView(view){
   button.classList.toggle('active',active);
   button.setAttribute('aria-pressed',String(active));
  });
- const lists=compactAndroid?profileLists:profileLists.filter(list=>(list.kind==='watchlist')===watchlists);
+ const lists=profileLists;
  $('communitySelectAll').classList.toggle('hidden',!lists.some(list=>!list.empty));
  $('results').textContent=lists.length?'':watchlists?copy.communityNoWatchlists:copy.communityNoCustomLists;
  communityUI.render(lists,view);
@@ -411,7 +376,7 @@ async function loadProfile(username){
   const combined=lists.filter(l=>l.combined).map(l=>({...l,name:(data.profileName||username)+'’s '+copy.communityAllTitles,description:copy.communityAllTitlesDescription}));
   const custom=lists.filter(l=>l.kind!=='watchlist').sort((a,b)=>(b.loves??-1)-(a.loves??-1));
   state.profile=username;
-  if(compactAndroid)setConnectedUser(username);
+  setConnectedUser(username);
   profileLists=[...combined,...watchlists,...custom].map(l=>({...l,profile:username,analyticsSource:l.kind==='watchlist'?'community-watchlist':'community-public-list'}));
   $('communityViews').classList.remove('hidden');
   showCommunityView('watchlists');
@@ -419,12 +384,12 @@ async function loadProfile(username){
 }
 
 renderSelection();
-function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();requestAnimationFrame(alignSelection);listRequest++;if(compactAndroid)communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';if(!compactAndroid&&tab==='discover'&&state.filter==='catalogs')exploreUI.render();window.syncAndroidNav?.(currentPage)}
-function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs){exploreUI.render();requestAnimationFrame(alignSelection);return}$('discoverInput').placeholder=f==='actor'?copy.searchActors:copy.searchDirectors;$('discoverInput').setAttribute('aria-label','Person name or MyDramaList URL');$('discoverLabel').textContent=copy.discoverSearchLabel;requestAnimationFrame(alignSelection)}
+function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();listRequest++;communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';window.syncAndroidNav?.(currentPage)}
+function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs){exploreUI.render();return}$('discoverInput').placeholder=f==='actor'?copy.searchActors:copy.searchDirectors;$('discoverInput').setAttribute('aria-label','Person name or MyDramaList URL');$('discoverLabel').textContent=copy.discoverSearchLabel;}
 function openSelection(tab){navigate('selection');switchTab(tab)}
 ;
 $('skip').onclick=()=>{setConnectedUser('');openSelection('discover')};
-$('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;setConnectedUser(p.value);$('profileInput').value=$('source').value.trim();openSelection('profiles');if(compactAndroid)document.querySelector('.androidDiscoverToolbar h1').textContent='Community';loadProfile(p.value)};
+$('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;setConnectedUser(p.value);$('profileInput').value=$('source').value.trim();openSelection('profiles');document.querySelector('.androidDiscoverToolbar h1').textContent='Community';loadProfile(p.value)};
 $('profileForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('profileInput').value);if(!p){$('results').textContent=copy.invalidProfile;return}state.source=p;if(p.type==='profile')loadProfile(p.value);else loadDirectList(p.value)};
 const synopsisPreview = ${synopsisPreview.toString()};
 function renderScore(root,score){
@@ -454,9 +419,9 @@ if(/^https?:/i.test(input))peopleUI.fromUrl(input);else if(input.length>=2&&inpu
 };
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
-if(compactAndroid)(${installAndroidDiscover.toString()})();
+(${installAndroidDiscover.toString()})();
 // Mouse users cannot swipe, so every sideways row gets ‹ › buttons that appear only when the row overflows.
-if(compactAndroid&&finePointer){
+if(finePointer){
  const addRowButtons=track=>{
   if(track.dataset.rowButtons)return;track.dataset.rowButtons='1';
   const bar=document.createElement('div');bar.className='rowScrollButtons';bar.hidden=true;
@@ -514,5 +479,5 @@ async function handleProfile(url: URL): Promise<Response> {
 async function handler(req: Request): Promise<Response> {
 const url=new URL(req.url);
 if(url.pathname==='/site.webmanifest')return Response.json(webAppManifest,{headers:{'content-type':'application/manifest+json'}});
-if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://www.val.town/x/Niwa710/YourDramaList'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography','/api/mdl/filmography-artwork'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
+if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://www.val.town/x/Niwa710/YourDramaList'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
 export default oauthMiddleware(handler);

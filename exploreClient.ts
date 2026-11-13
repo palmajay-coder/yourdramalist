@@ -42,7 +42,7 @@ export function installExploreUI() {
   function sync() {
     for (const [url, button] of buttons) {
       const on = state.selection.some((x) => x.url === url);
-      button.textContent = on ? copy.catalogAdded : compactAndroid ? copy.compactCatalogAdd : copy.catalogAdd;
+      button.textContent = on ? copy.catalogAdded : copy.compactCatalogAdd;
       button.setAttribute("aria-pressed", String(on));
     }
   }
@@ -65,12 +65,9 @@ export function installExploreUI() {
     card.className = "catalogShelf";
     const head = document.createElement("div");
     head.className = "catalogShelfHead";
-    const info = document.createElement("div"), h2 = document.createElement("h3"), p = document.createElement("p");
+    const info = document.createElement("div"), h2 = document.createElement("h3");
     h2.textContent = c.name;
-    if (c.description && !compactAndroid) {
-      p.textContent = c.description;
-      info.append(h2, p);
-    } else info.append(h2);
+    info.append(h2);
     const actions = document.createElement("div");
     actions.className = "catalogRowActions";
     const add2 = document.createElement("button");
@@ -96,18 +93,18 @@ export function installExploreUI() {
         if (item.poster) {
           const img = document.createElement("img");
           img.src = item.poster;
-          img.alt = compactAndroid ? "" : item.name;
+          img.alt = "";
           img.loading = "lazy";
-          if (compactAndroid) img.decoding = "async";
+          img.decoding = "async";
           img.referrerPolicy = "no-referrer";
           button.append(img);
-          if (compactAndroid) img.addEventListener("error", () => {
+          img.addEventListener("error", () => {
             const blank = document.createElement("span");
             blank.className = "shelfPosterBlank";
             blank.setAttribute("aria-hidden", "true");
             img.replaceWith(blank);
           }, { once: true });
-        } else if (compactAndroid) {
+        } else {
           const blank = document.createElement("span");
           blank.className = "shelfPosterBlank";
           blank.setAttribute("aria-hidden", "true");
@@ -127,15 +124,6 @@ export function installExploreUI() {
         Object.assign(selected, { posters: c.posters, name: c.name, description: c.description });
         renderSelection();
       }
-      if (!compactAndroid && items.length > 5 && !actions.querySelector(".catalogArrow")) for (const [text3, amount] of [["\u2039", -1], ["\u203A", 1]]) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "secondary catalogArrow";
-        b.textContent = text3;
-        b.setAttribute("aria-label", amount < 0 ? copy.catalogPrevious : copy.catalogNext);
-        b.onclick = () => track.scrollBy({ left: amount * track.clientWidth, behavior: "smooth" });
-        actions.insertBefore(b, add2);
-      }
       if (!items.length) {
         const empty2 = document.createElement("p");
         empty2.className = "catalogShelfStatus";
@@ -146,11 +134,7 @@ export function installExploreUI() {
     return { card, track, fill };
   }
   function skeleton(track) {
-    if (compactAndroid) {
-      track.textContent = copy.loadingLists;
-      return;
-    }
-    track.innerHTML = '<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>';
+    track.textContent = copy.loadingLists;
   }
   function pruneButtons() {
     for (const [url, button] of buttons) {
@@ -161,21 +145,12 @@ export function installExploreUI() {
     const weekly = document.createElement("section"), heading = document.createElement("h2");
     heading.className = "catalogSectionTitle";
     heading.textContent = copy.weeklyTitle;
-    const note = document.createElement("div");
-    note.className = "catalogSectionNote";
-    const caption = document.createElement("span");
-    caption.textContent = copy.weeklyDescription;
     const clock2 = document.createElement("span");
     clock2.className = "collectionClock";
-    if (compactAndroid) {
-      const header = document.createElement("div");
-      header.className = "androidWeeklyHeading";
-      header.append(heading, clock2);
-      weekly.append(header);
-    } else {
-      note.append(caption, clock2);
-      weekly.append(heading, note);
-    }
+    const header = document.createElement("div");
+    header.className = "androidWeeklyHeading";
+    header.append(heading, clock2);
+    weekly.append(header);
     weeklySection = weekly;
     weeklyCountry = country;
     parent2.prepend(weekly);
@@ -192,11 +167,9 @@ export function installExploreUI() {
             clock2.textContent = copy.weeklyRefreshing;
             clearInterval(countdown);
             if (data2.status !== "stale") {
-              if (compactAndroid) {
-                weekly.remove();
-                pruneButtons();
-                mountWeekly(parent2, country, isOutdated);
-              } else render3();
+              weekly.remove();
+              pruneButtons();
+              mountWeekly(parent2, country, isOutdated);
             }
             return;
           }
@@ -244,10 +217,9 @@ export function installExploreUI() {
     weeklyLoad();
   }
   function render3() {
-    if (!compactAndroid && (state.tab !== "discover" || state.filter !== "catalogs")) return;
-    const parent2 = $(compactAndroid ? "androidCatalogs" : "listItems");
-    const id = ++renderId, request = compactAndroid ? null : ++listRequest;
-    const outdated = () => id !== renderId || !compactAndroid && request !== listRequest;
+    const parent2 = $("androidCatalogs");
+    const id = ++renderId;
+    const outdated = () => id !== renderId;
     selectedCountry = select.value;
     try {
       localStorage.setItem("ydl-catalog-country", select.value);
@@ -255,22 +227,14 @@ export function installExploreUI() {
     } catch {
     }
     observer?.disconnect();
-    if (!compactAndroid) clearInterval(countdown);
     jobs.length = 0;
-    if (compactAndroid) {
-      catalogSection?.remove();
+    catalogSection?.remove();
+    pruneButtons();
+    if (!weeklySection?.isConnected || weeklyCountry !== selectedCountry) {
+      clearInterval(countdown);
+      weeklySection?.remove();
       pruneButtons();
-      if (!weeklySection?.isConnected || weeklyCountry !== selectedCountry) {
-        clearInterval(countdown);
-        weeklySection?.remove();
-        pruneButtons();
-        mountWeekly(parent2, selectedCountry, () => !parent2.isConnected);
-      }
-    } else {
-      buttons.clear();
-      $("results").replaceChildren();
-      parent2.replaceChildren();
-      mountWeekly(parent2, selectedCountry, outdated);
+      mountWeekly(parent2, selectedCountry, () => !parent2.isConnected);
     }
     const more = document.createElement("section");
     more.className = "catalogMore";
@@ -278,14 +242,6 @@ export function installExploreUI() {
     moreHeading.className = "catalogSectionTitle";
     moreHeading.textContent = copy.catalogMore;
     more.append(moreHeading);
-    if (!compactAndroid) {
-      const moreNote = document.createElement("div");
-      moreNote.className = "catalogSectionNote";
-      const caption = document.createElement("span");
-      caption.textContent = copy.catalogMoreNote;
-      moreNote.append(caption, sortLabel, sortSelect);
-      more.append(moreNote);
-    }
     parent2.append(more);
     catalogSection = more;
     function loadRow(row, c) {
@@ -334,7 +290,7 @@ export function installExploreUI() {
     const targets = new Map();
     for (const k of exploreCategories) {
       const c = exploreCatalog(k[0], select.value);
-      if (compactAndroid && activeCatalogType !== "all" && !c.types.includes(activeCatalogType)) continue;
+      if (activeCatalogType !== "all" && !c.types.includes(activeCatalogType)) continue;
       if (sortSelect.value) {
         const f = { sort: sortSelect.value };
         c.url += "?ydlf=" + shelfFilterKey(f);
@@ -361,10 +317,9 @@ export function installExploreUI() {
     credit2.textContent = copy.catalogArtworkCredit;
     more.append(credit2);
     sync();
-    requestAnimationFrame(alignSelection);
   }
   let openFilters;
-  if (compactAndroid) {
+  {
     const dialog = document.createElement("dialog");
     dialog.className = "androidDiscoverFilters";
     dialog.setAttribute("aria-label", "Discover filters");

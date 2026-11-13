@@ -43,5 +43,6 @@ assert(matchArtwork(item,[r],'tv')?.includes('w780'),'cross-country acting credi
 for(const [html,mode]of [[actorHtml,'actor'],[directorHtml,'director']]as const){const p=extractPerson(html,'https://mydramalist.com/people/'+(mode==='actor'?'293-son-ye-jin':'15987-park-chan-wook'));const data=makeFilmography(p,mode);assert(data.list.description===(mode==='actor'?TEXT.actorFilmographyDescription:TEXT.directorFilmographyDescription).replace('{name}',p.name),'catalog copy differs from shelf');}
 console.log('PASS person cards add the right filmography in one tap, cross-country matching and filmography copy');
 
-for(const query of ['mode=invalid&url=https://mydramalist.com/people/1-example','mode=actor&url=https://evil.test/people/1-example','mode=actor&url=https://mydramalist.com/people/1-example&offset=-1','mode=actor&url=https://mydramalist.com/people/1-example&offset=1000'])assert((await handlePeople(new Request('https://test/api/mdl/filmography-artwork?'+query))).status===400,'unsafe artwork request accepted');
-console.log('PASS artwork endpoint validates role, person URL and bounded offset before network access');
+for(const query of ['mode=invalid&url=https://mydramalist.com/people/1-example','mode=actor&url=https://evil.test/people/1-example'])assert((await handlePeople(new Request('https://test/api/mdl/filmography?'+query))).status===400,'invalid filmography request accepted: '+query);
+assert((await handlePeople(new Request('https://test/api/mdl/filmography?mode=actor&url=https://mydramalist.com/people/1-example',{method:'POST'}))).status===405,'write method accepted');
+console.log('PASS filmography endpoint validates role and person URL before network access');
