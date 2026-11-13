@@ -317,7 +317,9 @@ export function installPreferencesUI(api: {
         
         return;
       }
-      const url=new URL(result.url);if(url.origin!==location.origin||!url.pathname.startsWith("/addon/")||!url.pathname.endsWith("/manifest.json"))throw Error("url");
+      const url=new URL(result.url);
+      const canonicalOrigin=location.origin==="https://yourdramalist.palmajay.workers.dev"&&url.origin==="https://yourdramalist.net";
+      if((url.origin!==location.origin&&!canonicalOrigin)||!url.pathname.startsWith("/addon/")||!url.pathname.endsWith("/manifest.json"))throw Error("url");
       manifestSignature=signature;manifestValue=url.href;apply(url.href);
     }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;}}}
     copyButton.onclick = async () => {

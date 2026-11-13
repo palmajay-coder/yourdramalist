@@ -232,7 +232,8 @@ export async function handleAddon(req:Request){
    scopes.push('feature.selected:'+(config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb'));
    for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)scopes.push('feature.selected:'+category);}
    await popularity.recordManifest(req,scopes);
-   return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});
+   const manifestOrigin=u.origin==='https://yourdramalist.palmajay.workers.dev'?'https://yourdramalist.net':u.origin;
+   return Response.json({url:manifestOrigin+'/addon/'+token+'/manifest.json'},{headers});
   }catch{return diagnose('configuration',400,'manifest-generation');}
  }
  if(req.method==='OPTIONS')return new Response(null,{status:204});
