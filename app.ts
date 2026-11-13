@@ -141,6 +141,60 @@ body.androidSetup .tabs button.active,body.androidSetup .filters button.active{b
 /* Wide screens show the app layout in a centered phone-width column. */
 @media(min-width:560px){body.androidSetup>header,body.androidSetup .shell,body.androidSetup>footer{width:100%;max-width:480px;margin-inline:auto}body.androidSetup .androidBottomNav,body.androidSetup[data-page=selection] .mobileSelectionBar:not([hidden]){left:calc(50% - 240px);right:calc(50% - 240px)}body.androidSetup .androidDiscoverFilters{right:calc(50% - 228px)}}
 html.finePointer .rowScrollButtons{display:flex;justify-content:flex-end;gap:6px;margin:-4px 0 6px}html.finePointer .rowScrollButtons[hidden]{display:none}html.finePointer .rowScrollButton{min-width:34px;height:30px;padding:0 10px;border-radius:15px;font-size:17px;line-height:1}html.finePointer .rowScrollButton:disabled{opacity:.35;cursor:default}html.finePointer .androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack{scrollbar-width:thin}
+
+body.androidSetup.wideWeb{
+  --wide-width:1200px;--wide-header-height:60px;
+  --android-nav-height:calc(57px + env(safe-area-inset-bottom,0px));
+  padding-bottom:var(--android-nav-height)
+}
+body.androidSetup.wideWeb[data-page=selection]{padding-bottom:var(--android-nav-height)}
+body.androidSetup.wideWeb>header{
+  position:sticky;top:0;z-index:21;max-width:var(--wide-width);min-height:var(--wide-header-height);
+  padding:6px max(16px,env(safe-area-inset-right)) 6px max(16px,env(safe-area-inset-left));
+  border-bottom:1px solid var(--line)
+}
+body.androidSetup.wideWeb .desktopBrandName{display:inline;font-size:clamp(17px,2.6vw,25px);letter-spacing:-.45px}
+body.androidSetup.wideWeb header .mobileBrandMark{display:none}
+body.androidSetup.wideWeb .androidBottomNav{
+  inset-inline:max(0px,calc((100% - var(--wide-width)) / 2));
+  padding-block:6px calc(6px + env(safe-area-inset-bottom,0px))
+}
+body.androidSetup.wideWeb .androidNavItem{min-height:44px;flex-direction:row;font-size:13px}
+body.androidSetup.wideWeb .androidNavItem.active .androidNavIcon{width:32px;height:28px}
+body.androidSetup.wideWeb .shell{
+  max-width:var(--wide-width);min-height:0;
+  padding:22px max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))
+}
+body.androidSetup.wideWeb .connect{margin-block:clamp(14px,7vh,65px)}
+body.androidSetup.wideWeb .androidDiscoverToolbar h1{font-size:26px}
+body.androidSetup.wideWeb #discoverForm{flex-wrap:nowrap}
+body.androidSetup.wideWeb #discoverForm input{min-width:0}
+body.androidSetup.wideWeb #discoverForm button{width:auto}
+body.androidSetup.wideWeb :is(#androidCatalogs,#listItems) .catalogShelfTrack .catalogPoster{
+  flex-basis:clamp(100px,14vw,152px)
+}
+body.androidSetup.wideWeb .androidWatchlistGrid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+body.androidSetup.wideWeb .androidDiscoverFilters{
+  right:max(12px,env(safe-area-inset-right),calc((100vw - var(--wide-width)) / 2 + 16px));
+  max-height:min(70dvh,calc(100dvh - var(--wide-header-height) - 16px))
+}
+body.androidSetup.wideWeb .androidFiltersDialog{
+  inset:0 0 0 auto;width:min(440px,100%);border-inline-start:1px solid var(--line)
+}
+body.androidSetup.wideWeb .mobileSelectionDialog{
+  inset:0 0 0 auto;width:min(380px,100%);max-height:none;border-radius:0
+}
+body.androidSetup.wideWeb .mobileSelectionDialog #selectionMessage{max-height:calc(100dvh - 178px)}
+body.androidSetup.wideWeb[data-page=preferences]{padding-bottom:calc(var(--android-nav-height) + 68px)}
+body.androidSetup.wideWeb #preferences .prefActions{
+  inset:auto max(0px,calc((100% - var(--wide-width)) / 2)) var(--android-nav-height);
+  padding-block:8px max(8px,env(safe-area-inset-bottom,0px))
+}
+body.androidSetup.wideWeb :is(#preferences,#confirm){max-width:940px}
+@media(min-width:700px){
+  body.androidSetup.wideWeb .preferencesStack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  body.androidSetup.wideWeb .prefPanel:has(.prefPosterStylePanels){grid-column:1/-1}
+}
 </style></head><body><header><a class="brand" href="/" aria-label="YourDramaList home"><span class="desktopBrandName">YourDramaList</span><span class="mobileBrandMark" aria-hidden="true">YDL<span class="mobileBrandVersion">v${APP_VERSION}</span></span></a><nav class="steps" aria-label="Setup progress"><button id="step1" type="button" class="active" disabled>${TEXT.stepConnect}</button><button id="step2" type="button" disabled>${TEXT.stepLists}</button><button id="step3" type="button" disabled>${TEXT.stepPreferences}</button><button id="step4" type="button" disabled>${TEXT.stepConfirm}</button></nav></header><main class="shell">
 
 <div id="setup" class="hidden">
@@ -257,7 +311,6 @@ function showAndroidDialog(dialog){
  build.replaceChildren(document.createTextNode('Version '+copy.androidVersion+' \xB7 '),privacy);
  androidAbout=about;
 }
-// The app layout is narrow at every width, since wide screens show it in a phone-width column.
 $('reviewSelection').onclick=()=>{
   selectionDialog.append($('selectionControls'));
   showAndroidDialog(selectionDialog);
@@ -295,7 +348,6 @@ const request=fetch('/api/mdl/avatar?username='+encodeURIComponent(user)).then(r
 avatarRequests.set(user,request);return request;
 }
 function renderSelection(){state.selection=state.selection.map(l=>({...l,originalName:l.originalName||l.name,name:userListName(l)}));try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}window.syncAndroidSelectionCount?.(state.selection.length);const root=$('selectionMessage');root.replaceChildren();$('count').textContent='('+state.selection.length+')';
-$('mobileSelectionBar').hidden=true;
 $('reviewSelection').textContent=copy.mobileSelectedCount.replace('{count}',state.selection.length);
 $('continue').disabled=!state.selection.length;$('mobileContinue').disabled=!state.selection.length;$('clearSelection').classList.toggle('hidden',!state.selection.length);if(!state.selection.length){root.textContent=copy.emptySelection;return}const groups=new Map();for(const l of state.selection){const user='list:all';if(!groups.has(user))groups.set(user,[]);groups.get(user).push(l)}for(const [user,lists] of groups){const isFilm=lists[0].kind==='filmography',isExplore=lists[0].kind==='explore',ownerless=true;const groupName=isFilm?lists[0].personDisplayName||lists[0].personName:user;const heading=document.createElement('div');heading.className='profileHeading';const avatar=document.createElement('span');avatar.className='profileAvatar';avatar.textContent=groupName.charAt(0).toUpperCase();const name=document.createElement('span');name.className='profileName';name.textContent=groupName;heading.append(avatar,name);if(!ownerless)root.append(heading);if(!ownerless&&(isFilm||!['MyDramaList','YourDramaList'].includes(user)&&/^[a-zA-Z0-9_-]{1,60}$/.test(user))){Promise.resolve(lists.find(l=>l.profileAvatar)?.profileAvatar?{avatar:lists.find(l=>l.profileAvatar).profileAvatar}:isFilm?null:loadProfileAvatar(user)).then(d=>{if(d&&d.avatar){const img=document.createElement('img');img.src=d.avatar;img.alt='';img.referrerPolicy='no-referrer';avatar.replaceChildren(img)}}).catch(()=>{})}for(const l of lists){const row=document.createElement('div');row.className='selectedItem';const title=document.createElement('span');title.className='selectedTitle';title.textContent=userListName(l);title.title=userListName(l);const remove=document.createElement('button');remove.type='button';remove.textContent='\xD7';remove.setAttribute('aria-label',copy.remove+l.name);remove.onclick=()=>{
   const nextIndex=state.selection.indexOf(l);
@@ -405,6 +457,26 @@ const communityUI=(${installCommunityShelves.toString()})();
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
 (${installAndroidDiscover.toString()})();
+// Share the same controls and state when the browser rotates or resizes.
+if(!androidApp){
+ const mobileDevice=navigator.userAgentData?.mobile||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||
+  (/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+ const width=matchMedia(mobileDevice?'(min-width: 440px)':'(min-width: 560px)');
+ const landscape=matchMedia('(orientation: landscape)');
+ const screenOrientation=window.screen.orientation;
+ const syncLayout=()=>{
+  const orientation=screenOrientation?.type;
+  const sideways=orientation?orientation.startsWith('landscape'):landscape.matches;
+  document.body.classList.toggle('wideWeb',width.matches&&(!mobileDevice||sideways));
+ };
+ width.addEventListener('change',syncLayout);
+ if(mobileDevice){
+  landscape.addEventListener('change',syncLayout);
+  screenOrientation?.addEventListener('change',syncLayout);
+  window.addEventListener('resize',syncLayout);
+ }
+ syncLayout();
+}
 // Mouse users cannot swipe, so every sideways row gets ‹ › buttons that appear only when the row overflows.
 if(finePointer){
  const addRowButtons=track=>{
