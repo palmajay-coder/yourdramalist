@@ -87,7 +87,7 @@ await test("Popular this month ranks catalogs and people with the agreed rules",
  f.meta.set("456-park-chan-wook",{slug:"456-park-chan-wook",name:"Park Chan-wook",photo:null});
  f.meta.set("789-kim-go-eun",{slug:"789-kim-go-eun",name:"Kim Go-eun",photo:"https://evil.test/x.jpg"});
  const r=await p.rankings();
- assert(r.catalogs.map((c:any)=>c.label).join("|")==="Newest Shows · South Korea|Top Airing · South Korea|Top Movies · Japan","catalog ranking: "+r.catalogs.map((c:any)=>c.label).join("|"));
+ assert(r.catalogs.map((c:any)=>c.label).join("|")==="Newest Shows · South Korea|Top Airing Shows · South Korea|Top Rated Movies · Japan"/* Labels use the catalog names from explore.ts. */,"catalog ranking: "+r.catalogs.map((c:any)=>c.label).join("|"));
  assert(r.catalogs[0].count===12&&r.catalogs[1].count===null,"counts show only from 10 adds: "+JSON.stringify(r.catalogs));
  assert(r.catalogs[0].category==="newest-shows"&&r.catalogs[0].country==="3","catalog keys let the card add the right catalog");
  assert(r.people.map((x:any)=>x.name).join("|")==="Park Chan-wook|Song Kang|Kim Go-eun","acting and directing are combined into one row per person: "+JSON.stringify(r.people));
@@ -127,6 +127,19 @@ await test("admin analytics: people counts, device split, returns, combined Disc
  assert(!/Manifests today/.test(html),"click totals are gone");
 });
 
+await test("Popular this month is not shown in the app layout",async()=>{
+ const html=await(await handler(new Request("https://test/setup/lists"))).text();
+ const script=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join("\n");
+ const {document,window}=parseHTML(html);let asked=false;
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
+  window,document,{getItem:()=>null,setItem(){},removeItem(){}},
+  {href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(s){this.state=s},replaceState(s){this.state=s},back(){}},async(u:string)=>{if(String(u).startsWith("/api/popular"))asked=true;return Response.json({})},()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}}
+ );
+ (document.querySelector('[data-tab="discover"]') as any).click();await new Promise(r=>setTimeout(r,30));
+ assert((document.getElementById("popularCard") as any).hidden&&!asked,"the app layout hides the card and does not load rankings");
+});
+
+// The card's own behavior, checked in the older web layout (still used by the admin wallpaper preview).
 await test("Popular this month card sits under Your Selection on Discover and adds in one tap",async()=>{
  const html=await(await handler(new Request("https://test/setup/lists"))).text();
  const script=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join("\n");
@@ -139,7 +152,7 @@ await test("Popular this month card sits under Your Selection on Discover and ad
  };
  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
   window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},
-  {href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists"},{pushState(){}},fetcher,()=>0,()=>({matches:false}),class{observe(){}}
+  {href:"https://test/setup/lists?wallpaper-preview=1",origin:"https://test",pathname:"/setup/lists",search:"?wallpaper-preview=1",hostname:"test"},{state:null,pushState(s){this.state=s},replaceState(s){this.state=s},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}}
  );
  const settle=()=>new Promise(r=>setTimeout(r,10));
  const waitFor=async(check:()=>unknown,message:string)=>{for(let i=0;i<200;i++){if(check())return;await settle()}throw Error(message)};

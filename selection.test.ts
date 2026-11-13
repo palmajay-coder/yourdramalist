@@ -8,11 +8,11 @@ const saved=new Map([["ydl-v3-user","sample_user"],["ydl-v3-preferences",'{"revi
 const initial=new Map(saved);
 function mount(fetcher: typeof fetch = async()=>Response.json({})){
  const {document,window}=parseHTML(html);
- const location={href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists"};
+ const location={href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"};
  const storage={getItem:(key:string)=>saved.get(key)??null,setItem:(key:string,value:string)=>saved.set(key,value),removeItem:(key:string)=>saved.delete(key)};
  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
-  window,document,storage,location,{pushState:(_state:unknown,_title:string,path:string)=>{location.pathname=path;}},
-  fetcher,()=>0,()=>({matches:false}),class{observe(){}}
+  window,document,storage,location,{state:null,pushState(state:unknown,_title:string,path:string){this.state=state;location.pathname=path;},replaceState(state:unknown,_title:string,path:string){this.state=state;location.pathname=path;},back(){}},
+  fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}}
  );
  return document;
 }
@@ -67,19 +67,16 @@ const profileInput=document.getElementById("profileInput") as HTMLInputElement;
 profileInput.value="Sample";
 await (document.getElementById("profileForm") as HTMLFormElement).onsubmit!({preventDefault(){}} as SubmitEvent);
 await new Promise(resolve=>setTimeout(resolve,0));
-const names=()=>[...document.querySelectorAll("#listItems h3")].map(node=>node.textContent);
-assert(names().join("|")==="Sample’s All Dramas & Films|Sample’s Plan to Watch","Watchlists should open with the combined card first");
+// The app layout shows every list from a profile in one grid: the combined watchlist first,
+// then watchlist sections, then custom lists. There are no separate Watchlists and Custom tabs.
+const names=()=>[...document.querySelectorAll("#listItems article")].map(node=>node.querySelector("strong,h3")?.textContent);
+assert(names().join("|")==="Sample’s All Dramas & Films|Sample’s Plan to Watch|Favorites","Profile lists should open with the combined card first");
 (document.querySelector("#listItems .catalogAdd") as HTMLButtonElement).click();
-(document.querySelector('[data-community-view="custom"]') as HTMLButtonElement).click();
-assert(names().join("|")==="Sample’s Favorites list","Custom tab should show only custom lists");
-assert(document.getElementById("count")!.textContent==="(1)","Switching tabs lost selection");
-(document.querySelector('[data-community-view="watchlists"]') as HTMLButtonElement).click();
-assert(document.querySelector("#listItems .catalogAdd")!.getAttribute("aria-pressed")==="true","Returning to watchlists lost the added state");
-console.log("PASS Community tabs separate profile results and share selections");
+assert(document.getElementById("count")!.textContent==="(1)","Adding a profile list should count it");
+assert(document.querySelector("#listItems .catalogAdd")!.getAttribute("aria-pressed")==="true","Added list should show as added");
+console.log("PASS Community shows all profile lists in one grid and adds them");
 
 (document.getElementById("communitySelectAll") as HTMLButtonElement).click();
-assert(document.getElementById("count")!.textContent==="(2)","Select all should add remaining watchlists without duplicates");
-(document.querySelector('[data-community-view="custom"]') as HTMLButtonElement).click();
-(document.getElementById("communitySelectAll") as HTMLButtonElement).click();
-assert(document.getElementById("count")!.textContent==="(3)","Select all should preserve selections in other tab");
-console.log("PASS Community Select all applies to the current tab without duplicates");
+assert(document.getElementById("count")!.textContent==="(3)","Select all should add the remaining lists without duplicates");
+assert(JSON.parse(saved.get("ydl-v3-selection")!).length===3,"Select all should be saved");
+console.log("PASS Community Select all adds every list once");

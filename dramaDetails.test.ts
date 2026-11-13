@@ -6,7 +6,9 @@ function assert(ok: unknown, message: string) { if(!ok) throw Error(message); }
 async function test(name: string, fn:()=>unknown) { await fn();passed++;console.log('PASS '+name); }
 const html=(body:string)=>'<link rel="canonical" href="'+url+'">'+body;
 function memory(){const map=new Map<string,Entry>();return {map,async get(k:string){return map.get(k)},async set(k:string,v:Entry){map.set(k,v)}}}
-const response=()=>new Response(goblinHtml,{headers:{'content-type':'text/html'}});
+// Details now come from Kuryana (MyDramaList's data as JSON), not the MyDramaList page itself.
+const kuryanaJson=(u:string)=>new Response(JSON.stringify({success:true,data:{id:Number(u.match(/(\d+)-/)![1]),rating:8.8,ranked:178,popularity:1,synopsis:'A goblin seeks his bride.'}}),{headers:{'content-type':'application/json'}});
+const response=()=>kuryanaJson(url);
 await test('synthetic fixture complete synopsis and statistics parsing',()=>{
  const d=extractDramaDetails(goblinHtml,url);
  assert(d.score===8.8&&d.rank===178&&d.popularity===1,'fixture statistics');
@@ -53,14 +55,14 @@ await test('stale data during refresh failure; expires after seven days',async()
  const r=await get(url);assert(r.status==='stale'&&r.synopsis===d.synopsis,'stale retained');clock+=8*86400000;assert((await get(url)).status==='unavailable','expired hidden');
 });
 await test('fetch concurrency bounded to three and excessive queue rejected',async()=>{
- let active=0,max=0;const get=createDetailsService(memory(),async(u)=>{active++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,5));active--;return new Response('<link rel="canonical" href="'+u+'">',{headers:{'content-type':'text/html'}})});
+ let active=0,max=0;const get=createDetailsService(memory(),async(u)=>{active++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,5));active--;return kuryanaJson(String(u))});
  const results=await Promise.all(Array.from({length:35},(_,i)=>get('https://mydramalist.com/'+(i+1)+'-test')));assert(max===3,'max concurrency');assert(results.some(x=>x.status==='unavailable'),'bounded queue');
 });
 await test('60 upstream requests per minute; cache hits allowed',async()=>{
- let calls=0;const get=createDetailsService(memory(),async(u)=>{calls++;return new Response('<link rel="canonical" href="'+u+'">',{headers:{'content-type':'text/html'}})},()=>1000);
+ let calls=0;const get=createDetailsService(memory(),async(u)=>{calls++;return kuryanaJson(String(u))},()=>1000);
  for(let i=1;i<=61;i++)await get('https://mydramalist.com/'+i+'-test');assert(calls===60,'rate limit');assert((await get('https://mydramalist.com/1-test')).status==='cached','cached allowed');
 });
 await test('oversized response refused',async()=>{
- const get=createDetailsService(memory(),async()=>new Response('a'.repeat(2000001),{headers:{'content-type':'text/html'}}));assert((await get(url)).status==='unavailable','size limited');
+ const get=createDetailsService(memory(),async()=>new Response('a'.repeat(3000001),{headers:{'content-type':'text/html'}}));assert((await get(url)).status==='unavailable','size limited');
 });
 console.log(JSON.stringify({passed}));

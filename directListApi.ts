@@ -22,7 +22,7 @@ export async function listFromKuryana(url:string,fetcher:typeof fetch):Promise<L
  const listId=new URL(url).pathname.split('/')[2];
  let first:any;
  try{first=await kuryana(`/v2/lists/${encodeURIComponent(listId)}?page=1`,{fetcher,timeoutMs:8000});}
- catch(e){if(e instanceof KuryanaError&&(e.status===404||e.status===400))throw Error('List not found, or it is private. Check the link.');throw Error('MyDramaList could not load this list. It may be private or temporarily unavailable.');}
+ catch(e){if(e instanceof Error&&(e.name==='TimeoutError'||e.name==='AbortError'))throw e;if(e instanceof KuryanaError&&(e.status===404||e.status===400))throw Error('List not found, or it is private. Check the link.');throw Error('MyDramaList could not load this list. It may be private or temporarily unavailable.');}
  const name=String(first?.title||'').replace(/\s+/g,' ').trim();
  const items=(Array.isArray(first?.items)?first.items:[]).filter((x:any)=>x?.kind!=='person');
  if(!name)throw Error('This public list could not be read. It may be private or unavailable.');

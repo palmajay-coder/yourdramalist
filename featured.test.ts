@@ -3,7 +3,8 @@ import {TEXT} from "./text.ts";
 let passed=0;const ok=(v:any,m="Assertion failed")=>{if(!v)throw Error(m)};async function test(name:string,f:()=>any){await f();passed++;console.log("PASS "+name)}
 // Synthetic public list page in the shape MyDramaList serves; no captured user data.
 const page=(id:string)=>`<html><head><link rel="canonical" href="https://mydramalist.com/list/${id}"></head><body><div class="box"><div class="box-header"><h1>Seasonal ${id}</h1><div class="description">Curated picks.</div></div><div class="box-body"><div class="list-bars"></div><div class="collection-list"><div class="film-cover"><img data-src="https://i.mydramalist.com/${id}.jpg"></div></div></div></div></body></html>`;
-const listFetcher=(counter:{calls:number})=>(async(url:string|URL)=>{counter.calls++;const id=String(url).split("/").pop()!;return new Response(page(id),{headers:{"content-type":"text/html"}})}) as typeof fetch;
+// The curated lists now come from Kuryana (MyDramaList's data as JSON). page() above shows the old MyDramaList shape.
+const listFetcher=(counter:{calls:number})=>(async(url:string|URL)=>{counter.calls++;const id=new URL(String(url)).pathname.split("/").pop()!;return new Response(JSON.stringify({success:true,data:{title:"Seasonal "+id,description:"Curated picks.",items:[{title:"Title",image:`https://i.mydramalist.com/${id}.jpg`}],pagination:{total_pages:1}}}),{headers:{"content-type":"application/json"}})}) as typeof fetch;
 const at=(iso:string)=>Date.parse(iso);
 await test("banner season follows the Pacific calendar",()=>{
  ok(seasonForPacificDate(at("2026-11-09T20:00:00Z"))==="fall","November should be fall");

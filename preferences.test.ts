@@ -92,7 +92,8 @@ const {document, window} = parseHTML('<html><body><section id="preferences"></se
 Object.assign(globalThis, {document});
 // linkedom exposes select.value as read-only; browsers provide a setter.
 Object.defineProperty(window.HTMLSelectElement.prototype, "value", {configurable:true, get(){return this.getAttribute("data-test-value") || "";}, set(value:string){this.setAttribute("data-test-value", String(value));}});
-Object.defineProperty(globalThis,"localStorage",{value:{getItem:()=>null,setItem:()=>{}},writable:true,configurable:true});
+// EasyPosters ("ratings") is only offered to setups that already use it, so start from such a saved setup.
+Object.defineProperty(globalThis,"localStorage",{value:{getItem:(k:string)=>k==="ydl-v3-preferences"?JSON.stringify({posters:true}):null,setItem:()=>{}},writable:true,configurable:true});
 let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const chooseArtwork = (value: string) => {
