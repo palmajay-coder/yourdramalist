@@ -13,9 +13,9 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 - **Render:** Tried and dropped. MyDramaList refuses both Cloudflare and Render, so the site reads MyDramaList data through Kuryana, a public unofficial API, and TMDB.
 - **Repository:** Public, as requested.
 - **Source of truth:** Branch `migration/cloudflare`, which includes the 1.1.3 code that Val Town runs.
-- **Test address:** `https://yourdramalist.palmajay.workers.dev` until the domain is decided.
-- **Domain:** `yourdramalist.net` is preferred and not yet owned.
-- **Val Town:** Keeps running untouched until the cutover is approved.
+- **Compatibility address:** `https://yourdramalist.palmajay.workers.dev` remains active for existing Android builds and manifest URLs.
+- **Public domain:** `https://yourdramalist.net` is registered and attached to the production Worker.
+- **Val Town:** The public endpoint redirects to the Cloudflare custom domain with paths and query strings preserved.
 - **Data:** Start fresh (decided November 11). No data is copied from Val Town. Visitors lose nothing, since the site stores no accounts and install links depend only on the secret key. Analytics history and "Popular this month" start from zero.
 
 ## Ready on the test site
@@ -60,7 +60,7 @@ These features are gone or different, and we agreed they are acceptable:
 - [x] **Preferences check.** Done by the user, November 11: everything works.
 - [x] **Weekly job schedule.** Confirmed November 11: the job ran at 07:00 and 08:01 UTC, outcome ok, on `0 7,8 * * *`. Still to confirm: the real Monday refresh (next: Monday, November 16) rebuilds the weekly picks and banner.
 - [x] **Save the other Val Town branches.** Recorded November 12 in `legacy/branches/README.md` (names, dates, and links). The branches are small November 6 to 7 experiments copied from `main`, so their contents are not copied here. Optional: download any of them from Val Town before January 10.
-- [ ] **Domain.** Check whether `yourdramalist.net` is available, register it, and decide the final address.
+- [x] Register `yourdramalist.net` and attach it to the production Worker.
 - [ ] **Billing alert.** Set a Cloudflare alert for about $5.
 
 ## Upgrade in January
@@ -70,9 +70,8 @@ These features are gone or different, and we agreed they are acceptable:
 
 ## Cutover (needs your approval)
 
-- [ ] Attach the chosen domain to the Cloudflare site.
 - [ ] Clear the test data (test visits, analytics, and error log) so the live site starts at zero. Keep the wallpaper and banner settings.
-- [ ] Set the `yourdramalist.val.run` redirect, only after the new site is verified.
+- [x] Set the `yourdramalist.val.run` redirect to `https://yourdramalist.net/` and preserve paths and query strings.
 - [ ] Tell users to reinstall the add-on from the new address, since many add-on apps do not follow redirects.
 
 ## After the cutover

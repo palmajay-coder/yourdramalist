@@ -12,7 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const shim = (name) => path.join(here, "shims", name);
 
-const PUBLIC_ORIGIN = process.env.YDL_PUBLIC_ORIGIN || "https://yourdramalist.palmajay.workers.dev";
+const PUBLIC_ORIGIN = process.env.YDL_PUBLIC_ORIGIN || "https://yourdramalist.net";
 
 // Val Town and Deno specifiers, mapped to their Cloudflare replacements.
 const ALIASES = {

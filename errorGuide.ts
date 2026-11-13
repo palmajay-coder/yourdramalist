@@ -14,7 +14,7 @@ export const SETUP_ERRORS: Record<string, GuideEntry> = {
   "rate-limit": {title: "Too many setups at once", meaning: "More than 30 install links were requested site-wide in one minute.", fix: "Wait a minute and press Try again.", owner: "user"},
   "manifest-generation": {title: "Install link failed to build", meaning: "The server could not encrypt the setup. Usually the YDL_MANIFEST_SECRET setting is missing or invalid.", fix: "Check YDL_MANIFEST_SECRET in Val Town (64 hex characters).", owner: "you"},
   "invalid-request-body": {title: "Unreadable setup request", meaning: "The setup page sent data the server could not read.", fix: "If several users report it, the setup page may be broken. Test a fresh setup.", owner: "you"},
-  "origin": {title: "Request from another site", meaning: "A setup request came from outside yourdramalist.val.run.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
+  "origin": {title: "Request from another site", meaning: "A setup request came from outside the YourDramaList site.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
   "format": {title: "Wrong request format", meaning: "A setup request was not sent as JSON.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
   "method": {title: "Wrong request type", meaning: "Something tried to open the setup endpoint directly instead of submitting a setup.", fix: "Usually bots or a browser visiting the address. Nothing to do.", owner: "outside"},
 };
@@ -33,7 +33,7 @@ export const POSTER_ERRORS: Record<string, GuideEntry> = {
   "invalid-configuration": {title: "Unknown poster style", meaning: "The poster check named a provider the site does not support.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
   "invalid-input": {title: "Unreadable poster check", meaning: "The poster check sent data the server could not read.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
   "request-size": {title: "Poster check too large", meaning: "The poster check request was bigger than the server accepts.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
-  "request-origin": {title: "Poster check from another site", meaning: "A poster check came from outside yourdramalist.val.run.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
+  "request-origin": {title: "Poster check from another site", meaning: "A poster check came from outside the YourDramaList site.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
   "request-format": {title: "Wrong poster check format", meaning: "A poster check was not sent as JSON.", fix: "Usually automated traffic. Nothing to do unless it keeps happening.", owner: "outside"},
   "request-method": {title: "Wrong poster check type", meaning: "Something opened the poster check address directly.", fix: "Usually bots or a browser visiting the address. Nothing to do.", owner: "outside"},
 };

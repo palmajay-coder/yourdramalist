@@ -5,7 +5,7 @@
 **v1.1.3** · MyDramaList brought to Nuvio.
 A FREE and unofficial add-on for Asian dramas and movies using MDL database.
 
-**[ENTER THE MAIN SITE HERE](https://yourdramalist.val.run/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md)
+**[ENTER THE MAIN SITE HERE](https://yourdramalist.net/)** · [Privacy](PRIVACY.md) · [Self-hosting](DEPLOYMENT.md)
 
 ## Features
 

@@ -11,15 +11,15 @@ YourDramaList is a free, unofficial catalog add-on for Nuvio.
 
 ### Android
 
-For this beta, install **YourDramaList-1.1.24-beta-android.apk** and launch **YourDramaList**. The beta requires Android 8.0 or later and an internet connection.
+The custom-domain Android build opens `yourdramalist.net` and displays **YourDramaList**. It requires Android 8.0 or later and an internet connection. Earlier Android builds continue to open the compatibility address.
 
-APK SHA-256
+Custom-domain APK SHA-256
 
-`0ce1d14595d29ac39eacce3c001674997297eb7e5ff3542cd9755776ddb54806`
+`5b1e83dc93b33aca501a576cded693ae772e83b23798edae80e3b2d7e1b81d6a`
 
 ### iPhone and browser
 
-Open the web beta in Safari on iPhone or in your browser on other devices. [Open the YourDramaList web beta](https://yourdramalist.palmajay.workers.dev/)
+Open the web beta in Safari on iPhone or in your browser on other devices. [Open the YourDramaList web beta](https://yourdramalist.net/)
 
 ### Add your catalogs to Nuvio
 

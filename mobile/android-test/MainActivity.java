@@ -15,7 +15,7 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public final class MainActivity extends Activity {
-    private static final String HOST = "yourdramalist.palmajay.workers.dev";
+    private static final String HOST = "yourdramalist.net";
     private static final String START_URL = "https://" + HOST + "/";
     private WebView web;
     private Button retry;
