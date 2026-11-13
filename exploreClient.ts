@@ -34,7 +34,8 @@ export function installExploreUI() {
   } catch {
   }
   sortLabel.className = "catalogSortLabel";
-  let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "series";
+  let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
+  let weeklySection, weeklyCountry, catalogSection;
   const buttons = new Map();
   let workers = 0;
   const jobs = [];
@@ -151,23 +152,12 @@ export function installExploreUI() {
     }
     track.innerHTML = '<div class="catalogSkeleton" aria-hidden="true" style="width:100%"><span></span><span></span><span></span><span></span><span></span></div>';
   }
-  function render3() {
-    if (!compactAndroid && (state.tab !== "discover" || state.filter !== "catalogs")) return;
-    const parent2 = $(compactAndroid ? "androidCatalogs" : "listItems");
-    const id = ++renderId, request = compactAndroid ? null : ++listRequest;
-    const outdated = () => id !== renderId || !compactAndroid && request !== listRequest;
-    selectedCountry = select.value;
-    try {
-      localStorage.setItem("ydl-catalog-country", select.value);
-      localStorage.setItem("ydl-catalog-sort", sortSelect.value);
-    } catch {
+  function pruneButtons() {
+    for (const [url, button] of buttons) {
+      if (!button.isConnected) buttons.delete(url);
     }
-    observer?.disconnect();
-    clearInterval(countdown);
-    jobs.length = 0;
-    buttons.clear();
-    if (!compactAndroid) $("results").replaceChildren();
-    parent2.replaceChildren();
+  }
+  function mountWeekly(parent2, country, isOutdated) {
     const weekly = document.createElement("section"), heading = document.createElement("h2");
     heading.className = "catalogSectionTitle";
     heading.textContent = copy.weeklyTitle;
@@ -186,116 +176,118 @@ export function installExploreUI() {
       note.append(caption, clock2);
       weekly.append(heading, note);
     }
-    parent2.append(weekly);
+    weeklySection = weekly;
+    weeklyCountry = country;
+    parent2.prepend(weekly);
+    const outdated = () => !weekly.isConnected || isOutdated();
     const weeklyRows = document.createElement("div");
     weekly.append(weeklyRows);
     skeleton(weeklyRows);
-    function weeklyLoad() {
-      enqueue(async () => {
-        if (outdated()) return;
-        try {
-          let tick = function() {
-            const remaining = Math.max(0, Date.parse(data2.nextRefresh) - Date.now());
-            if (!remaining) {
-              clock2.textContent = copy.weeklyRefreshing;
-              clearInterval(countdown);
-              if (data2.status !== "stale") render3();
-              return;
+    async function weeklyLoad() {
+      if (outdated()) return;
+      try {
+        let tick = function() {
+          const remaining = Math.max(0, Date.parse(data2.nextRefresh) - Date.now());
+          if (!remaining) {
+            clock2.textContent = copy.weeklyRefreshing;
+            clearInterval(countdown);
+            if (data2.status !== "stale") {
+              if (compactAndroid) {
+                weekly.remove();
+                pruneButtons();
+                mountWeekly(parent2, country, isOutdated);
+              } else render3();
             }
-            const hours = Math.floor(remaining / 36e5);
-            clock2.textContent = "\u25F7 " + Math.floor(hours / 24) + "d " + hours % 24 + "h";
-            clock2.title = copy.weeklyRefreshTimezone;
-          };
-          const response = await fetch("/api/catalogs/weekly?country=" + selectedCountry, { signal: AbortSignal.timeout(45e3) });
-          const data2 = await response.json();
-          if (outdated()) return;
-          if (!response.ok || !Array.isArray(data2.collections) || !Number.isFinite(Date.parse(data2.nextRefresh))) throw Error();
-          weeklyRows.replaceChildren();
-          clock2.hidden = false;
-          for (const collection of data2.collections || []) {
-            const row = shelf(collection.catalog, weeklyRows);
-            row.fill(collection.items);
+            return;
           }
-          if (data2.warning) {
-            const warning = document.createElement("p");
-            warning.className = "catalogShelfStatus";
-            warning.textContent = copy.weeklySaved;
-            weeklyRows.prepend(warning);
-          }
-          tick();
-          countdown = setInterval(tick, 6e4);
-          sync();
-        } catch {
-          if (outdated()) return;
-          weeklyRows.replaceChildren();
-          const message = document.createElement("p");
-          message.className = "catalogShelfStatus";
-          message.textContent = copy.weeklyUnavailable;
-          const retry = document.createElement("button");
-          retry.type = "button";
-          retry.className = "secondary catalogRetry";
-          retry.textContent = copy.catalogRetry;
-          retry.onclick = () => {
-            retry.disabled = true;
-            weeklyLoad();
-          };
-          weeklyRows.append(message, retry);
-          clock2.hidden = true;
+          const hours = Math.floor(remaining / 36e5);
+          clock2.textContent = "\u25F7 " + Math.floor(hours / 24) + "d " + hours % 24 + "h";
+          clock2.title = copy.weeklyRefreshTimezone;
+        };
+        const response = await fetch("/api/catalogs/weekly?country=" + country, { signal: AbortSignal.timeout(45e3) });
+        const data2 = await response.json();
+        if (outdated()) return;
+        if (!response.ok || !Array.isArray(data2.collections) || !Number.isFinite(Date.parse(data2.nextRefresh))) throw Error();
+        weeklyRows.replaceChildren();
+        clock2.hidden = false;
+        for (const collection of data2.collections || []) {
+          const row = shelf(collection.catalog, weeklyRows);
+          row.fill(collection.items);
         }
-      });
+        if (data2.warning) {
+          const warning = document.createElement("p");
+          warning.className = "catalogShelfStatus";
+          warning.textContent = copy.weeklySaved;
+          weeklyRows.prepend(warning);
+        }
+        countdown = setInterval(tick, 6e4);
+        tick();
+        sync();
+      } catch {
+        if (outdated()) return;
+        weeklyRows.replaceChildren();
+        const message = document.createElement("p");
+        message.className = "catalogShelfStatus";
+        message.textContent = copy.weeklyUnavailable;
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "secondary catalogRetry";
+        retry.textContent = copy.catalogRetry;
+        retry.onclick = () => {
+          retry.disabled = true;
+          weeklyLoad();
+        };
+        weeklyRows.append(message, retry);
+        clock2.hidden = true;
+      }
     }
     weeklyLoad();
+  }
+  function render3() {
+    if (!compactAndroid && (state.tab !== "discover" || state.filter !== "catalogs")) return;
+    const parent2 = $(compactAndroid ? "androidCatalogs" : "listItems");
+    const id = ++renderId, request = compactAndroid ? null : ++listRequest;
+    const outdated = () => id !== renderId || !compactAndroid && request !== listRequest;
+    selectedCountry = select.value;
+    try {
+      localStorage.setItem("ydl-catalog-country", select.value);
+      localStorage.setItem("ydl-catalog-sort", sortSelect.value);
+    } catch {
+    }
+    observer?.disconnect();
+    if (!compactAndroid) clearInterval(countdown);
+    jobs.length = 0;
+    if (compactAndroid) {
+      catalogSection?.remove();
+      pruneButtons();
+      if (!weeklySection?.isConnected || weeklyCountry !== selectedCountry) {
+        clearInterval(countdown);
+        weeklySection?.remove();
+        pruneButtons();
+        mountWeekly(parent2, selectedCountry, () => !parent2.isConnected);
+      }
+    } else {
+      buttons.clear();
+      $("results").replaceChildren();
+      parent2.replaceChildren();
+      mountWeekly(parent2, selectedCountry, outdated);
+    }
     const more = document.createElement("section");
     more.className = "catalogMore";
     const moreHeading = document.createElement("h2");
     moreHeading.className = "catalogSectionTitle";
     moreHeading.textContent = copy.catalogMore;
-    const moreNote = document.createElement("div");
-    moreNote.className = "catalogSectionNote";
-    const moreCaption = document.createElement("span");
-    moreCaption.textContent = copy.catalogMoreNote;
-    if (!compactAndroid) moreNote.append(moreCaption);
-    moreNote.append(sortLabel, sortSelect);
-    more.append(moreHeading, moreNote);
-    parent2.append(more);
-    const catalogPanels = new Map();
-    if (compactAndroid) {
-      let syncType = function() {
-        for (const [type, button] of tabs) {
-          const active2 = type === activeCatalogType;
-          button.setAttribute("aria-pressed", String(active2));
-          catalogPanels.get(type).hidden = !active2;
-        }
-      };
-      const switcher = document.createElement("div");
-      switcher.className = "catalogTypeSwitch";
-      switcher.setAttribute("role", "group");
-      switcher.setAttribute("aria-label", copy.catalogMediaType);
-      const tabs = new Map();
-      for (const [type, name] of [["series", copy.catalogShows], ["movie", copy.catalogMovies]]) {
-        const panel = document.createElement("div");
-        panel.id = "exploreCatalogType-" + type;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = name;
-        button.setAttribute("aria-controls", panel.id);
-        button.onclick = () => {
-          activeCatalogType = type;
-          syncType();
-        };
-        tabs.set(type, button);
-        catalogPanels.set(type, panel);
-        switcher.append(button);
-        more.append(panel);
-      }
-      more.insertBefore(switcher, moreNote);
-      const countryField = document.createElement("div"), sortField = document.createElement("div");
-      countryField.append(label, select);
-      sortField.append(sortLabel, sortSelect);
-      moreNote.classList.add("androidCatalogFilters");
-      moreNote.append(countryField, sortField);
-      syncType();
+    more.append(moreHeading);
+    if (!compactAndroid) {
+      const moreNote = document.createElement("div");
+      moreNote.className = "catalogSectionNote";
+      const caption = document.createElement("span");
+      caption.textContent = copy.catalogMoreNote;
+      moreNote.append(caption, sortLabel, sortSelect);
+      more.append(moreNote);
     }
+    parent2.append(more);
+    catalogSection = more;
     function loadRow(row, c) {
       if (row.loading || row.loaded) return;
       row.loading = true;
@@ -303,7 +295,15 @@ export function installExploreUI() {
         try {
           if (outdated()) return;
           skeleton(row.track);
-          const response = await fetch("/api/catalogs/shelf?category=" + c.category + "&country=" + c.country + (sortSelect.value ? "&sort=" + sortSelect.value : ""), { signal: AbortSignal.timeout(45e3) });
+          const url = "/api/catalogs/shelf?category=" + c.category + "&country=" + c.country + (sortSelect.value ? "&sort=" + sortSelect.value : "");
+          const options = { signal: AbortSignal.timeout(45e3) };
+          let response = await fetch(url, options);
+          if ([502, 503, 504].includes(response.status) && !outdated()) {
+            await response.body?.cancel();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (outdated()) return;
+            response = await fetch(url, options);
+          }
           const data2 = await response.json();
           if (outdated()) return;
           if (!response.ok) throw Error();
@@ -334,13 +334,14 @@ export function installExploreUI() {
     const targets = new Map();
     for (const k of exploreCategories) {
       const c = exploreCatalog(k[0], select.value);
+      if (compactAndroid && activeCatalogType !== "all" && !c.types.includes(activeCatalogType)) continue;
       if (sortSelect.value) {
         const f = { sort: sortSelect.value };
         c.url += "?ydlf=" + shelfFilterKey(f);
         c.filter = f;
         c.filterLabel = "";
       }
-      const row = shelf(c, catalogPanels.get(c.types[0]) || more);
+      const row = shelf(c, more);
       targets.set(row.card, () => loadRow(row, c));
       skeleton(row.track);
     }
@@ -362,7 +363,61 @@ export function installExploreUI() {
     sync();
     requestAnimationFrame(alignSelection);
   }
+  let openFilters;
+  if (compactAndroid) {
+    const dialog = document.createElement("dialog");
+    dialog.className = "androidDiscoverFilters";
+    dialog.setAttribute("aria-label", "Discover filters");
+    const media = document.createElement("fieldset");
+    media.setAttribute("aria-label", copy.catalogMediaType);
+    for (const [type, name] of [["all", "All"], ["movie", copy.catalogMovies], ["series", copy.catalogShows]]) {
+      const row = document.createElement("label");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "discoverMediaType";
+      radio.value = type;
+      const caption = document.createElement("span");
+      caption.textContent = name;
+      row.append(radio, caption);
+      radio.onchange = () => {
+        activeCatalogType = type;
+        render3();
+      };
+      media.append(row);
+    }
+    const fields = document.createElement("div");
+    fields.className = "androidCatalogFilters";
+    const countryField = document.createElement("div");
+    const sortField = document.createElement("div");
+    countryField.append(label, select);
+    sortField.append(sortLabel, sortSelect);
+    fields.append(countryField, sortField);
+    dialog.append(media, fields);
+    document.body.append(dialog);
+    dialog.addEventListener("click", (event) => {
+      if (event.target !== dialog) return;
+      const bounds = dialog.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right ||
+          event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+    });
+    openFilters = (trigger) => {
+      if (dialog.open) return;
+      const bounds = trigger.getBoundingClientRect();
+      dialog.style.top = Math.max(8, bounds.bottom + 6) + "px";
+      for (const radio of media.querySelectorAll("input")) radio.checked = radio.value === activeCatalogType;
+      showAndroidDialog(dialog);
+    };
+  }
   select.onchange = render3;
   sortSelect.onchange = render3;
-  return { render: render3, sync };
+  return {
+    render: render3,
+    sync,
+    openFilters,
+    resetMedia() {
+      if (activeCatalogType === "all") return;
+      activeCatalogType = "all";
+      render3();
+    },
+  };
 }

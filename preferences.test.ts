@@ -96,7 +96,9 @@ Object.defineProperty(globalThis,"localStorage",{value:{getItem:()=>null,setItem
 let page = "", user = ""; const ui = installPreferencesUI({navigate: p => page = p, selection: () => [{name: "Sample user's list"}], user: () => user});
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const chooseArtwork = (value: string) => {
-  const select = $("prefPosterStyle"); select.value = value; select.dispatchEvent(new window.Event("change"));
+  const choice = document.querySelector<HTMLInputElement>(`#prefPosterStyle input[value="${value}"]`)!;
+  choice.checked = true;
+  choice.dispatchEvent(new window.Event("change"));
 };
 const change = (input: HTMLInputElement, checked: boolean) => {input.checked = checked; input.dispatchEvent(new window.Event("change"));};
 await test("review preview follows its switch", () => {

@@ -31,7 +31,7 @@ function sizePreview(){
 }
 function preview(){
  if(!ready)return;
- for(const id of ['image','upload','tint','opacity'])$(id).disabled=$('backgroundMode').value==='posters';
+ for(const id of ['image','upload'])$(id).disabled=$('backgroundMode').value==='posters';
  $('amount').textContent=$('opacity').value+'%';
  $('bannerOverlayAmount').textContent=$('bannerOverlay').value+'%';
  sizePreview();

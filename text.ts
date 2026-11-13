@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.1.7";
-export const DISPLAY_VERSION = "1.1.7";
+export const APP_VERSION = "1.1.23";
+export const DISPLAY_VERSION = "1.1.23";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -11,7 +11,7 @@ export const TEXT = {
   weeklySaved:
     "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",
-  catalogMore: "K-Drama & Beyond",
+  catalogMore: "Catalogs by Country",
   catalogMediaType: "Catalog type",
   catalogShows: "Shows",
   catalogMovies: "Movies",
@@ -168,12 +168,15 @@ export const TEXT = {
     "Add both API keys to use EasyPosters, or choose another poster style to continue.",
   preferencesBadgesRequired:
     "Choose at least one rating badge, or choose another poster style.",
-  confirmTitle: "Ready when you are.",
+  confirmTitle: "Confirmation",
   confirmDescription: "Review your setup, then bring your lists to Nuvio.",
   confirmCatalogs: "Your catalogs",
   confirmPreferences: "Your preferences",
   manifestUrl: "Manifest URL",
   copyManifest: "Copy",
+  generateManifest: "Generate manifest",
+  generateAndInstall: "Generate & Install",
+  pasteManifestInNuvio: "Copy this link, then paste it into Nuvio’s add-on settings.",
   copiedManifest: "Copied",
   installNuvio: "Install in Nuvio",
   manifestDiagnosticCode: "Diagnostic code",
@@ -196,12 +199,11 @@ export const TEXT = {
   editPreferences: "Edit preferences",
   enabled: "On",
   disabled: "Off",
-  connectTitle: "Bring your lists.",
-  connectDescription:
-    "Enter your MyDramaList username or explore without an account.",
+  connectTitle: "YourDramaList",
+  connectDescription: "",
   usernameLabel: "MyDramaList username or profile URL",
-  usernamePlaceholder: "Enter your username or profile URL",
-  findLists: "Find My Lists",
+  usernamePlaceholder: "Enter MyDramaList username",
+  findLists: "Search",
   pasteList: "Paste a list link",
   or: "OR",
   skipAccount: "Continue without an account",
@@ -262,11 +264,6 @@ export const TEXT = {
   emptySelection: "No lists added yet.",
   continue: "Continue",
   back: "Back",
-  done: "Done",
-  advancedOptions: "Advanced options",
-  copyInstallLink: "Copy install link",
-  installLinkCopied: "Link copied",
-  installLinkPaste: "Paste it in Nuvio to install.",
   mobileFooter: "A FREE unofficial add-on for Nuvio.",
   footer:
     "YourDramaList is a FREE unofficial add-on designed for Nuvio based on MyDramaList and is not affiliated with either party.",

@@ -11,9 +11,9 @@ export function installPeopleUI() {
     }
   }
   function sync() {
-    for (const [url, button] of compactButtons) {
-      const added = state.selection.some((item) => item.url === url);
-      button.textContent = added ? copy.catalogAdded : copy.addFilmography;
+    for (const [personId, button] of compactButtons) {
+      const added = !!selectedFilmography(personId);
+      button.textContent = added ? copy.catalogAdded : "Add Filmography";
       button.setAttribute("aria-pressed", String(added));
     }
     if (!shelfState) return;
@@ -198,9 +198,13 @@ export function installPeopleUI() {
     }
     load2(0);
   }
-  function compactPerson(person, mode) {
+  function selectedFilmography(personId) {
+    return state.selection.find(({ url }) =>
+      url === "ydl-filmography:actor:" + personId || url === "ydl-filmography:director:" + personId
+    );
+  }
+  function compactPerson(person) {
     const requestId = listRequest;
-    const url = "ydl-filmography:" + mode + ":" + person.id;
     const name = person.displayName || person.name;
     const card = document.createElement("article");
     card.className = "catalogShelf compactCatalogRow";
@@ -220,51 +224,54 @@ export function installPeopleUI() {
       photo.referrerPolicy = "no-referrer";
       identity.append(photo);
     }
-    const add2 = document.createElement("button");
-    add2.type = "button";
-    add2.className = "secondary catalogAdd";
-    add2.setAttribute("aria-label", copy.selectFilmography + " " + name);
-    compactButtons.set(url, add2);
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "secondary catalogAdd";
+    add.setAttribute("aria-label", "Add or remove filmography for " + name);
+    compactButtons.set(person.id, add);
     const status = document.createElement("p");
     status.className = "catalogShelfStatus";
     status.setAttribute("role", "status");
     status.hidden = true;
     identity.append(title);
-    head.append(identity, add2);
+    head.append(identity, add);
     card.append(head, status);
-    let request;
-    function load2() {
-      return request ??= json("/api/mdl/filmography?mode=" + mode + "&url=" + encodeURIComponent(person.url)).catch((error) => {
-        request = void 0;
-        throw error;
-      });
-    }
+
     function showStatus(message) {
       status.textContent = message;
       status.hidden = !message;
     }
-    const empty2 = mode === "director" ? "No directing credits found." : "No acting credits found.";
-    add2.onclick = async () => {
-      const selected = state.selection.find((item) => item.url === url);
+    add.onclick = async () => {
+      const selected = selectedFilmography(person.id);
       if (selected) {
         toggleList(selected);
         return;
       }
-      add2.disabled = true;
+      add.disabled = true;
       showStatus(copy.loadingLists);
       try {
-        const data2 = await load2();
+        const details = person.enriched ? person : (await json(personApi(person.url, "actor"))).person;
         if (requestId !== listRequest || !card.isConnected) return;
-        if (!data2.sectionFound || !data2.items.length) {
-          showStatus(empty2);
+        if (!details.actorCount && !details.directorCount) {
+          showStatus("No filmography credits found.");
           return;
         }
-        toggleList({ ...data2.list, posters: [], analyticsSource: mode === "director" ? "discover-director-filmography" : "discover-actor-filmography" });
+        // Keep existing catalog identities and use the larger body of credits for people with both roles.
+        const mode = details.directorCount > details.actorCount ? "director" : "actor";
+        const result = await json("/api/mdl/filmography?mode=" + mode + "&url=" + encodeURIComponent(person.url));
+        if (requestId !== listRequest || !card.isConnected) return;
+        if (!result.items.length) {
+          showStatus("No filmography credits found.");
+          return;
+        }
+        if (!selectedFilmography(person.id)) {
+          toggleList({ ...result.list, posters: [], analyticsSource: "discover-" + mode + "-filmography" });
+        }
         showStatus("");
       } catch {
         if (requestId === listRequest && card.isConnected) showStatus(copy.popularUnavailable);
       } finally {
-        add2.disabled = false;
+        add.disabled = false;
       }
     };
     return card;
@@ -278,7 +285,7 @@ export function installPeopleUI() {
     if (data2.warning) $("results").append(document.createTextNode(" \xB7 " + data2.warning));
     for (const person of data2.people) {
       if (compactAndroid) {
-        $("listItems").append(compactPerson(person, mode));
+        $("listItems").append(compactPerson(person));
         continue;
       }
       const card = document.createElement("article");

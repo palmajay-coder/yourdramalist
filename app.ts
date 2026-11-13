@@ -34,7 +34,7 @@ import { handleDramaDetails } from './dramaDetailsApi.ts';
 import { handleDramaSearch } from './dramaSearchApi.ts';
 import { privacyPage } from './privacyPage.ts';
 const page = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YourDramaList</title><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#181818">
+<html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>YourDramaList</title><link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/ydl-classic-blue-v1.png"><meta name="theme-color" content="#181818">
 <link rel="stylesheet" href="${immutableFileUrl("/preferences.css")}">
 <link rel="stylesheet" href="${immutableFileUrl("/catalogShelves.css")}">
 <style>
@@ -50,7 +50,7 @@ header .mobileBrandMark{display:none}
 .mobileBrandVersion{position:absolute;top:0;right:0;padding:2px 5px;border-radius:5px;background:#c42d43;color:#fff;font-size:10px;font-weight:700;letter-spacing:0;line-height:1.1;font-variant-numeric:tabular-nums}
 body.androidSetup header .desktopBrandName{display:none}
 body.androidSetup header .mobileBrandMark{display:inline-block}
-body.androidSetup :is(header .steps,footer,#selection .tabs,#selection .featuredHero,#discoverSearch){display:none!important}
+body.androidSetup :is(header .steps,footer,#selection .tabs,#selection .featuredHero){display:none!important}
 body.androidSetup[data-page=selection]{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
 body.androidSetup #selection .workspace{margin-top:0;grid-template-columns:minmax(0,1fr)}
 body.androidSetup #selection .sidebar{display:none}
@@ -90,6 +90,39 @@ body.androidSetup .androidFiltersDialog .shelfField{margin-top:8px}
 body.androidSetup .androidYearInput{width:100%;min-height:44px;background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:16px}
 body.androidSetup .androidFilterActions{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}
 body.androidSetup .androidFilterActions button{width:100%;min-height:48px}
+body.androidSetup{--bg:#101216;--panel:#20232b;--line:#353a45;--text:#f1f3f6;--muted:#aab1bd;--accent:#2674ec;--input:#20232b;--link:#75aaff;--tab:#273141;padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+body.androidSetup header{background:#17191e;min-height:72px;padding:15px 20px}
+body.androidSetup .androidDiscoverToolbar{margin-bottom:16px}
+body.androidSetup .androidHeaderActions{position:relative;display:flex;align-items:center;gap:8px;margin-inline-start:auto}
+body.androidSetup .androidHeaderActions.hidden,body.androidSetup .androidHeaderActions[data-section=discover] #androidFilterCount{display:none}
+body.androidSetup .androidDiscoverFilters{position:fixed;inset:auto 12px auto auto;margin:0;width:min(320px,calc(100vw - 24px));max-height:70dvh;overflow:auto;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text);box-shadow:0 12px 32px #0008}
+body.androidSetup .androidDiscoverFilters::backdrop{background:#0004}
+body.androidSetup .androidDiscoverFilters fieldset{border:0;padding:4px 0;margin:0;min-width:0}
+body.androidSetup .androidDiscoverFilters fieldset label{position:relative;display:block;margin:0;padding:0}
+body.androidSetup .androidDiscoverFilters fieldset input{position:absolute;opacity:0;width:1px;height:1px}
+body.androidSetup .androidDiscoverFilters fieldset span{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:0 16px;color:var(--text);font-size:16px}
+body.androidSetup .androidDiscoverFilters fieldset input:checked + span::after{content:'✓';color:var(--link)}
+body.androidSetup .androidDiscoverFilters fieldset input:focus-visible + span{outline:2px solid var(--link);outline-offset:-3px}
+body.androidSetup .androidDiscoverFilters .androidCatalogFilters{border-top:1px solid var(--line);padding:12px 16px}
+body.androidSetup .androidDiscoverFilters .androidCatalogFilters label{font-size:13px}
+body.androidSetup .androidHeaderActions button{position:relative;display:grid;place-items:center;width:44px;min-height:44px;padding:8px;border:0;background:transparent;color:var(--text)}
+body.androidSetup .androidHeaderActions button:hover{background:#ffffff10}
+body.androidSetup .androidHeaderActions svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.androidSetup #androidSelectionCount:not([hidden]){position:absolute;top:1px;right:0;min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:#e3374b;color:#fff;font-size:10px;font-weight:700;line-height:18px;text-align:center}
+body.androidSetup .androidBottomNav{position:fixed;z-index:20;inset:auto 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:rgba(29,32,40,.97);border-top:1px solid #ffffff12;backdrop-filter:blur(18px)}
+body.androidSetup .androidNavItem{display:flex;min-width:0;min-height:56px;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:2px 4px;border:0;border-radius:16px;background:transparent;color:#b8bec9;font-size:11px;font-weight:600}
+body.androidSetup .androidNavItem.active{color:#fff}
+body.androidSetup .androidNavItem.active .androidNavIcon{display:grid;place-items:center;width:64px;height:32px;border-radius:18px;background:#2674ec;color:#fff}
+body.androidSetup .androidNavIcon{font-size:21px;line-height:1}
+body.androidSetup .androidNavItem:focus-visible{outline:2px solid #75aaff;outline-offset:1px}
+body[data-page=connect] header{display:none}
+body[data-page=connect] #connect h1{text-align:center}
+body.androidSetup .androidFiltersDialog,body.androidSetup .mobileSelectionDialog{background:var(--panel);color:var(--text)}
+body.androidSetup .primary{background:#2674ec;color:#fff}
+body.androidSetup .secondary{background:#252a33;border-color:#414956;color:#f1f3f6}
+body.androidSetup .panel,body.androidSetup .listcard{background:#20232b;border-color:#353a45}
+body.androidSetup .tabs button.active,body.androidSetup .filters button.active{background:#273141;border-color:#2674ec;color:#fff}
+body.androidSetup .notice{background:#1b1e25}
 .mobileSelectionDialog:not([open]){display:none}
 @media(max-width:740px){
   #selection .sidebar:has(#popularCard[hidden]){display:none}
@@ -130,22 +163,28 @@ body.androidSetup .androidFilterActions button{width:100%;min-height:48px}
 </style></head><body><div id="wallpaper" hidden><div id="wallpaperTint"></div></div><header><div class="headerBackground" id="headerBackground" aria-hidden="true"></div><a class="brand" href="/" aria-label="YourDramaList home"><span class="desktopBrandName">YourDramaList</span><span class="mobileBrandMark" aria-hidden="true">YDL<span class="mobileBrandVersion">v${APP_VERSION}</span></span></a><nav class="steps" aria-label="Setup progress"><button id="step1" type="button" class="active" disabled>${TEXT.stepConnect}</button><button id="step2" type="button" disabled>${TEXT.stepLists}</button><button id="step3" type="button" disabled>${TEXT.stepPreferences}</button><button id="step4" type="button" disabled>${TEXT.stepConfirm}</button></nav></header><main class="shell">
 <section id="landing" class="hero"><div class="mobileLandingBrand mobileBrandMark" aria-label="YourDramaList v${APP_VERSION}">YDL<span class="mobileBrandVersion">v${APP_VERSION}</span></div><h1>${TEXT.siteName}</h1><p>${TEXT.subtitle}</p><button class="primary" id="start">${TEXT.getStarted}</button><p class="mobileLandingFooter">${TEXT.mobileFooter}</p></section>
 <div id="setup" class="hidden">
-<section id="connect" class="connect"><h1>${TEXT.connectTitle}</h1><p class="muted">${TEXT.connectDescription}</p><form class="panel" id="connectForm"><label for="source">${TEXT.usernameLabel}</label><input id="source" required maxlength="200" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="${TEXT.usernamePlaceholder}"><button class="primary" type="submit">${TEXT.findLists}</button><span id="error" role="alert" style="color:#ff8e95"></span></form><div class="or">${TEXT.or}</div><button class="secondary" id="skip" style="width:100%">${TEXT.skipAccount}</button><button class="secondary mobilePasteList" id="pasteList" type="button">${TEXT.pasteList}</button></section>
+<section id="connect" class="connect"><h1>${TEXT.connectTitle}</h1><form class="panel" id="connectForm"><input id="source" aria-label="${TEXT.usernameLabel}" required maxlength="200" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="${TEXT.usernamePlaceholder}"><button class="primary" type="submit">${TEXT.findLists}</button><span id="error" role="alert" style="color:#ff8e95"></span></form><div class="or">${TEXT.or}</div><button class="secondary" id="skip" style="width:100%">${TEXT.skipAccount}</button></section>
 <section id="selection" class="hidden"><div class="featuredHero" id="featuredHero"><div class="featuredArt" id="featuredArt"></div><div class="featuredShade"></div><div class="featuredIntro"><h1 id="featuredHeading">${TEXT.listsTitle}</h1><p class="muted" id="featuredSubtitle">${TEXT.listsDescription}</p></div><div class="featuredCopy hidden" id="featuredCopy" aria-live="polite"><span class="featuredLabel" id="featuredLabel">${TEXT.featuredListLabel}</span><h2 id="featuredTitle"></h2><p class="featuredBy" id="featuredBy" hidden></p><a id="featuredLink" class="featuredAdd" href="#">${TEXT.featuredListAdd}</a></div><button type="button" class="featuredArrow hidden" id="featuredPrevious" aria-label="Previous banner">‹</button><button type="button" class="featuredArrow hidden" id="featuredNext" aria-label="Next banner">›</button></div><div class="tabs"><button data-tab="profiles">${TEXT.profilesTab}</button><button data-tab="discover">${TEXT.discoverTab}</button></div><div class="workspace"><div><div id="profileSearch"><form id="profileForm"><label for="profileInput">${TEXT.profileSearchLabel}</label><div class="searchrow"><input id="profileInput" autocapitalize="none" spellcheck="false" placeholder="${TEXT.profilePlaceholder}" required><button class="primary">${TEXT.search}</button></div></form><div id="communityViews" class="filters discoverModes communityViews hidden" role="group" aria-label="${TEXT.communityListTypes}"><button type="button" data-community-view="watchlists" aria-pressed="true">${TEXT.communityWatchlists}</button><button type="button" id="communitySelectAll">${TEXT.communitySelectAll}</button></div></div><div id="discoverSearch" class="hidden"><div class="filters discoverModes" role="group" aria-label="Discover categories"><button data-filter="actor">${TEXT.actors}</button><button data-filter="director">${TEXT.directors}</button><button data-filter="catalogs">Catalogs</button></div><label id="discoverLabel" for="discoverInput">${TEXT.discoverSearchLabel}</label><form id="discoverForm" class="searchrow"><input id="discoverInput" aria-label="Drama name or MyDramaList URL" maxlength="500" required placeholder="Search dramas..."><button class="primary">Search</button></form><div id="exploreSearch" class="hidden"></div></div><div id="results" role="status"></div><div id="listItems"></div></div><aside class="panel sidebar"><div id="desktopSelection"><h3>${TEXT.selectionTitle} <span id="count">(0)</span></h3><div id="selectionControls"><div class="muted" id="selectionMessage">${TEXT.emptySelection}</div><button class="primary" disabled id="continue">${TEXT.continue}</button><button class="selectionClear hidden" type="button" id="clearSelection">${TEXT.clearSelection}</button></div></div><div class="popularCard" id="popularCard" hidden></div></aside></div>
 <div class="mobileSelectionBar" id="mobileSelectionBar" hidden><button class="secondary" id="reviewSelection" type="button" aria-haspopup="dialog" aria-controls="selectionDialog"></button><button class="primary" id="mobileContinue" type="button">${TEXT.continue}</button></div>
 <dialog class="mobileSelectionDialog" id="selectionDialog" aria-labelledby="selectionDialogTitle"><div class="selectionSheetHeader"><h2 id="selectionDialogTitle">${TEXT.selectionTitle}</h2><button class="secondary" type="button" id="closeSelectionDialog" aria-label="${TEXT.closeSelection}">×</button></div></dialog></section><section id="preferences" class="preferencesPage prefPage hidden" aria-label="${TEXT.stepPreferences}"></section><section id="confirm" class="preferencesPage prefPage hidden" aria-label="${TEXT.stepConfirm}"></section></div>
 </main><footer><span id="landingFooter">${TEXT.footer}</span><span id="buildFooter"><a href="https://github.com/palmajay-coder/yourdramalist" target="_blank" rel="noopener noreferrer">Valtown public build</a> · v${APP_VERSION} · <a href="/privacy">Privacy</a></span><section class="tmdbAttribution" id="tmdb-attribution" aria-label="TMDB Attribution Notice"><strong>TMDB Attribution Notice</strong><div class="tmdbAttributionContent"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div></section></footer>
 <script>
 const copy = ${JSON.stringify({ ...TEXT, androidVersion: APP_VERSION })};
-// The test APK loads this host in Android WebView. Phone browsers keep the web layout.
+// The Android APK and phone browsers share the mobile beta setup.
 const previewParams=new URL(location.href).searchParams;
 const isWallpaperPreview=previewParams.get('wallpaper-preview')==='1';
 let androidPreview=false;
 if(isWallpaperPreview&&previewParams.get('android-preview')==='1'){
  try{androidPreview=parent!==window&&parent.location.origin===location.origin}catch{}
 }
-const compactAndroid=androidPreview||(location.hostname==='yourdramalist-mobile-test.palmajay.workers.dev'
- && navigator.userAgent.includes('Android') && navigator.userAgent.includes('; wv'));
+const mobileBetaHost=location.hostname==='yourdramalist-mobile-test.palmajay.workers.dev';
+const androidApp=mobileBetaHost&&navigator.userAgent.includes('Android')&&navigator.userAgent.includes('; wv');
+const mobileWeb=mobileBetaHost&&!isWallpaperPreview&&!androidApp&&(
+ /iPhone|iPod|iPad/.test(navigator.userAgent)
+ || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)
+ || matchMedia('(max-width:740px) and (pointer:coarse)').matches
+);
+const compactAndroid=androidPreview||androidApp||mobileWeb;
 function compactPosterStack(){
  const stack=document.createElement('span');
  stack.className='compactPosterStack';
@@ -183,7 +222,7 @@ function compactPreviewButton(name,posters){
 const MAX_CATALOGS = ${MAX_CATALOGS};
 const notices=(${installFloatingNotice.toString()})(copy);
 const $=id=>document.getElementById(id);const seasonThemes={fall:{bar:'#713b2d',accent:'#d79455',buttonText:'#281b18',linkDark:'#efad6e',tabDark:'#3b2a24',bannerTint:'40,27,24'},winter:{bar:'#31515a',accent:'#b6dde4',buttonText:'#18323a',linkDark:'#b8e6ec',tabDark:'#25383d',bannerTint:'26,43,49'},spring:{bar:'#49634b',accent:'#a6c879',buttonText:'#24321f',linkDark:'#bddc91',tabDark:'#2a3b2c',bannerTint:'34,47,34'},summer:{bar:'#145e58',accent:'#f1bc60',buttonText:'#362714',linkDark:'#f3c768',tabDark:'#233e3b',bannerTint:'18,43,39'}};
-function applySeasonalTheme(season){const t=seasonThemes[season]||seasonThemes.fall,style=document.body.style;document.body.dataset.season=season;style.setProperty('--season-bar',t.bar);style.setProperty('--season-highlight',t.accent);style.setProperty('--banner-tint',t.bannerTint);style.setProperty('--button-text',t.buttonText);style.setProperty('--accent',t.accent);style.setProperty('--link',t.linkDark);style.setProperty('--tab',t.tabDark)}
+function applySeasonalTheme(season){const t=seasonThemes[season]||seasonThemes.fall,style=document.body.style;document.body.dataset.season=season;if(compactAndroid){style.setProperty('--season-bar','#17191e');style.setProperty('--season-highlight','#2674ec');style.setProperty('--banner-tint','18,20,25');style.setProperty('--button-text','#fff');style.setProperty('--accent','#2674ec');style.setProperty('--link','#75aaff');style.setProperty('--tab','#273141');return}style.setProperty('--season-bar',t.bar);style.setProperty('--season-highlight',t.accent);style.setProperty('--banner-tint',t.bannerTint);style.setProperty('--button-text',t.buttonText);style.setProperty('--accent',t.accent);style.setProperty('--link',t.linkDark);style.setProperty('--tab',t.tabDark)}
 const userListName=${userListName.toString()};
 const state={tab:'discover',filter:'actor',source:null,selection:[],profile:''};
 if(compactAndroid)document.body.classList.add('androidSetup');
@@ -246,24 +285,16 @@ const androidFlow=['selection','preferences','confirm'];
 let connectedUser='';try{const saved=localStorage.getItem('ydl-v3-user')||'';if(/^[a-zA-Z0-9_-]{1,60}$/.test(saved))connectedUser=saved}catch{}
 function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}}
 const pageForPath=${pageForPath.toString()};
-function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser,androidFlow:compactAndroid});if(androidAbout)$('preferences').append(androidAbout);return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
+function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser,androidFlow:compactAndroid,copyOnly:mobileWeb});if(androidAbout)$('preferences').append(androidAbout);return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
 function navigate(page,push=true){
-if(compactAndroid&&!androidFlow.includes(page))page='selection';
-if(['preferences','confirm'].includes(page)&&!state.selection.length)page='selection';
-if(compactAndroid&&push){
- const target=androidFlow.indexOf(page),step=history.state?.ydlFlowStep;
- if(Number.isInteger(step)&&target<step){
-  history.go(target-step);
-  return;
- }
-}
+if(compactAndroid&&page==='landing')page=mobileWeb?'connect':'selection';
+if(['preferences','confirm'].includes(page)&&!state.selection.length&&!(compactAndroid&&page==='preferences'))page='selection';
 if(page!=='selection'&&$('selectionDialog').open)$('selectionDialog').close();
-if(page!=='preferences')preferencesUI?.closeAdvanced();
 if(compactAndroid&&page!==currentPage){
  if(currentPage==='selection')discoverScroll=window.scrollY;
  requestAnimationFrame(()=>window.scrollTo(0,page==='selection'?discoverScroll:0));
 }
-currentPage=page;if(page==='selection')loadFeaturedBanner();document.body.dataset.page=page;if(!compactAndroid){$('landingFooter').hidden=page==='landing';$('buildFooter').hidden=page==='landing';$('tmdb-attribution').hidden=page!=='landing';}posterWall.update(page);requestAnimationFrame(alignSelection);
+currentPage=page;if(page==='selection')loadFeaturedBanner();document.body.dataset.page=page;if(!compactAndroid){$('landingFooter').hidden=page==='landing';$('buildFooter').hidden=page==='landing';$('tmdb-attribution').hidden=page!=='landing';}posterWall.update(page);requestAnimationFrame(alignSelection);window.syncAndroidNav?.(page);
 $('landing').classList.toggle('hidden',page!=='landing');$('setup').classList.toggle('hidden',page==='landing');
 for(const id of ['connect','selection','preferences','confirm'])$(id).classList.toggle('hidden',page!==id);
 const order=['connect','selection','preferences','confirm'],index=order.indexOf(page);
@@ -271,7 +302,7 @@ order.forEach((name,i)=>{const step=$('step'+(i+1)),active=name===page;step.clas
 $('wallpaper').hidden=page!=='landing'||!document.body.classList.contains('hasWallpaper');
 const paths={landing:'/',connect:'/setup',selection:'/setup/lists',preferences:'/setup/preferences',confirm:'/setup/confirm'};const path=paths[page]||'/';if(push&&location.pathname!==path){
  const entry={ydlPage:page,...(compactAndroid?{ydlFlowStep:androidFlow.indexOf(page)}:{})};
- if(compactAndroid&&(history.state?.ydlDialog||page==='selection'))history.replaceState(entry,'',path);
+ if(compactAndroid&&(history.state?.ydlDialog||(!mobileWeb&&page==='selection')))history.replaceState(entry,'',path);
  else history.pushState(entry,'',path);
 }
 if(['preferences','confirm'].includes(page))ensurePreferences().then(ui=>{if(ui&&currentPage===page)ui.show(page)});
@@ -279,6 +310,7 @@ if(['preferences','confirm'].includes(page))ensurePreferences().then(ui=>{if(ui&
 $('step1').onclick=()=>navigate('connect');$('step2').onclick=()=>{if(compactAndroid&&currentPage==='connect'){if($('source').value.trim())$('connectForm').requestSubmit();else if(connectedUser)navigate('selection');else $('skip').click()}else navigate('selection')};$('step3').onclick=()=>navigate('preferences');
 $('continue').onclick=()=>navigate('preferences');
 $('mobileContinue').onclick=$('continue').onclick;
+if(compactAndroid)$('continue').textContent='Build add-on';
 const selectionDialog=$('selectionDialog');
 let androidAbout=null;
 const androidDialogs=new Map();
@@ -339,7 +371,7 @@ window.addEventListener('popstate',()=>{
   navigate(page,false);
  }else navigate(pageForPath(location.pathname),false);
 });
-function applyWallpaper(v){if(!v||typeof v.image!=='string'||!/^#[0-9a-f]{6}$/i.test(v.tint)||typeof v.opacity!=='number'||v.opacity<0||v.opacity>1)return;let image='';if(v.image.startsWith('data:image/png;base64,')||v.image.startsWith('data:image/jpeg;base64,')||v.image.startsWith('data:image/webp;base64,'))image=v.image;else try{const u=new URL(v.image);if(u.protocol==='https:')image=u.href}catch{}$('wallpaper').style.backgroundImage=image?'url('+JSON.stringify(image)+')':'';$('wallpaperTint').style.backgroundColor=v.tint;$('wallpaperTint').style.opacity=v.opacity;const imageMode=v.mode==='image'&&!!image;document.body.classList.toggle('hasWallpaper',imageMode);$('wallpaper').hidden=currentPage!=='landing'||!imageMode}
+function applyWallpaper(v){if(!v||typeof v.image!=='string'||!/^#[0-9a-f]{6}$/i.test(v.tint)||typeof v.opacity!=='number'||v.opacity<0||v.opacity>1)return;let image='';if(v.image.startsWith('data:image/png;base64,')||v.image.startsWith('data:image/jpeg;base64,')||v.image.startsWith('data:image/webp;base64,'))image=v.image;else try{const u=new URL(v.image);if(u.protocol==='https:')image=u.href}catch{}$('wallpaper').style.backgroundImage=image?'url('+JSON.stringify(image)+')':'';$('wallpaperTint').style.backgroundColor=v.tint;$('wallpaperTint').style.opacity=v.opacity;posterWall.setTint(v.tint,v.opacity);const imageMode=v.mode==='image'&&!!image;document.body.classList.toggle('hasWallpaper',imageMode);$('wallpaper').hidden=currentPage!=='landing'||!imageMode}
 function applyHeaderBackground(v){const layer=$('headerBackground');if(!layer)return;let image='';if(typeof v?.bannerImage==='string'){if(/^data:image\\/(png|jpeg|webp);base64,/.test(v.bannerImage))image=v.bannerImage;else try{const u=new URL(v.bannerImage);if(u.protocol==='https:')image=u.href}catch{}}const opacity=typeof v?.bannerOverlay==='number'&&Number.isFinite(v.bannerOverlay)?Math.max(0,Math.min(.85,v.bannerOverlay)):.38;layer.style.backgroundImage=image?'linear-gradient(rgba(0,0,0,'+opacity+'),rgba(0,0,0,'+opacity+')),url('+JSON.stringify(image)+')':''}
 let previewReceived=false;
 if(isWallpaperPreview)window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===parent&&e.data?.type==='ydl-wallpaper-preview'){previewReceived=true;applyWallpaper(e.data.settings);applyHeaderBackground(e.data.settings)}});
@@ -375,8 +407,8 @@ sidebar.style.marginTop=matchMedia('(max-width:740px)').matches?'0px':Math.max(0
 window.addEventListener('resize',alignSelection);
 const searchResize=new ResizeObserver(()=>requestAnimationFrame(alignSelection));
 searchResize.observe($('profileSearch'));searchResize.observe($('discoverSearch'));searchResize.observe($('exploreSearch'));
-function renderSelection(){syncFeaturedAdd();state.selection=state.selection.map(l=>({...l,originalName:l.originalName||l.name,name:userListName(l)}));try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}resolveSelectedOwners();const root=$('selectionMessage');root.replaceChildren();$('count').textContent='('+state.selection.length+')';
-$('mobileSelectionBar').hidden=!compactAndroid&&!state.selection.length;
+function renderSelection(){syncFeaturedAdd();state.selection=state.selection.map(l=>({...l,originalName:l.originalName||l.name,name:userListName(l)}));try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}window.syncAndroidSelectionCount?.(state.selection.length);resolveSelectedOwners();const root=$('selectionMessage');root.replaceChildren();$('count').textContent='('+state.selection.length+')';
+$('mobileSelectionBar').hidden=compactAndroid||!state.selection.length;
 $('reviewSelection').textContent=copy.mobileSelectedCount.replace('{count}',state.selection.length);
 $('continue').disabled=!state.selection.length;if(compactAndroid)$('mobileContinue').disabled=!state.selection.length;$('clearSelection').classList.toggle('hidden',!state.selection.length);if(!state.selection.length){root.textContent=copy.emptySelection;return}const groups=new Map();for(const l of state.selection){const user='list:all';if(!groups.has(user))groups.set(user,[]);groups.get(user).push(l)}for(const [user,lists] of groups){const isFilm=lists[0].kind==='filmography',isExplore=lists[0].kind==='explore',ownerless=true;const groupName=isFilm?lists[0].personDisplayName||lists[0].personName:user;const heading=document.createElement('div');heading.className='profileHeading';const avatar=document.createElement('span');avatar.className='profileAvatar';avatar.textContent=groupName.charAt(0).toUpperCase();const name=document.createElement('span');name.className='profileName';name.textContent=groupName;heading.append(avatar,name);if(!ownerless)root.append(heading);if(!ownerless&&(isFilm||!['MyDramaList','YourDramaList'].includes(user)&&/^[a-zA-Z0-9_-]{1,60}$/.test(user))){Promise.resolve(lists.find(l=>l.profileAvatar)?.profileAvatar?{avatar:lists.find(l=>l.profileAvatar).profileAvatar}:isFilm?null:loadProfileAvatar(user)).then(d=>{if(d&&d.avatar){const img=document.createElement('img');img.src=d.avatar;img.alt='';img.referrerPolicy='no-referrer';avatar.replaceChildren(img)}}).catch(()=>{})}for(const l of lists){const row=document.createElement('div');row.className='selectedItem';const title=document.createElement('span');title.className='selectedTitle';title.textContent=userListName(l);title.title=userListName(l);const remove=document.createElement('button');remove.type='button';remove.textContent='\xD7';remove.setAttribute('aria-label',copy.remove+l.name);remove.onclick=()=>{
   const nextIndex=state.selection.indexOf(l);
@@ -416,7 +448,7 @@ function showCommunityView(view){
   button.classList.toggle('active',active);
   button.setAttribute('aria-pressed',String(active));
  });
- const lists=profileLists.filter(list=>(list.kind==='watchlist')===watchlists);
+ const lists=compactAndroid?profileLists:profileLists.filter(list=>(list.kind==='watchlist')===watchlists);
  $('communitySelectAll').classList.toggle('hidden',!lists.some(list=>!list.empty));
  $('results').textContent=lists.length?'':watchlists?copy.communityNoWatchlists:copy.communityNoCustomLists;
  communityUI.render(lists,view);
@@ -450,21 +482,17 @@ async function loadProfile(username){
   if(compactAndroid)setConnectedUser(username);
   profileLists=[...combined,...watchlists,...custom].map(l=>({...l,profile:username,analyticsSource:l.kind==='watchlist'?'community-watchlist':'community-public-list'}));
   $('communityViews').classList.remove('hidden');
-  showCommunityView(compactAndroid&&!combined.length&&!watchlists.length?'custom':'watchlists');
+  showCommunityView('watchlists');
  }catch(e){if(requestId===listRequest)$('results').textContent=copy.loadFailed+(['TimeoutError','AbortError'].includes(e.name)?copy.searchRetry:e.message)}
 }
 
 renderSelection();
-function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();requestAnimationFrame(alignSelection);listRequest++;state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';if(tab==='discover'&&state.filter==='catalogs')exploreUI.render();popularUI.show(!compactAndroid&&tab==='discover')}
+function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();requestAnimationFrame(alignSelection);listRequest++;if(compactAndroid)communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';if(!compactAndroid&&tab==='discover'&&state.filter==='catalogs')exploreUI.render();popularUI.show(!compactAndroid&&tab==='discover');window.syncAndroidNav?.(currentPage)}
 function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs){exploreUI.render();requestAnimationFrame(alignSelection);return}$('discoverInput').placeholder=f==='drama'?copy.searchDramas:f==='actor'?copy.searchActors:copy.searchDirectors;$('discoverInput').setAttribute('aria-label',f==='drama'?'Drama name or MyDramaList URL':'Person name or MyDramaList URL');$('discoverLabel').textContent=copy.discoverSearchLabel;requestAnimationFrame(alignSelection)}
 function openSelection(tab){navigate('selection');switchTab(tab)}
 $('start').onclick=()=>navigate('connect');
 $('skip').onclick=()=>{setConnectedUser('');openSelection('discover')};
-$('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type==='list'&&mobileSelectionLayout.matches){$('error').textContent='';openSelection('profiles');$('profileInput').value=$('source').value.trim();$('profileForm').requestSubmit();return}if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;setConnectedUser(p.value);$('profileInput').value=$('source').value.trim();openSelection('profiles');loadProfile(p.value)};
-$('pasteList').onclick=()=>{
-  openSelection('profiles');
-  $('profileInput').focus();
-};
+$('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;setConnectedUser(p.value);$('profileInput').value=$('source').value.trim();openSelection('profiles');if(compactAndroid)document.querySelector('.androidDiscoverToolbar h1').textContent='Community';loadProfile(p.value)};
 $('profileForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('profileInput').value);if(!p){$('results').textContent=copy.invalidProfile;return}state.source=p;if(p.type==='profile')loadProfile(p.value);else loadDirectList(p.value)};
 let lastDramaSearch=null;
 function searchBackButton(){if(!lastDramaSearch)return;const back=document.createElement('button');back.type='button';back.className='secondary';back.textContent='Back';back.onclick=()=>{listRequest++;renderDramaMatches(lastDramaSearch)};$('results').append(document.createTextNode(' '),back)}

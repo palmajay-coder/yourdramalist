@@ -14,7 +14,7 @@ export function createExploreService(storage?:{load:()=>Promise<any>;save:(v:any
  const task=(async()=>{active++;count++;let entry;
  try{const result=await tmdbExplorePage(category,country,page,{fetcher});
  entry={data:{...result,page},at:now(),expires:now()+3600000};
- }catch(e){entry={data:old?.data&&now()-old.at<7*86400000?old.data:null,at:old?.at||now(),expires:now()+30000,error:e instanceof Error&&e.name!=="TimeoutError"?e.message:"TMDB took too long. Please try again."}}finally{active--}
+ }catch(e){const stale=old?.data&&now()-old.at<7*86400000?old.data:null;entry={data:stale,at:old?.at||now(),expires:now()+(stale?30000:1000),error:e instanceof Error&&e.name!=="TimeoutError"?e.message:"TMDB took too long. Please try again."}}finally{active--}
  cache.delete(key);cache.set(key,entry);while(cache.size>100)cache.delete(cache.keys().next().value!);
  if(storage){const snapshot=[...cache];saving=saving.catch(()=>{}).then(()=>storage.save(snapshot));await bounded(saving).catch(()=>{})}
  if(!entry.data)throw Error(entry.error);

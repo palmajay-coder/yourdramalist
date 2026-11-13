@@ -117,7 +117,7 @@ export function installCommunityShelves() {
   };
   if (compactAndroid) {
     filterDialog = node("dialog", "androidFiltersDialog");
-    filterDialog.setAttribute("aria-label", "Filters");
+    filterDialog.setAttribute("aria-label", "Community filters");
     const header = node("div", "androidFilterHeader");
     const reset2 = node("button", "secondary", "Clear"), dismiss = node("button", "secondary", "Close");
     reset2.type = dismiss.type = "button";
@@ -126,7 +126,7 @@ export function installCommunityShelves() {
       renderPanel();
     };
     dismiss.onclick = () => filterDialog.close();
-    header.append(node("h2", null, "Filters"), reset2, dismiss);
+    header.append(node("h2", null, "Community filters"), reset2, dismiss);
     const actions = node("div", "androidFilterActions");
     const apply = node("button", "primary", "Show Results");
     apply.type = "button";
@@ -493,10 +493,10 @@ export function installCommunityShelves() {
     const status = node("p", "shelfStatus");
     const track = node("div", "catalogShelfTrack");
     track.setAttribute("aria-label", userListName(l) || copy.untitledList);
-    card.append(head, status, track);
+    card.append(head);
+    if (!posterCard) card.append(status, track);
     parent2.append(card);
     card.hidden = !!filter && !filterable(row);
-    if (posterCard) track.hidden = true;
     if (preview) {
       track.className = "compactPreview";
       track.hidden = true;
@@ -609,7 +609,7 @@ export function installCommunityShelves() {
             return;
           }
           if (preview) track.replaceChildren(node("p", "catalogShelfStatus", copy.loadingLists));
-          else skeleton(track);
+          else if (!posterCard) skeleton(track);
           const items2 = [], url = "/api/mdl/shelf?url=" + encodeURIComponent(l.url);
           do {
             const response = await fetch(url + (items2.length ? "&offset=" + items2.length : ""), { signal: AbortSignal.timeout(45e3) });
