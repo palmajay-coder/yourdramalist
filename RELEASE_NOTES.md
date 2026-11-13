@@ -1,4 +1,4 @@
-## YourDramaList 1.1.24 Beta
+## YourDramaList 1.1.24
 
 YourDramaList is a free, unofficial catalog add-on for Nuvio.
 
@@ -15,11 +15,11 @@ The custom-domain Android build opens `yourdramalist.net` and displays **YourDra
 
 Custom-domain APK SHA-256
 
-`5b1e83dc93b33aca501a576cded693ae772e83b23798edae80e3b2d7e1b81d6a`
+`9707ca4867db151f632440c7a9bc57553ac5d325459394ef9c03859b84848245`
 
 ### iPhone and browser
 
-Open the web beta in Safari on iPhone or in your browser on other devices. [Open the YourDramaList web beta](https://yourdramalist.net/)
+Open the website in Safari on iPhone or in your browser on other devices. [Open the YourDramaList website](https://yourdramalist.net/)
 
 ### Add your catalogs to Nuvio
 
