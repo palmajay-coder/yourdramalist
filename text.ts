@@ -201,29 +201,6 @@ export const TEXT = {
   pasteList: "Paste a list link",
   or: "OR",
   skipAccount: "Continue without an account",
-  listsTitle: "Fall is here.",
-  listsDescription: "Your sweater-weather lineup is ready.",
-  seasonalBannerCopy: {
-    fall: {
-      title: "Fall is here.",
-      description: "Your sweater-weather lineup is ready.",
-    },
-    winter: {
-      title: "Snowed In. Feelings Out.",
-      description: "Snow outside. Be in your feels inside.",
-    },
-    spring: {
-      title: "Spring Has Sprung. So Have the Feelings.",
-      description: "Cherry blossoms, gentle breezes, and love blossoming.",
-    },
-    summer: {
-      title: "Hot Weather. Hotter Messes.",
-      description: "Your summer plans can wait. The next episode can’t.",
-    },
-  },
-  featuredListLabel: "Featured List",
-  featuredListAdd: "Add list to selection",
-  featuredListAdded: "Added to selection",
   profilesTab: "Community",
   communityListTypes: "Community list types",
   communityWatchlists: "Watchlists",
