@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.1.6";
-export const DISPLAY_VERSION = "1.1.6";
+export const APP_VERSION = "1.1.7";
+export const DISPLAY_VERSION = "1.1.7";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -271,8 +271,6 @@ export const TEXT = {
   footer:
     "YourDramaList is a FREE unofficial add-on designed for Nuvio based on MyDramaList and is not affiliated with either party.",
   disclaimer: "",
-  lightMode: "☀ Light mode",
-  darkMode: "☾ Dark mode",
   invalidUsername: "Enter a valid MyDramaList username or profile URL.",
   invalidProfile:
     "Please enter a valid MyDramaList username, profile URL, or list URL.",

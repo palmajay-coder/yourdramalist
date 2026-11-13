@@ -112,7 +112,7 @@ export function installAndroidDiscover() {
   catalogs.id = "androidCatalogs";
   $("listItems").after(catalogs);
   switchTab("discover");
-  history.replaceState({ ydlPage: "selection", ydlFlowStep: 0 }, "", "/setup/lists");
+  history.replaceState({ ydlPage: "selection", ydlFlowStep: 0 }, "", "/setup/lists" + (androidPreview ? location.search : ""));
   navigate("selection", false);
   exploreUI.render();
 }
