@@ -7,8 +7,6 @@ export function installPreferencesUI(api: {
   navigate: (page: string) => void;
   selection: () => {name: string; [key: string]: unknown}[];
   user: () => string;
-  androidFlow?: boolean;
-  copyOnly?: boolean;
 }) {
   const root = document.getElementById("preferences")!;
   const confirm = document.getElementById("confirm")!;
@@ -176,7 +174,7 @@ export function installPreferencesUI(api: {
   const completed = filter(copy.hideCompleted, "prefCompleted", prefs.hideCompleted);
   const completedHelp = paragraph(copy.completedNeedsAccount, "prefHelp prefCompletedHelp"); filterCard.append(completedHelp);
   const error = node("div", "prefError"); error.setAttribute("role", "alert"); posters.card.append(error);
-  const actions = node("div", "prefActions"), next = button(api.androidFlow ? "Next" : copy.continue, "primary");
+  const actions = node("div", "prefActions"), next = button("Next", "primary");
   const back = button(copy.back, "secondary prefMobileBack");
   back.onclick = () => api.navigate("selection");
   actions.append(next, back); root.append(actions);
@@ -288,50 +286,40 @@ export function installPreferencesUI(api: {
     const manifest=node("section","prefManifest");
     const row=node("div","prefManifestRow"),input=node("input"),copyButton=button(copy.copyManifest,"secondary");input.id="manifestUrl";input.readOnly=true;input.placeholder=copy.manifestUrl;input.setAttribute("aria-label",copy.manifestUrl);copyButton.disabled=true;
     const install=node("a","primary prefInstall",copy.installNuvio);install.setAttribute("aria-disabled","true");
-    const status=paragraph("","prefError");status.setAttribute("role","status");const retry=button(copy.retryManifest,"prefTextButton");retry.hidden=true;
-    const generateLabel = api.copyOnly ? copy.generateManifest : copy.generateAndInstall;
-    const generate = api.androidFlow ? button(generateLabel, "primary prefGenerate") : null;
-    const copyHelp = paragraph(copy.pasteManifestInNuvio, "prefHelp");
-    copyHelp.hidden = true;
-    if (generate) manifest.classList.add("panel", "prefPanel");
+    const status=paragraph("","prefError");status.setAttribute("role","status");
+    // Build add-on first creates the link, then shows Install in Nuvio and the link to copy.
+    const generate = button(copy.generateAndInstall, "primary prefGenerate");
+    manifest.classList.add("panel", "prefPanel");
     row.append(input,copyButton);
-    if (!api.copyOnly) manifest.append(install);
-    manifest.append(row);
-    if (api.copyOnly) manifest.append(copyHelp);
-    manifest.append(status,retry);
-    if (generate) {
-      row.hidden = install.hidden = true;
-      manifest.append(generate);
-    }
+    manifest.append(install,row,status);
+    row.hidden = install.hidden = true;
+    manifest.append(generate);
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
     if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));
     if(artworkMode()==="rpdb")manifest.append(paragraph(copy.posterRpdbPrivacy,"prefHelp"));confirm.append(manifest);
     const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl,filter,personDisplayName,personName,profileAvatar})=>({name,url,kind,category,country,slot,mode,personUrl,filter,...(kind==="filmography"?{personName:personDisplayName||personName,personPhoto:profileAvatar}:{})})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),rpdb:artworkMode()==="rpdb"?{apiKey:rpdbKey()}:undefined,keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");
-      if (generate) {
-        generate.hidden = true;
-        row.hidden = install.hidden = false;
-        copyHelp.hidden = false;
-      }
+      generate.hidden = true;
+      row.hidden = install.hidden = false;
     }
-    async function prepare(){retry.hidden=true;status.textContent="";try{
+    async function prepare(){status.textContent="";try{
       if(invalidPattern()){status.textContent=artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid;return;}
       if(preferenceIssue(data.preferences,keys()))throw Error("keys");
       if(signature===manifestSignature&&manifestValue){apply(manifestValue);return;}
       const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"}).catch(()=>null);
-      if(!response){if(id===manifestRequest){status.textContent=copy.manifestConnectionFailed;retry.hidden=false;}return;}
+      if(!response){if(id===manifestRequest){status.textContent=copy.manifestConnectionFailed;}return;}
       const result=await response.json();if(id!==manifestRequest)return;
       if(!response.ok){
         const code=result?.diagnosticCode;
         const message=result?.issue==="catalog-count"?copy.manifestTooManyCatalogs.replace("{max}",String(MAX_CATALOGS)):result?.issue==="token-too-large"?copy.manifestTooLarge:copy.manifestFailed;
         status.textContent=message+(typeof code==="string"&&/^YDL-[0-9A-F]{8}$/.test(code)?" "+copy.manifestDiagnosticCode+" "+code:"");
-        retry.hidden=false;
+        
         return;
       }
       const url=new URL(result.url);if(url.origin!==location.origin||!url.pathname.startsWith("/addon/")||!url.pathname.endsWith("/manifest.json"))throw Error("url");
       manifestSignature=signature;manifestValue=url.href;apply(url.href);
-    }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;retry.hidden=false;}}}
+    }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;}}}
     copyButton.onclick = async () => {
       try {
         await navigator.clipboard.writeText(input.value);
@@ -343,22 +331,16 @@ export function installPreferencesUI(api: {
       }
     };
     const selected=api.selection().length;
-    if(selected>MAX_CATALOGS){if(generate)generate.disabled=true;status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
-    if (generate) {
-      generate.onclick = async () => {
-        generate.disabled = true;
-        generate.textContent = "Generating…";
-        try { await prepare(); }
-        finally {
-          generate.textContent = generateLabel;
-          generate.disabled = false;
-          retry.hidden = true;
-        }
-      };
-    } else {
-      retry.onclick = () => { prepare(); };
-      prepare();
-    }
+    if(selected>MAX_CATALOGS){generate.disabled=true;status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
+    generate.onclick = async () => {
+      generate.disabled = true;
+      generate.textContent = "Generating…";
+      try { await prepare(); }
+      finally {
+        generate.textContent = copy.generateAndInstall;
+        generate.disabled = false;
+      }
+    };
   }
   render();
   return {show(page: string) {render(); if(page === "confirm") renderConfirm();}, values() {return {...normalizePreferences(prefs), hideCompleted: !!api.user() && prefs.hideCompleted};}};

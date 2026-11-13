@@ -55,8 +55,7 @@ export function installCatalogTitlePreview() {
     synopsis.hidden = !synopsis.textContent;
     content.replaceChildren(header, synopsis);
 
-    if (compactAndroid) showAndroidDialog(dialog);
-    else if (!dialog.open) dialog.showModal();
+    showAndroidDialog(dialog);
     try {
       // Saved weekly picks have a TMDB ID and media kind, but no URL.
       const isTmdbTitle = (item.kind === "tv" || item.kind === "movie") && /^[1-9]\d{0,9}$/.test(String(item.id));

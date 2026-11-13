@@ -133,17 +133,19 @@ await test("Confirm summarizes lists and choices without credentials", () => {
   assert(summary.textContent?.includes("Sample user's list") && summary.textContent.includes(TEXT.reviewsTitle), "summary missing");
   assert(!summary.textContent?.includes(sampleKeys.tmdb), "summary key leak");
 });
+// The last step creates the install link when Generate & Install is tapped.
+const generateLink = async () => {(document.querySelector("#confirm .prefGenerate") as HTMLButtonElement).click(); await new Promise(resolve => setTimeout(resolve, 0));};
 await test("Confirm shows the server diagnostic code and a separate connection error", async () => {
   const originalFetch = globalThis.fetch;
   const status = () => document.querySelector("#confirm [role=status]")?.textContent;
   try {
     globalThis.fetch = async () => Response.json({diagnosticCode: "YDL-A1B2C3D4"}, {status: 400});
     ui.show("confirm");
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await generateLink();
     assert(status()?.includes("YDL-A1B2C3D4"), "server diagnostic was not displayed");
     globalThis.fetch = async () => {throw Error("offline");};
     ui.show("confirm");
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await generateLink();
     assert(status() === TEXT.manifestConnectionFailed, "connection failure was not identified");
   } finally {
     globalThis.fetch = originalFetch;
@@ -168,7 +170,7 @@ await test("BetterPosters validates its URL and sends it without rating keys", a
     let payload: any;
     globalThis.fetch = async (_url, options) => {payload = JSON.parse(String(options?.body)); return Response.json({}, {status:400});};
     ui.show("confirm");
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await generateLink();
     assert(payload.betterPosters === $("prefBetterPosters").value && !payload.preferences.posters, "poster preference missing");
     assert(payload.preferences.metadataProvider==="tmdb" && !payload.keys.tmdb && !payload.keys.mdblist, "metadata provider requires no user keys");
   } finally {
