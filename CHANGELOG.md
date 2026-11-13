@@ -2,6 +2,7 @@
 
 ## 1.1.24 Beta
 
+- The Android launcher now displays **YourDramaList**.
 - Desktop and landscape browsers now use the available width for poster rows and catalog grids. Connect, Discover, and Community stay in the bottom navigation.
 - The selection icon in the top bar opens selected catalogs and **Build add-on**. Rotating a phone in the browser preserves the active tab, filters, and selections.
 - The [current web beta](https://yourdramalist.palmajay.workers.dev/) replaces the retired mobile test site. See the [beta release notes](RELEASE_NOTES.md) for Android installation and Nuvio setup.

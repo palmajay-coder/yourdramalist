@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.palmajay.yourdramalist.mobiletest"
-    android:versionCode="1" android:versionName="1.0.0-test">
+    android:versionCode="2" android:versionName="1.1.24-beta">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:label="YourDramaList Test" android:icon="@drawable/ydl_icon"
+    <application android:label="YourDramaList" android:icon="@drawable/ydl_icon"
         android:usesCleartextTraffic="false" android:allowBackup="false"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity android:name=".MainActivity" android:exported="true"
