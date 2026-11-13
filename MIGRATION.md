@@ -32,7 +32,8 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 
 - The mobile version (1.1.23, built on branch `mobile/one-handed-setup`) is now the only design. The Android app, phone browsers in portrait and landscape, iPhones and computers all get the same screens. Wide screens show it in a centered phone-width column.
 - Mouse users get ‹ › buttons on sideways rows, since they cannot swipe.
-- The Android test app loads the main site address. The separate mobile test Worker (`wrangler.mobile-test.toml`) can be deleted once the main site is confirmed.
+- The Android test app loads the main site address. A new APK (fresh install, different signing key) replaced the old one on the GitHub release `v1.1.23-beta` on November 13. The old APK had 4 downloads (2 by the owner).
+- [ ] Delete the mobile test Worker (`yourdramalist-mobile-test`, `wrangler.mobile-test.toml`) after the two other APK users have reinstalled and re-added the add-on in Nuvio. Nuvio add-ons made on that address stop working once it is deleted.
 - New install links get their own Nuvio add-on id per setup. Links made earlier keep working.
 - The older offline page tests (`ui`, `selection`, `shelves`, `dramaSearch`, `popularity`, `filmography`, `explore`, `addon`) already failed on 1.1.23 before this change, because they expect the old desktop page. They need rewriting for the app layout.
 
