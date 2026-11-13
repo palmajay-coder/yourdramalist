@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.1.3";
-export const DISPLAY_VERSION = "1.1.3";
+export const APP_VERSION = "1.1.4";
+export const DISPLAY_VERSION = "1.1.4";
 
 export const TEXT = {
   catalogCountry: "Country",
@@ -12,6 +12,9 @@ export const TEXT = {
     "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",
   catalogMore: "K-Drama & Beyond",
+  catalogMediaType: "Catalog type",
+  catalogShows: "Shows",
+  catalogMovies: "Movies",
   catalogMoreNote: "Top rated, popular and upcoming dramas and films from across Asia",
   catalogAdd: "+ Add catalog",
   compactCatalogAdd: "Add",
@@ -19,6 +22,7 @@ export const TEXT = {
   catalogSelect: "Select catalog",
   catalogTitlePreview: "Title preview",
   catalogPopularity: "Popularity",
+  catalogRatingUnavailable: "MyDramaList rating unavailable",
   catalogPrevious: "Previous titles",
   catalogNext: "More titles",
   catalogEmpty: "No matching titles available for this country.",

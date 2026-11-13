@@ -7,6 +7,7 @@ export function installPreferencesUI(api: {
   navigate: (page: string) => void;
   selection: () => {name: string; [key: string]: unknown}[];
   user: () => string;
+  androidFlow?: boolean;
 }) {
   const root = document.getElementById("preferences")!;
   const confirm = document.getElementById("confirm")!;
@@ -195,7 +196,7 @@ export function installPreferencesUI(api: {
     if (!mobileLayout?.matches && advancedDialog.open) advancedDialog.close();
   });
   const error = node("div", "prefError"); error.setAttribute("role", "alert"); root.append(error);
-  const actions = node("div", "prefActions"), next = button(copy.continue, "primary");
+  const actions = node("div", "prefActions"), next = button(api.androidFlow ? "Next: Confirm" : copy.continue, "primary");
   const back = button(copy.back, "secondary prefMobileBack");
   back.onclick = () => api.navigate("selection");
   actions.append(next, back); root.append(actions);
@@ -316,13 +317,23 @@ export function installPreferencesUI(api: {
     const desktopCopy = node("span", "prefDesktopCopy", copy.copyManifest);
     const mobileCopy = node("span", "prefMobileCopy", copy.copyInstallLink);
     copyButton.replaceChildren(desktopCopy,mobileCopy);
+    const generate = api.androidFlow ? button("Generate manifest", "primary prefGenerate") : null;
     row.append(input,copyButton);manifest.append(label,row,install,status,retry);
+    if (generate) {
+      label.hidden = row.hidden = install.hidden = true;
+      manifest.append(generate);
+    }
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
     if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));
     if(artworkMode()==="rpdb")manifest.append(paragraph(copy.posterRpdbPrivacy,"prefHelp"));confirm.append(manifest);
     const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl,filter,personDisplayName,personName,profileAvatar})=>({name,url,kind,category,country,slot,mode,personUrl,filter,...(kind==="filmography"?{personName:personDisplayName||personName,personPhoto:profileAvatar}:{})})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),rpdb:artworkMode()==="rpdb"?{apiKey:rpdbKey()}:undefined,keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
     const signature=JSON.stringify(data),id=++manifestRequest;
-    function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");}
+    function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");
+      if (generate) {
+        generate.hidden = true;
+        label.hidden = row.hidden = install.hidden = false;
+      }
+    }
     async function prepare(){retry.hidden=true;status.textContent="";try{
       if(invalidPattern()){status.textContent=artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid;return;}
       if(preferenceIssue(data.preferences,keys()))throw Error("keys");
@@ -342,8 +353,22 @@ export function installPreferencesUI(api: {
     }catch{if(id===manifestRequest){status.textContent=preferenceIssue(data.preferences,keys())?copy.preferencesKeysRequired:copy.manifestFailed;retry.hidden=false;}}}
     copyButton.onclick=async()=>{try{await navigator.clipboard.writeText(input.value);desktopCopy.textContent=copy.copiedManifest;mobileCopy.textContent=copy.installLinkCopied;if(mobileLayout?.matches)status.textContent=copy.installLinkPaste;}catch{manifest.classList.add("prefManualCopy");input.focus();input.select();status.textContent=copy.manifestSelectToCopy;}};
     const selected=api.selection().length;
-    if(selected>MAX_CATALOGS){status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
-    retry.onclick=()=>{prepare();};prepare();
+    if(selected>MAX_CATALOGS){if(generate)generate.disabled=true;status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
+    if (generate) {
+      generate.onclick = async () => {
+        generate.disabled = true;
+        generate.textContent = "Generating…";
+        try { await prepare(); }
+        finally {
+          generate.textContent = "Generate manifest";
+          generate.disabled = false;
+          retry.hidden = true;
+        }
+      };
+    } else {
+      retry.onclick = () => { prepare(); };
+      prepare();
+    }
   }
   render();
   return {closeAdvanced() {if(advancedDialog.open)advancedDialog.close();}, show(page: string) {render(); if(page === "confirm") renderConfirm();}, values() {return {...normalizePreferences(prefs), hideCompleted: !!api.user() && prefs.hideCompleted};}};

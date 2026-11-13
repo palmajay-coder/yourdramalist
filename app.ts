@@ -1,3 +1,5 @@
+import { installCatalogTitlePreview } from "./catalogTitlePreview.ts";
+import { installAndroidDiscover } from "./androidDiscoverClient.ts";
 import {NOTIFICATION_CSS,installFloatingNotice} from "./notifications.ts";
 import {addonIcon} from "./addonIcon.ts";
 import {profileWatchlistCards,loadWatchlist} from "./addonScrape.ts";
@@ -43,6 +45,46 @@ const page = `<!doctype html>
 .personSource{display:inline-block;margin:10px 0 0 12px;color:var(--link);font-size:12px}.filmographyPreview{margin:14px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.filmographyPreview summary{cursor:pointer;color:var(--link)}.filmographyPreview ol{padding-left:24px}.filmographyPreview li{padding:7px 0;overflow-wrap:anywhere;line-height:1.5;font-size:13px}.filmographyPreview a{color:var(--link)}.personMatch .dramaSynopsis{white-space:pre-wrap}.detailsStatus:empty{display:none}body{min-height:100dvh;display:flex;flex-direction:column}.shell{width:100%;flex:1}footer{margin-top:auto;flex-direction:column;gap:7px;padding:14px clamp(20px,5vw,70px) 16px;background:rgba(16,19,24,.96);border-top:1px solid #ffffff18;min-height:112px}body.light footer{background:rgba(245,247,250,.97);border-top-color:#00000012}header{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}header .brand{justify-self:start}header #themeToggle{justify-self:end}header .steps{margin:0;font-size:15px;gap:20px;justify-content:center;color:#c9e0ee}header .steps :is(span,button){position:relative;padding:12px 0;white-space:nowrap}header .steps button{font:inherit;background:none;border:0;border-radius:0;color:inherit}header .steps button:disabled{cursor:default;opacity:1}header .steps button:not(:disabled){color:#fff;cursor:pointer}header .steps button:not(:disabled):hover{color:#fff;background:#ffffff12}header .steps .active:after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent)}header .steps .active,body.light header .steps .active{color:#fff}body.light header .steps{color:#c9e0ee}body[data-page=landing] header{display:none}body[data-page=landing] .shell{display:flex;align-items:center;justify-content:center;padding:50px 22px;min-height:calc(100dvh - 150px)}body[data-page=landing] footer{position:fixed;left:0;right:0;bottom:0;z-index:3}.hero{padding:70px 0;position:relative;z-index:1}.hero h1{font-weight:900;letter-spacing:-2px}.pageBack{margin-bottom:16px}#wallpaper{position:fixed;inset:0;pointer-events:none;z-index:-1;background-position:center;background-size:cover}#wallpaperTint{position:absolute;inset:0}body.hasWallpaper[data-page=landing]{background:transparent}body.hasWallpaper[data-page=landing] .hero{color:#fff;text-shadow:0 1px 12px #0008}body.hasWallpaper[data-page=landing] .hero p,body.hasWallpaper[data-page=landing] footer{color:#eee}#exploreCountry{width:100%;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--input);color:var(--text);font:inherit}.posters:empty{display:none}.watchlistPosterPlaceholder{display:grid;place-items:center;width:100%;height:102px;padding:8px;text-align:center;border:1px solid var(--line);border-radius:6px;background:var(--input);color:var(--muted);font-size:12px}.listinfo button{margin-top:8px;padding:8px 12px;font-size:13px}#exploreSearch label{margin-bottom:10px}#exploreSort{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--input);color:var(--text);font:inherit;font-size:13px}.catalogSortLabel{margin:0 0 0 auto!important}@media(max-width:1050px){header{grid-template-columns:1fr auto;gap:14px}header .steps{grid-column:1/-1;grid-row:2;justify-content:center;gap:15px;white-space:nowrap}}@media(max-width:420px){header .steps{font-size:13px;gap:12px}}
 :is(body,body.light,body:not(.light)) .discoverModes.communityViews{margin:8px 0 10px}:is(body,body.light,body:not(.light)) #communitySelectAll{margin-left:auto;color:var(--link);text-decoration:underline;font-size:13px}.discoverModes{gap:24px;border-bottom:1px solid var(--line);margin:0 0 22px;flex-wrap:wrap}:is(body,body.light,body:not(.light)) .discoverModes button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);padding:4px 0 13px}:is(body,body.light,body:not(.light)) .discoverModes button.active{background:transparent;color:var(--text);border-bottom-color:var(--link)}@media(max-width:420px){:is(body,body.light,body:not(.light)) .discoverModes{gap:20px;font-size:14px}}.featuredHero{position:relative;isolation:isolate;overflow:hidden;border-radius:14px;background:rgb(var(--banner-tint,20,33,47));color:#fff;min-height:170px;padding:34px 36px;display:flex;align-items:flex-start;justify-content:space-between;gap:32px;flex-direction:column}.featuredHero.hasFeatured{min-height:250px}.featuredArt{position:absolute;inset:0 0 0 30%;display:flex;z-index:-2}.featuredArt img{flex:1;min-width:0;width:0;height:100%;object-fit:cover;object-position:center 25%;filter:saturate(.7)}.featuredShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(var(--banner-tint,20,33,47),.98) 12%,rgba(var(--banner-tint,20,33,47),.91) 35%,rgba(var(--banner-tint,20,33,47),.46) 70%,rgba(var(--banner-tint,20,33,47),.19));z-index:-1}.featuredHero h1{margin:0 0 10px}.featuredHero .muted{color:#d1dce5;margin:0;font-size:15px}.featuredLabel{display:block;color:var(--season-highlight,#dce5ec);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:7px}.featuredCopy h2{font-size:20px;line-height:1.3;margin:0 0 10px;max-width:460px;color:#fff}.featuredCopy a{color:#fff;font-size:13px;text-decoration:none;border-bottom:1px solid #ffffff80;padding-bottom:2px}.featuredCopy .featuredBy{margin:0 0 10px;color:#d1dce5;font-size:13px}.featuredCopy a.featuredAdd{display:inline-block;border:1px solid var(--accent);border-radius:7px;padding:8px 12px;background:var(--accent);color:var(--button-text,#fff);font-weight:700;text-decoration:none}.featuredCopy a.featuredAdd.is-added{opacity:.75;pointer-events:none}@media(max-width:600px){.featuredHero{padding:24px}.featuredHero.hasFeatured{min-height:300px}.featuredHero h1{font-size:27px}.featuredArt{left:0;opacity:.6}.featuredShade{background:linear-gradient(90deg,#14212fe8,#14212f65)}}body[data-page=selection] .shell{padding-top:16px}${POSTER_WALL_CSS}${NOTIFICATION_CSS}body[data-page=landing] .motionBackdrop{display:block}body[data-page=landing] .shell,body[data-page=landing] footer{position:relative;z-index:1}body[data-page=landing]{background:#111315}body[data-page=landing] .hero h1{color:#fff}body[data-page=landing] .hero p,body[data-page=landing] footer{color:#cdd3dc}body[data-page=landing] .hero{text-shadow:0 2px 24px #0008}body[data-page=landing] .primary{box-shadow:0 8px 32px #0005}body.hasWallpaper[data-page=landing] .motionBackdrop{display:none}.landingBrandList{position:relative;display:inline-block}.landingBrandVersion{position:absolute;right:0;bottom:calc(100% + 3px);font:900 clamp(10px,1.2vw,13px)/1.1 Lato,Arial,sans-serif;letter-spacing:0;padding:4px 6px;border-radius:4px;background:#e3374b;color:#fff;text-shadow:none;white-space:nowrap}.featuredHero.hasCarousel{padding-inline:56px;touch-action:pan-y}.featuredCopy h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}.featuredArrow{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border:1px solid #ffffff60;border-radius:7px;color:#fff;background:#101a24b8;font-size:22px;padding:0}.featuredArrow:hover{background:var(--accent);color:var(--button-text,#fff)}#featuredPrevious{left:8px}#featuredNext{right:8px}@media(max-width:740px){.featuredHero.hasCarousel{padding-inline:47px}.featuredArrow{width:32px;height:36px}}
 .mobileSelectionBar{display:none}
+body.androidSetup :is(header .steps,footer,#selection .tabs,#selection .featuredHero,#discoverSearch){display:none!important}
+body.androidSetup[data-page=selection]{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+body.androidSetup #selection .workspace{margin-top:0;grid-template-columns:minmax(0,1fr)}
+body.androidSetup #selection .sidebar{display:none}
+body.androidSetup .androidDiscoverToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+body.androidSetup .androidDiscoverToolbar h1{margin:0;font-size:30px}
+body.androidSetup .androidDiscoverToolbar button{min-height:44px}
+body.androidSetup .androidScreenReader{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.androidSetup #profileForm .searchrow{display:flex;align-items:stretch;gap:6px}
+body.androidSetup #profileInput{width:100%;min-width:0;flex:1;font-size:16px}
+body.androidSetup #profileForm .searchrow button{width:auto;min-height:44px;padding:8px 12px;flex:none}
+body.androidSetup .androidFilterButton{position:relative}
+body.androidSetup .androidFilterButton svg{width:22px;height:22px;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.7}
+body.androidSetup #androidFilterCount:not([hidden]){position:absolute;top:1px;right:2px;min-width:16px;border-radius:12px;background:var(--accent);color:var(--button-text);font-size:10px;line-height:16px;text-align:center}
+body.androidSetup .androidSearchModes{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+body.androidSetup .androidSearchModes button{min-height:44px;padding-inline:11px}
+body.androidSetup .androidBackToBrowse{min-height:44px;margin:0 0 12px}
+body.androidSetup .mobileSelectionBar{display:none!important}
+body.androidSetup[data-page=selection] .mobileSelectionBar:not([hidden]){position:fixed;inset:auto 0 0;z-index:12;display:flex!important;gap:10px;background:var(--panel);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+body.androidSetup .mobileSelectionBar button{flex:1;min-height:48px}
+body.androidSetup[data-keyboard-open] .mobileSelectionBar{visibility:hidden}
+body.androidSetup .androidFiltersDialog::backdrop{background:#000a}
+body.androidSetup .androidAbout{clear:both;margin-top:20px;padding:12px 0;border-top:1px solid var(--line);color:var(--muted)}
+body.androidSetup .androidAbout summary{min-height:44px;cursor:pointer;color:var(--text)}
+body.androidSetup .androidAbout #landingFooter,body.androidSetup .androidAbout #buildFooter{display:block;margin:10px 0}
+body.androidSetup:has(dialog[open]){overflow:hidden}
+body.androidSetup .androidFiltersDialog{width:100%;height:100dvh;max-width:none;max-height:none;inset:0;margin:0;padding:0;border:0;background:var(--bg);color:var(--text)}
+body.androidSetup .androidFiltersDialog[open]{display:flex;flex-direction:column}
+body.androidSetup .androidFilterHeader{display:flex;align-items:center;gap:8px;padding:14px 16px 0}
+body.androidSetup .androidFilterHeader h2{margin:0 auto 0 0}
+body.androidSetup .androidFilterHeader button{min-height:44px}
+body.androidSetup .androidFilterScope{margin:10px 16px;color:var(--muted);font-size:13px}
+body.androidSetup .androidFiltersDialog .shelfFilters{flex:1;overflow:auto;border:0;border-radius:0;background:transparent;margin:0;padding:8px 16px 18px}
+body.androidSetup .androidFiltersDialog .shelfChip{min-height:44px}
+body.androidSetup .androidMediaFilter{display:grid;grid-template-columns:repeat(3,1fr)}
+body.androidSetup .androidFiltersDialog .shelfGroupLabel{font-size:16px;margin-top:20px}
+body.androidSetup .androidFiltersDialog .shelfField{margin-top:8px}
+body.androidSetup .androidYearInput{width:100%;min-height:44px;background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:16px}
+body.androidSetup .androidFilterActions{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}
+body.androidSetup .androidFilterActions button{width:100%;min-height:48px}
 .mobileSelectionDialog:not([open]){display:none}
 @media(max-width:740px){
   #selection .sidebar:has(#popularCard[hidden]){display:none}
@@ -88,7 +130,7 @@ const page = `<!doctype html>
 <dialog class="mobileSelectionDialog" id="selectionDialog" aria-labelledby="selectionDialogTitle"><div class="selectionSheetHeader"><h2 id="selectionDialogTitle">${TEXT.selectionTitle}</h2><button class="secondary" type="button" id="closeSelectionDialog" aria-label="${TEXT.closeSelection}">×</button></div></dialog></section><section id="preferences" class="preferencesPage prefPage hidden" aria-label="${TEXT.stepPreferences}"></section><section id="confirm" class="preferencesPage prefPage hidden" aria-label="${TEXT.stepConfirm}"></section></div>
 </main><footer><span id="landingFooter">${TEXT.footer}</span><span id="buildFooter"><a href="https://github.com/palmajay-coder/yourdramalist" target="_blank" rel="noopener noreferrer">Valtown public build</a> · v${APP_VERSION} · <a href="/privacy">Privacy</a></span><section class="tmdbAttribution" id="tmdb-attribution" aria-label="TMDB Attribution Notice"><strong>TMDB Attribution Notice</strong><div class="tmdbAttributionContent"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div></section></footer>
 <script>
-const copy = ${JSON.stringify(TEXT)};
+const copy = ${JSON.stringify({ ...TEXT, androidVersion: APP_VERSION })};
 // The test APK loads this host in Android WebView. Phone browsers keep the web layout.
 const compactAndroid=location.hostname==='yourdramalist-mobile-test.palmajay.workers.dev'
  && navigator.userAgent.includes('Android') && navigator.userAgent.includes('; wv');
@@ -133,6 +175,7 @@ function applySeasonalTheme(season){const t=seasonThemes[season]||seasonThemes.f
 const themeKey='ydl-v3-theme';function applyTheme(t){document.body.classList.toggle('light',t==='light');applySeasonalTheme(seasonForDate());$('themeToggle').textContent=t==='light'?copy.darkMode:copy.lightMode;try{localStorage.setItem(themeKey,t)}catch{}}applyTheme(localStorage.getItem(themeKey)==='light'?'light':'dark');$('themeToggle').onclick=()=>applyTheme(document.body.classList.contains('light')?'dark':'light');
 const userListName=${userListName.toString()};
 const state={tab:'discover',filter:'actor',source:null,selection:[],profile:''};
+if(compactAndroid)document.body.classList.add('androidSetup');
 let featuredRequest, featuredTimer, featuredExpires=0, bannerSlides=[], bannerIndex=0;
 function seasonForDate(){
  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Los_Angeles",month:"numeric",day:"numeric"}).formatToParts(new Date());
@@ -187,32 +230,74 @@ function loadFeaturedBanner(){
 }
 
 const posterWall = (${installPosterWall.toString()})(${JSON.stringify(POSTER_SEEDS)},['connect','landing']);
-let currentPage='landing',preferencesUI,preferencesReady;
+let currentPage='landing',preferencesUI,preferencesReady,discoverScroll=0;
+const androidFlow=['selection','preferences','confirm'];
 let connectedUser='';try{const saved=localStorage.getItem('ydl-v3-user')||'';if(/^[a-zA-Z0-9_-]{1,60}$/.test(saved))connectedUser=saved}catch{}
 function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}}
 const pageForPath=${pageForPath.toString()};
-function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser});return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
+function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,user:()=>connectedUser,androidFlow:compactAndroid});if(androidAbout)$('preferences').append(androidAbout);return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
 function navigate(page,push=true){
+if(compactAndroid&&!androidFlow.includes(page))page='selection';
 if(['preferences','confirm'].includes(page)&&!state.selection.length)page='selection';
+if(compactAndroid&&push){
+ const target=androidFlow.indexOf(page),step=history.state?.ydlFlowStep;
+ if(Number.isInteger(step)&&target<step){
+  history.go(target-step);
+  return;
+ }
+}
 if(page!=='selection'&&$('selectionDialog').open)$('selectionDialog').close();
 if(page!=='preferences')preferencesUI?.closeAdvanced();
-currentPage=page;if(page==='selection')loadFeaturedBanner();document.body.dataset.page=page;$('landingFooter').hidden=page==='landing';$('buildFooter').hidden=page==='landing';$('tmdb-attribution').hidden=page!=='landing';posterWall.update(page);requestAnimationFrame(alignSelection);
+if(compactAndroid&&page!==currentPage){
+ if(currentPage==='selection')discoverScroll=window.scrollY;
+ requestAnimationFrame(()=>window.scrollTo(0,page==='selection'?discoverScroll:0));
+}
+currentPage=page;if(page==='selection')loadFeaturedBanner();document.body.dataset.page=page;if(!compactAndroid){$('landingFooter').hidden=page==='landing';$('buildFooter').hidden=page==='landing';$('tmdb-attribution').hidden=page!=='landing';}posterWall.update(page);requestAnimationFrame(alignSelection);
 $('landing').classList.toggle('hidden',page!=='landing');$('setup').classList.toggle('hidden',page==='landing');
 for(const id of ['connect','selection','preferences','confirm'])$(id).classList.toggle('hidden',page!==id);
 const order=['connect','selection','preferences','confirm'],index=order.indexOf(page);
 order.forEach((name,i)=>{const step=$('step'+(i+1)),active=name===page;step.classList.toggle('active',active);step.disabled=i>=index; if(active)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current')});
 $('wallpaper').hidden=page!=='landing'||!document.body.classList.contains('hasWallpaper');
-const paths={landing:'/',connect:'/setup',selection:'/setup/lists',preferences:'/setup/preferences',confirm:'/setup/confirm'};const path=paths[page]||'/';if(push&&location.pathname!==path)history.pushState({ydlPage:page},'',path);
+const paths={landing:'/',connect:'/setup',selection:'/setup/lists',preferences:'/setup/preferences',confirm:'/setup/confirm'};const path=paths[page]||'/';if(push&&location.pathname!==path){
+ const entry={ydlPage:page,...(compactAndroid?{ydlFlowStep:androidFlow.indexOf(page)}:{})};
+ if(compactAndroid&&(history.state?.ydlDialog||page==='selection'))history.replaceState(entry,'',path);
+ else history.pushState(entry,'',path);
+}
 if(['preferences','confirm'].includes(page))ensurePreferences().then(ui=>{if(ui&&currentPage===page)ui.show(page)});
 }
-$('step1').onclick=()=>navigate('connect');$('step2').onclick=()=>navigate('selection');$('step3').onclick=()=>navigate('preferences');
+$('step1').onclick=()=>navigate('connect');$('step2').onclick=()=>{if(compactAndroid&&currentPage==='connect'){if($('source').value.trim())$('connectForm').requestSubmit();else if(connectedUser)navigate('selection');else $('skip').click()}else navigate('selection')};$('step3').onclick=()=>navigate('preferences');
 $('continue').onclick=()=>navigate('preferences');
 $('mobileContinue').onclick=$('continue').onclick;
 const selectionDialog=$('selectionDialog');
+let androidAbout=null;
+const androidDialogs=new Map();
+let dialogSerial=0;
+function showAndroidDialog(dialog){
+ if(dialog.open)return;
+ const token=++dialogSerial;
+ dialog.showModal();
+ androidDialogs.set(token,dialog);
+ history.pushState({ydlDialog:token},'');
+ dialog.addEventListener('close',()=>{
+  androidDialogs.delete(token);
+  if(history.state?.ydlDialog===token)history.back();
+ },{once:true});
+}
+if(compactAndroid){
+ const about=document.createElement('details');
+ about.className='androidAbout';
+ const heading=document.createElement('summary');
+ heading.textContent='About YourDramaList';
+ const build=$('buildFooter');
+ about.append(heading,$('landingFooter'),build,$('tmdb-attribution'));
+ const privacy=build.querySelector('a[href="/privacy"]');
+ build.replaceChildren(document.createTextNode('Version '+copy.androidVersion+' \xB7 '),privacy);
+ androidAbout=about;
+}
 const mobileSelectionLayout=matchMedia('(max-width:740px)');
 $('reviewSelection').onclick=()=>{
   selectionDialog.append($('selectionControls'));
-  selectionDialog.showModal();
+  if(compactAndroid)showAndroidDialog(selectionDialog);else selectionDialog.showModal();
   $('closeSelectionDialog').focus();
 };
 $('closeSelectionDialog').onclick=()=>selectionDialog.close();
@@ -234,7 +319,15 @@ window.visualViewport?.addEventListener('resize',()=>{
 });
 document.addEventListener('focusout',()=>document.body.removeAttribute('data-keyboard-open'));
 document.querySelector('header .brand').onclick=e=>{e.preventDefault();navigate('landing')};
-window.addEventListener('popstate',()=>navigate(pageForPath(location.pathname),false));
+window.addEventListener('popstate',()=>{
+ if(compactAndroid){
+  const active=history.state?.ydlDialog||0;
+  for(const [token,dialog] of [...androidDialogs].reverse())if(token>active)dialog.close();
+  const page=history.state?.ydlPage||pageForPath(location.pathname);
+  if(currentPage===page)return;
+  navigate(page,false);
+ }else navigate(pageForPath(location.pathname),false);
+});
 function applyWallpaper(v){if(!v||typeof v.image!=='string'||!/^#[0-9a-f]{6}$/i.test(v.tint)||typeof v.opacity!=='number'||v.opacity<0||v.opacity>1)return;let image='';if(v.image.startsWith('data:image/png;base64,')||v.image.startsWith('data:image/jpeg;base64,')||v.image.startsWith('data:image/webp;base64,'))image=v.image;else try{const u=new URL(v.image);if(u.protocol==='https:')image=u.href}catch{}$('wallpaper').style.backgroundImage=image?'url('+JSON.stringify(image)+')':'';$('wallpaperTint').style.backgroundColor=v.tint;$('wallpaperTint').style.opacity=v.opacity;const imageMode=v.mode==='image'&&!!image;document.body.classList.toggle('hasWallpaper',imageMode);$('wallpaper').hidden=currentPage!=='landing'||!imageMode}
 function applyHeaderBackground(v){const layer=$('headerBackground');if(!layer)return;let image='';if(typeof v?.bannerImage==='string'){if(/^data:image\\/(png|jpeg|webp);base64,/.test(v.bannerImage))image=v.bannerImage;else try{const u=new URL(v.bannerImage);if(u.protocol==='https:')image=u.href}catch{}}const opacity=typeof v?.bannerOverlay==='number'&&Number.isFinite(v.bannerOverlay)?Math.max(0,Math.min(.85,v.bannerOverlay)):.38;layer.style.backgroundImage=image?'linear-gradient(rgba(0,0,0,'+opacity+'),rgba(0,0,0,'+opacity+')),url('+JSON.stringify(image)+')':''}
 const isWallpaperPreview=new URL(location.href).searchParams.get('wallpaper-preview')==='1';let previewReceived=false;
@@ -272,9 +365,9 @@ window.addEventListener('resize',alignSelection);
 const searchResize=new ResizeObserver(()=>requestAnimationFrame(alignSelection));
 searchResize.observe($('profileSearch'));searchResize.observe($('discoverSearch'));searchResize.observe($('exploreSearch'));
 function renderSelection(){syncFeaturedAdd();state.selection=state.selection.map(l=>({...l,originalName:l.originalName||l.name,name:userListName(l)}));try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}resolveSelectedOwners();const root=$('selectionMessage');root.replaceChildren();$('count').textContent='('+state.selection.length+')';
-$('mobileSelectionBar').hidden=!state.selection.length;
+$('mobileSelectionBar').hidden=!compactAndroid&&!state.selection.length;
 $('reviewSelection').textContent=copy.mobileSelectedCount.replace('{count}',state.selection.length);
-$('continue').disabled=!state.selection.length;$('clearSelection').classList.toggle('hidden',!state.selection.length);if(!state.selection.length){root.textContent=copy.emptySelection;return}const groups=new Map();for(const l of state.selection){const user='list:all';if(!groups.has(user))groups.set(user,[]);groups.get(user).push(l)}for(const [user,lists] of groups){const isFilm=lists[0].kind==='filmography',isExplore=lists[0].kind==='explore',ownerless=true;const groupName=isFilm?lists[0].personDisplayName||lists[0].personName:user;const heading=document.createElement('div');heading.className='profileHeading';const avatar=document.createElement('span');avatar.className='profileAvatar';avatar.textContent=groupName.charAt(0).toUpperCase();const name=document.createElement('span');name.className='profileName';name.textContent=groupName;heading.append(avatar,name);if(!ownerless)root.append(heading);if(!ownerless&&(isFilm||!['MyDramaList','YourDramaList'].includes(user)&&/^[a-zA-Z0-9_-]{1,60}$/.test(user))){Promise.resolve(lists.find(l=>l.profileAvatar)?.profileAvatar?{avatar:lists.find(l=>l.profileAvatar).profileAvatar}:isFilm?null:loadProfileAvatar(user)).then(d=>{if(d&&d.avatar){const img=document.createElement('img');img.src=d.avatar;img.alt='';img.referrerPolicy='no-referrer';avatar.replaceChildren(img)}}).catch(()=>{})}for(const l of lists){const row=document.createElement('div');row.className='selectedItem';const title=document.createElement('span');title.className='selectedTitle';title.textContent=userListName(l);title.title=userListName(l);const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label',copy.remove+l.name);remove.onclick=()=>{
+$('continue').disabled=!state.selection.length;if(compactAndroid)$('mobileContinue').disabled=!state.selection.length;$('clearSelection').classList.toggle('hidden',!state.selection.length);if(!state.selection.length){root.textContent=copy.emptySelection;return}const groups=new Map();for(const l of state.selection){const user='list:all';if(!groups.has(user))groups.set(user,[]);groups.get(user).push(l)}for(const [user,lists] of groups){const isFilm=lists[0].kind==='filmography',isExplore=lists[0].kind==='explore',ownerless=true;const groupName=isFilm?lists[0].personDisplayName||lists[0].personName:user;const heading=document.createElement('div');heading.className='profileHeading';const avatar=document.createElement('span');avatar.className='profileAvatar';avatar.textContent=groupName.charAt(0).toUpperCase();const name=document.createElement('span');name.className='profileName';name.textContent=groupName;heading.append(avatar,name);if(!ownerless)root.append(heading);if(!ownerless&&(isFilm||!['MyDramaList','YourDramaList'].includes(user)&&/^[a-zA-Z0-9_-]{1,60}$/.test(user))){Promise.resolve(lists.find(l=>l.profileAvatar)?.profileAvatar?{avatar:lists.find(l=>l.profileAvatar).profileAvatar}:isFilm?null:loadProfileAvatar(user)).then(d=>{if(d&&d.avatar){const img=document.createElement('img');img.src=d.avatar;img.alt='';img.referrerPolicy='no-referrer';avatar.replaceChildren(img)}}).catch(()=>{})}for(const l of lists){const row=document.createElement('div');row.className='selectedItem';const title=document.createElement('span');title.className='selectedTitle';title.textContent=userListName(l);title.title=userListName(l);const remove=document.createElement('button');remove.type='button';remove.textContent='\xD7';remove.setAttribute('aria-label',copy.remove+l.name);remove.onclick=()=>{
   const nextIndex=state.selection.indexOf(l);
   toggleList(l);
   if(selectionDialog.open){
@@ -290,12 +383,17 @@ function addWatchlistPlaceholder(posters,empty){const placeholder=document.creat
 function renderLists(lists){communityUI.render(lists)}
 async function loadDirectList(value){
 $('communityViews').classList.add('hidden');profileLists=null;
-const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent='';
+const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent=compactAndroid?copy.loadingLists:'';
 try{const response=await fetch('/api/mdl/list?url='+encodeURIComponent('https://mydramalist.com/list/'+value),{signal:AbortSignal.timeout(15000)});const data=await response.json();if(requestId!==listRequest)return;if(!response.ok)throw Error(data.error||'Unable to load this list.');
 const list={...data.list,analyticsSource:'community-direct-list'};
 state.selection=state.selection.map(l=>l.url===list.url?{...l,...list}:l);
 try{localStorage.setItem(selectionKey,JSON.stringify(state.selection))}catch{}
 renderSelection();renderLists([list]);$('results').textContent='';
+if(compactAndroid){
+ if(state.selection.some(item=>item.url===list.url))$('results').textContent='List already added.';
+ else if(state.selection.length<MAX_CATALOGS){toggleList(list);$('results').textContent='List added.'}
+ else $('results').textContent=copy.catalogLimitReached.replace('{max}',MAX_CATALOGS);
+}
 }catch(e){if(requestId===listRequest)$('results').textContent='Unable to load list: '+(['TimeoutError','AbortError'].includes(e.name)?'This request took too long. Please try again.':e.message)}
 }
 let profileLists=null;
@@ -338,14 +436,15 @@ async function loadProfile(username){
   const combined=lists.filter(l=>l.combined).map(l=>({...l,name:(data.profileName||username)+'’s '+copy.communityAllTitles,description:copy.communityAllTitlesDescription}));
   const custom=lists.filter(l=>l.kind!=='watchlist').sort((a,b)=>(b.loves??-1)-(a.loves??-1));
   state.profile=username;
+  if(compactAndroid)setConnectedUser(username);
   profileLists=[...combined,...watchlists,...custom].map(l=>({...l,profile:username,analyticsSource:l.kind==='watchlist'?'community-watchlist':'community-public-list'}));
   $('communityViews').classList.remove('hidden');
-  showCommunityView('watchlists');
+  showCommunityView(compactAndroid&&!combined.length&&!watchlists.length?'custom':'watchlists');
  }catch(e){if(requestId===listRequest)$('results').textContent=copy.loadFailed+(['TimeoutError','AbortError'].includes(e.name)?copy.searchRetry:e.message)}
 }
 
 renderSelection();
-function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();requestAnimationFrame(alignSelection);listRequest++;state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';if(tab==='discover'&&state.filter==='catalogs')exploreUI.render();popularUI.show(tab==='discover')}
+function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();requestAnimationFrame(alignSelection);listRequest++;state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';if(tab==='discover'&&state.filter==='catalogs')exploreUI.render();popularUI.show(!compactAndroid&&tab==='discover')}
 function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs){exploreUI.render();requestAnimationFrame(alignSelection);return}$('discoverInput').placeholder=f==='drama'?copy.searchDramas:f==='actor'?copy.searchActors:copy.searchDirectors;$('discoverInput').setAttribute('aria-label',f==='drama'?'Drama name or MyDramaList URL':'Person name or MyDramaList URL');$('discoverLabel').textContent=copy.discoverSearchLabel;requestAnimationFrame(alignSelection)}
 function openSelection(tab){navigate('selection');switchTab(tab)}
 $('start').onclick=()=>navigate('connect');
@@ -375,7 +474,7 @@ const ns='http://www.w3.org/2000/svg';
 for(let i=0;i<10;i++){const star=document.createElement('span');star.className='ratingStar';
 const icon=()=>{const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const shape=document.createElementNS(ns,'polygon');shape.setAttribute('points','12,3 14.8,8.7 21,9.6 16.5,14 17.6,20.2 12,17.3 6.4,20.2 7.5,14 3,9.6 9.2,8.7');svg.append(shape);return svg};
 star.append(icon());const fraction=Math.max(0,Math.min(1,score-i));if(fraction>0){const fill=document.createElement('span');fill.className='ratingFill';fill.style.width=(fraction*100)+'%';fill.append(icon());star.append(fill)}stars.append(star)}
-const label=document.createElement('span');label.className='ratingValue';label.textContent=String(score);const max=document.createElement('span');max.className='ratingMax';max.textContent=' / 10';label.append(max);root.append(stars,label);
+const label=document.createElement('span');label.className='ratingValue';label.textContent=score.toFixed(1);const max=document.createElement('span');max.className='ratingMax';max.textContent=' / 10';label.append(max);root.append(stars,label);
 }
 function renderSynopsis(root,text){root.replaceChildren();if(!text)return;const content=document.createElement('span');content.textContent=synopsisPreview(text);root.append(content)}
 async function enrichDramaCards(jobs,requestId){
@@ -415,6 +514,7 @@ catch(e){if(requestId===listRequest)$('results').textContent='Unable to search: 
 const CATEGORIES=${JSON.stringify(CATEGORIES)},COUNTRIES=${JSON.stringify(COUNTRIES)};const exploreCategories=CATEGORIES,exploreCountries=COUNTRIES;
 const exploreCatalog=${exploreCatalog.toString()};
 
+const showCatalogTitle=(${installCatalogTitlePreview.toString()})();
 const exploreUI=(${installExploreUI.toString()})();
 const peopleUI = (${installPeopleUI.toString()})();
 const FILTER_COUNTRIES=${JSON.stringify(FILTER_COUNTRIES)},FILTER_GENRES=${JSON.stringify(FILTER_GENRES)};
@@ -432,7 +532,8 @@ loadDramaLists(dramaUrl.href,'');
 };
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
-switchFilter('actor');switchTab(state.tab);navigate(pageForPath(location.pathname),false);
+if(compactAndroid)(${installAndroidDiscover.toString()})();
+else{switchFilter('actor');switchTab(state.tab);navigate(pageForPath(location.pathname),false)}
 </script></body></html>`;
 const webAppManifest = {
   id: "/",
@@ -452,7 +553,7 @@ async function handleProfile(url: URL): Promise<Response> {
     return Response.json({error: "Invalid username"}, {status: 400, headers});
   }
   try {
-    await loadWatchlist(username);
+    const sections = await loadWatchlist(username);
     // The shelves load title artwork separately. Profile search only needs the watchlist categories.
     const watchlists = await profileWatchlistCards(username, username);
     const combined = {
@@ -461,6 +562,7 @@ async function handleProfile(url: URL): Promise<Response> {
       kind: "watchlist",
       combined: true,
       empty: watchlists.every(card => card.empty),
+      count: new Set(Object.values(sections).flat().map(item => item?.slug).filter(Boolean)).size,
       posters: [...new Set(watchlists.flatMap(card => card.posters))].slice(0, 5),
     };
     return Response.json({username, lists: [combined, ...watchlists], message: "Public watchlist found for " + username + "."}, {headers});

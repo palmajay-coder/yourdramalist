@@ -886,7 +886,7 @@ export async function profileWatchlistCards(username, name, load = loadWatchlist
       }
     }
     return {
-      kind:"watchlist", name:`${name}’s ${label}`, empty:items.length===0,
+      kind:"watchlist", name:`${name}’s ${label}`, empty:items.length===0, count:items.length,
       url:`${T}/dramalist/${username.toLowerCase()}/${status}`,
       posters,
     };

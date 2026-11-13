@@ -60,3 +60,65 @@
 .compactPreview .compactTitle{width:100%;min-height:40px;padding:6px 0;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);text-align:left;font:inherit}
 .compactPersonPhoto{width:34px;height:42px;object-fit:cover;border-radius:5px}
 .compactPersonCredits{margin:4px 0;padding-left:22px}
+
+.androidSetup .androidWeeklyHeading{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0 14px}
+.androidSetup .androidWeeklyHeading h2{margin:0}
+.androidSetup .catalogMore{padding-top:12px}
+.androidSetup .catalogTypeSwitch{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;margin:12px 0}
+.androidSetup .catalogTypeSwitch button{min-height:44px;border:0;border-radius:8px;background:transparent;color:var(--text)}
+.androidSetup .catalogTypeSwitch button[aria-pressed=true]{background:var(--tab);color:var(--link);font-weight:700}
+.androidSetup .androidCatalogFilters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.androidSetup .androidCatalogFilters label{display:block;margin:0 0 4px!important}
+.androidSetup .androidCatalogFilters select{width:100%;min-height:44px}
+.androidSetup .catalogShelfHead{align-items:center;margin-bottom:8px}
+.androidSetup .catalogShelfHead h3{margin:0}
+.androidSetup .catalogShelfHead .catalogAdd{min-height:44px}
+.androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack{gap:9px;scrollbar-width:none;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+.androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack::-webkit-scrollbar{display:none}
+.androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack .catalogPoster{flex-basis:calc((100% - 27px)/3.35)}
+.androidSetup .catalogShelfTrack .catalogPoster:hover img{transform:none}
+.androidSetup .compactPersonIdentity{display:flex;align-items:center;gap:10px}
+.androidSetup .compactPersonIdentity h3{margin:0;overflow-wrap:anywhere}
+
+.androidSetup .androidWatchlistCard{margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.androidSetup .androidWatchlistCard .catalogShelfHead{position:relative;display:block;margin:0}
+.androidSetup .androidWatchlistCard .catalogRowActions{position:absolute;top:0;right:0}
+.androidWatchlistOpen,.androidWatchlistTitle{display:block;width:100%;border:0;padding:0;background:none;color:var(--text);text-align:left;min-width:0}
+.androidWatchlistOpen>strong,.androidWatchlistOpen>small{display:block;padding-inline-end:78px;overflow-wrap:anywhere}
+.androidWatchlistOpen>strong{font-size:16px}
+.androidWatchlistOpen>small,.androidWatchlistTitle>small,.androidWatchlistOwner{color:var(--muted)}
+.androidWatchlistPreview{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:14px}
+.androidWatchlistCount{grid-column:5}
+.androidWatchlistPoster{position:relative;isolation:isolate;display:grid;place-content:center;overflow:hidden;aspect-ratio:2/3;background:var(--input);border-radius:7px;text-align:center;color:var(--muted);font-size:10px;padding:3px;overflow-wrap:anywhere}
+.androidWatchlistPoster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.androidWatchlistCount strong,.androidWatchlistCount small{z-index:1;color:white;text-shadow:0 1px 3px #000}
+.androidWatchlistCount::after{content:"";position:absolute;inset:0;background:#0009}
+.androidWatchlistCount strong{font-size:clamp(15px,4vw,24px)}
+.androidWatchlistCount small{font-size:11px}
+.androidWatchlistDialog{width:100%;height:100dvh;max-width:none;max-height:none;margin:0;inset:0;padding:0;border:0;background:var(--bg);color:var(--text)}
+.androidWatchlistDialog[open]{display:flex;flex-direction:column}
+.androidWatchlistDialog .androidWatchlistHeader{display:flex;justify-content:start;align-items:center;gap:10px;min-height:0;padding:12px 14px;background:var(--panel);color:var(--text);border-bottom:1px solid var(--line)}
+.androidWatchlistHeader>div{flex:1;min-width:0}
+.androidWatchlistHeader h2{font-size:18px;margin:0;overflow-wrap:anywhere}
+.androidWatchlistHeader p{margin:2px 0 0}
+.androidWatchlistHeader button{min-width:44px;min-height:44px}
+.androidWatchlistBody{flex:1;min-height:0;overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
+.androidWatchlistGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 8px;align-items:start}
+.androidWatchlistTitle>strong,.androidWatchlistTitle>small{display:block;overflow-wrap:anywhere}
+.androidWatchlistTitle>strong{margin-top:5px;line-height:1.25}
+.androidWatchlistBody>.catalogShelfStatus:empty{display:none}
+@media(min-width:600px){.androidWatchlistGrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+
+.catalogTitleDialog{position:fixed;padding:clamp(16px,4.7vw,24px);max-height:85dvh}
+.catalogTitleDialog .catalogDialogClose{position:absolute;top:clamp(16px,4.7vw,24px);right:clamp(16px,4.7vw,24px);float:none;margin:0;min-width:40px;min-height:40px}
+.catalogTitleHeader{display:flex;align-items:flex-start;gap:clamp(12px,3.7vw,18px)}
+.catalogTitleDialog .catalogTitleArtwork{flex:0 0 auto;width:clamp(60px,23vw,110px);aspect-ratio:5/7;object-fit:cover;float:none;margin:0}
+.catalogTitleInfo{flex:1;min-width:0}
+.catalogTitleInfo h2{padding-inline-end:48px;line-height:1.2;overflow-wrap:anywhere}
+.catalogTitleInfo p{margin:12px 0 0}
+.catalogTitleScore{display:flex;align-items:center;flex-wrap:wrap;gap:2px 5px;margin-top:12px}
+.catalogTitleScore:empty{display:none}
+.catalogTitleScore .ratingStars{gap:1px}
+.catalogTitleScore :is(.ratingStar,.ratingStar svg){width:clamp(9px,3vw,14px);height:clamp(9px,3vw,14px)}
+.catalogTitleScore .ratingValue{white-space:nowrap}
+.catalogTitleDialog .dramaSynopsis{line-height:1.6;margin:16px 0 0}

@@ -46,8 +46,10 @@ export function createShelfHandler(deps = {load: loadShelfItems, facts: getTitle
       try {
         const raw = await deps.load(source);
         const items = raw.map(toShelfItem).filter(Boolean) as ShelfItem[];
-        const limit = u.searchParams.get("preview") === "1" ? 3 : MAX_ITEMS;
-        return Response.json({items: items.slice(0, limit), total: items.length}, {headers});
+        const preview = u.searchParams.get("preview");
+        const limit = preview === "watchlist" ? 5 : preview === "1" ? 3 : MAX_ITEMS;
+        const offset = preview ? 0 : Math.max(0, Math.trunc(Number(u.searchParams.get("offset")) || 0));
+        return Response.json({items: items.slice(offset, offset + limit), total: items.length}, {headers});
       } catch (error) {
         if ((error as {code?: string})?.code === "PRIVATE") return Response.json({error: "This list is private or unavailable."}, {status: 404, headers});
         return Response.json({error: "MyDramaList is temporarily unavailable."}, {status: 502, headers});

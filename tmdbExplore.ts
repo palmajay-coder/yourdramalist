@@ -94,20 +94,36 @@ export function sortExploreItems<T extends { name: string; date: string; score?:
   return applyShelfFilter(view, filter).map((x: any) => x.item);
 }
 
-// Synopsis and score for the title dialog of a TMDB-sourced catalog item.
-const detailsMemo = new Map<string, { data: any; expires: number }>();
-export async function tmdbDetails(raw: string, { fetcher = fetch, key = (typeof Deno < "u" && Deno.env.get("TMDB_API_KEY")) || "" } = {}) {
+// Source metadata and alternate names used to identify the corresponding MyDramaList title.
+const detailsMemo = new Map<string, { data: NonNullable<Awaited<ReturnType<typeof fetchTmdbTitle>>>; expires: number }>();
+async function fetchTmdbTitle(raw: string, fetcher: typeof fetch, key: string) {
   const match = String(raw).match(/^https:\/\/www\.themoviedb\.org\/(tv|movie)\/([1-9]\d{0,9})$/);
   if (!match) return null;
+  if (!key) throw Error("TMDB is not configured.");
+  const kind = match[1] === "movie" ? "movie" : "tv";
+  const url = new URL(`${TMDB}/${kind}/${match[2]}`);
+  url.search = new URLSearchParams({language: "en-US", append_to_response: "alternative_titles", api_key: key}).toString();
+  const response = await fetcher(url, {redirect: "error", signal: AbortSignal.timeout(4000), headers: {Accept: "application/json"}});
+  if (!response.ok) { await response.body?.cancel(); throw Error("TMDB details unavailable (HTTP " + response.status + ")."); }
+  const data = await response.json();
+  const countries: string[] = data.origin_country || data.production_countries?.map(country => country.iso_3166_1) || [];
+  const alternate = data.alternative_titles?.titles || data.alternative_titles?.results || [];
+  const names = [data.name || data.title, data.original_name || data.original_title,
+    ...alternate.filter(entry => ["US", "GB", ...countries].includes(entry.iso_3166_1)).map(entry => entry.title),
+  ].filter(name => typeof name === "string" && name.trim());
+  return {
+    kind, countries, names,
+    year: Number(String(data.first_air_date || data.release_date || "").slice(0, 4)),
+    synopsis: String(data.overview || "").trim() || null,
+  } as const;
+}
+export async function tmdbDetails(raw: string, {fetcher = fetch, key = (typeof Deno < "u" && Deno.env.get("TMDB_API_KEY")) || ""} = {}) {
   const hit = detailsMemo.get(raw);
   if (hit && hit.expires > Date.now()) return hit.data;
-  if (!key) throw Error("TMDB is not configured.");
-  const response = await fetcher(`${TMDB}/${match[1]}/${match[2]}?language=en-US&api_key=${key}`, { redirect: "error", signal: AbortSignal.timeout(8000), headers: { Accept: "application/json" } });
-  if (!response.ok) { await response.body?.cancel(); throw Error("TMDB details unavailable (HTTP " + response.status + ")."); }
-  const d = await response.json();
-  const rating = Number(d?.vote_average);
-  const data = { sourceUrl: raw, synopsis: String(d?.overview || "").trim() || null, score: rating > 0 && rating <= 10 ? Math.round(rating * 10) / 10 : null, rank: null, popularity: null, status: "live", fetchedAt: new Date().toISOString() };
-  detailsMemo.set(raw, { data, expires: Date.now() + 6 * 3600_000 });
-  while (detailsMemo.size > 300) detailsMemo.delete(detailsMemo.keys().next().value!);
+  const data = await fetchTmdbTitle(raw, fetcher, key);
+  if (data) {
+    detailsMemo.set(raw, {data, expires: Date.now() + 6 * 3600_000});
+    while (detailsMemo.size > 300) detailsMemo.delete(detailsMemo.keys().next().value!);
+  }
   return data;
 }
