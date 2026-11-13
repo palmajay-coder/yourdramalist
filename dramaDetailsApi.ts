@@ -44,10 +44,21 @@ async function catalogDetails(url: string) {
     });
     entry = lookup;
   }
-  const match = await entry.match.catch(() => null);
+  let match: CatalogMatch;
+  try {
+    match = await entry.match;
+  } catch {
+    return {...unavailable, status: "retry"};
+  }
   if (!match) return unavailable;
   const data = await details(match.url);
-  return {...data, synopsis: data.synopsis || source.synopsis, type: match.type, year: match.year};
+  return {
+    ...data,
+    score: data.score ?? match.score,
+    synopsis: data.synopsis || source.synopsis,
+    type: match.type,
+    year: match.year,
+  };
 }
 
 export async function handleDramaDetails(req: Request) {
@@ -59,7 +70,7 @@ export async function handleDramaDetails(req: Request) {
       const data = await catalogDetails(raw);
       if (data) return Response.json(data, {headers});
     } catch {
-      return Response.json({status:'unavailable', score:null, popularity:null}, {headers});
+      return Response.json({status:'retry', score:null, popularity:null}, {headers});
     }
   }
   if (!dramaUrl(raw)) return Response.json({error:'Provide an HTTPS MyDramaList drama URL.'},{status:400});

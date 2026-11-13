@@ -37,7 +37,7 @@ export function installAndroidDiscover() {
   browse.className = "secondary androidBackToBrowse";
   browse.textContent = "Back to Discover";
   browse.hidden = true;
-  const sources = [["lists", "Lists", "MyDramaList username or list link"], ["drama", "Dramas", "Drama name or MyDramaList URL"], ["actor", "Actors", "Actor name or MyDramaList URL"], ["director", "Directors", "Director name or MyDramaList URL"]];
+  const sources = [["lists", "Lists", "MyDramaList username or list link"], ["actor", "Actors", "Actor name or MyDramaList URL"], ["director", "Directors", "Director name or MyDramaList URL"]];
   let mode = "lists", browsePosition = 0;
   function resetResults(restoreScroll = false) {
     communityUI.reset();

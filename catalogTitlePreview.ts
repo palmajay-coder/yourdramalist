@@ -58,11 +58,16 @@ export function installCatalogTitlePreview() {
     if (compactAndroid) showAndroidDialog(dialog);
     else if (!dialog.open) dialog.showModal();
     try {
-      const response = await fetch("/api/mdl/drama-details?url=" + encodeURIComponent(item.url), {
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(22000)]),
-      });
-      if (!response.ok) throw Error("Title details unavailable");
-      const details = await response.json();
+      const endpoint = "/api/mdl/drama-details?url=" + encodeURIComponent(item.url);
+      const lookup = async () => {
+        const response = await fetch(endpoint, {
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(22000)]),
+        });
+        if (!response.ok) throw Error("Title details unavailable");
+        return response.json();
+      };
+      let details = await lookup();
+      if (details.status === "retry" && !controller.signal.aborted) details = await lookup();
       if (controller.signal.aborted || !dialog.open) return;
       meta.textContent = formatMeta(details.type || type, details.year || year);
       renderScore(score, details.score);
@@ -72,7 +77,7 @@ export function installCatalogTitlePreview() {
         popularity.hidden = false;
       }
       renderSynopsis(synopsis, details.synopsis || item.overview);
-      if (details.status === "unavailable" && !synopsis.textContent) synopsis.textContent = copy.catalogDetailsUnavailable;
+      if (["unavailable", "retry"].includes(details.status) && !synopsis.textContent) synopsis.textContent = copy.catalogDetailsUnavailable;
       synopsis.hidden = !synopsis.textContent;
     } catch {
       if (controller.signal.aborted || !dialog.open) return;
