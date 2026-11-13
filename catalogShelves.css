@@ -2,21 +2,6 @@
 .shelfStats{font-size:12px!important;margin-top:4px!important}
 .shelfStatus{font-size:12px;color:var(--muted);margin:-8px 0 10px;min-height:0}
 .shelfStatus:empty{display:none}
-.popularCard{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
-.popularCard h3{font-size:15px;margin:0 0 10px}
-.popularTabs{display:flex;gap:6px;margin:0 0 8px}
-.popularTab{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:16px;padding:4px 10px;font-size:12px}
-.popularTab[aria-pressed=true]{background:var(--tab);border-color:var(--accent);color:var(--link)}
-.popularList{list-style:none;margin:0;padding:0}
-.popularRow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
-.popularRow:first-child{border-top:0}
-.popularFace{flex:0 0 32px;width:32px;height:32px;border-radius:50%;overflow:hidden;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
-.popularFace img{width:100%;height:100%;object-fit:cover}
-.popularName{flex:1;min-width:0;overflow-wrap:anywhere}
-.popularCount{display:block;font-size:11px;color:var(--muted)}
-.popularAdd{white-space:nowrap;font-size:12px;padding:6px 10px}
-.popularAdd[aria-pressed=true]{background:var(--tab);border-color:var(--accent);color:var(--link)}
-@media(min-width:0){.popularRow:nth-child(n+4){display:none}}
 .shelfFilterBar{margin:0 0 22px}
 .shelfFilterBarHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .shelfFilterSummary{font-size:13px;color:var(--muted)}

@@ -1,6 +1,5 @@
 import {parseHTML} from "npm:linkedom@0.18.12";
-import handler from "./app.ts";
-import {createPopularity, personPicks, visitorAddress, deviceType} from "./popularity.ts";
+import {createPopularity, visitorAddress, deviceType} from "./popularity.ts";
 import {adminPage} from "./wallpaperAdmin.ts";
 import {dayKey} from "./analyticsApi.ts";
 let passed=0;const assert=(v:unknown,m:string)=>{if(!v)throw Error(m)};async function test(name:string,fn:()=>unknown){await fn();passed++;console.log("PASS "+name)}
@@ -35,71 +34,41 @@ await test("people are counted once per category and range, with device type and
  const f=fakeDb();let now=noon;
  const p=createPopularity({db:f.db,now:()=>now,record:async(items)=>{for(const [metric,category,count] of items)f.analytics.push({day:dayKey(now),metric,category,count})}});
  const scopes=["catalog.selected:explore:newest-shows:3","catalog.selected:explore:newest-shows:1","catalog.selected:explore:airing-shows:3","catalog.selected:weekly:0","feature.selected:reviews","feature.selected:not-a-feature","made-up:scope"];
- const people=[{slug:"123-song-kang",mode:"actor" as const,name:"Song Kang",photo:"https://i.mydramalist.com/song.jpg"}];
- await p.recordManifest(request("203.0.113.5",phone),scopes,people);
- await p.recordManifest(request("203.0.113.5",phone),scopes,people);
+ await p.recordManifest(request("203.0.113.5",phone),scopes);
+ await p.recordManifest(request("203.0.113.5",phone),scopes);
  const count=(metric:string,category:string)=>f.analytics.filter(r=>r.metric===metric&&r.category===category).reduce((n,r)=>n+r.count,0);
- assert(count("popular.catalog","explore:newest-shows:3")===1&&count("popular.person","123-song-kang:actor")===1,"Popular this month counts once per person per day");
  assert(count("weekly.people","weekly:0")===1,"weekly picks count each person once a week");
  assert(!f.analytics.some(r=>r.metric==="people.generated"||r.metric==="catalog.selected"||r.metric==="feature.selected"||r.metric==="manifest.generated"),"no click totals are written");
  assert(![...f.visits].some(k=>k.includes("not-a-feature")||k.includes("made-up")),"unknown categories are dropped");
- await p.recordManifest(request("198.51.100.7"),["catalog.selected:explore:newest-shows:3","feature.selected:reviews"],[]);
+ await p.recordManifest(request("198.51.100.7"),["catalog.selected:explore:newest-shows:3","feature.selected:reviews"]);
  await p.recordVisit(request("198.51.100.7"),["catalog.added:discover-drama-related"]);
  await p.recordVisit(request("198.51.100.8"),["catalog.added:discover-drama-related"]);
  assert(![...f.visits].some(k=>k.includes("203.0.113.5")||k.includes("198.51.100.7")),"addresses are never stored");
- assert(f.meta.get("123-song-kang")?.name==="Song Kang","actor name and photo are kept for the card");
  let s=await p.summary();
  assert(s.today.people===2&&s.today.mobile===1&&s.today.computer===1,"today: two people, one on a phone: "+JSON.stringify(s.today));
  assert(s.ranges[7].scopes["feature.selected:reviews"]===2&&s.ranges[7].scopes["catalog.selected:explore:newest-shows:3"]===2,"categories count people, not links");
  assert(s.ranges[7].groups["newest-shows"]===2&&s.ranges[7].scopes["catalog.selected:explore:newest-shows:1"]===1,"two countries of one catalog still count a person once");
  assert(s.ranges[7].scopes["catalog.added:discover-drama-related"]===2&&s.ranges[7].people===2,"search adds count people without counting them as link makers");
  now=noon+day;
- await p.recordManifest(request("203.0.113.5",phone),scopes,people);
+ await p.recordManifest(request("203.0.113.5",phone),scopes);
  s=await p.summary();
  assert(s.today.people===1&&s.ranges[7].people===2&&s.ranges[7].returning===1,"the same person the next day counts once in the week and as returning: "+JSON.stringify(s.ranges[7]));
- assert(count("popular.catalog","explore:newest-shows:3")===3&&count("weekly.people","weekly:0")===1,"daily popularity counts again, the weekly row does not");
+ assert(count("weekly.people","weekly:0")===1,"the weekly row counts a person once a week");
+ assert(!f.analytics.some(r=>r.metric.startsWith("popular.")),"Popular this month totals are no longer written");
  assert(s.daily.length===30&&s.daily.at(-1)!.people===1&&s.daily.at(-2)!.people===2,"people per day");
  const firstSalt=f.salts.get(dayKey(noon).slice(0,7));
  now=Date.UTC(2026,11,1,20);
- await p.recordManifest(request("203.0.113.5",phone),scopes,people);
+ await p.recordManifest(request("203.0.113.5",phone),scopes);
  assert(f.salts.size===1&&f.salts.get("2026-12")!==firstSalt,"the secret is replaced each month and the old one deleted");
  assert((await p.summary()).ranges[30].people===3,"a new month gives the same person a new code");
  now=Date.UTC(2027,0,20,20);
- await p.recordManifest(request("203.0.113.9"),[],[]);
+ await p.recordManifest(request("203.0.113.9"),[]);
  assert(![...f.visits].some(k=>k<"2026-12-16"),"codes older than 35 days are deleted");
- assert(f.dropped.includes("ydl_daily_seen")&&f.dropped.includes("ydl_daily_salt"),"the old daily tables are removed");
- const before=f.visits.size;await p.recordManifest(new Request("https://test/x",{method:"POST"}),scopes,people);
+ assert(f.dropped.includes("ydl_daily_seen")&&f.dropped.includes("ydl_daily_salt")&&f.dropped.includes("ydl_people_meta"),"the old daily tables and Popular this month names are removed");
+ const before=f.visits.size;await p.recordManifest(new Request("https://test/x",{method:"POST"}),scopes);
  assert(f.visits.size===before,"requests without an address are not counted");
  assert(visitorAddress(request("203.0.113.5"))==="203.0.113.5","first forwarded address is used");
  assert(deviceType(request("1.1.1.1","Mozilla/5.0 (iPad; CPU OS 17_0)"))==="mobile"&&deviceType(request("1.1.1.1","Mozilla/5.0 (Linux; Android 14; Pixel 8)"))==="mobile"&&deviceType(request("1.1.1.1"))==="computer","tablets count as mobile");
-});
-
-await test("Popular this month ranks catalogs and people with the agreed rules",async()=>{
- const f=fakeDb();let now=noon;const today=dayKey(now);
- const p=createPopularity({db:f.db,now:()=>now,record:async()=>{}});
- const add=(metric:string,category:string,count:number,d=today)=>f.analytics.push({day:d,metric,category,count});
- add("popular.catalog","explore:newest-shows:3",12);add("popular.catalog","explore:airing-shows:3",7);
- assert((await p.rankings()).catalogs.length===0,"fewer than three qualifying catalogs keeps the list hidden");
- now+=61*60*1000;
- add("popular.catalog","explore:top-movies:1",3);add("popular.catalog","explore:popular-shows:all",2);add("popular.catalog","explore:upcoming-shows:2",40,"2026-09-01");
- add("popular.person","123-song-kang:actor",9);add("popular.person","456-park-chan-wook:director",8);add("popular.person","456-park-chan-wook:actor",3);add("popular.person","789-kim-go-eun:actor",4);add("popular.person","999-no-name:actor",20);
- f.meta.set("123-song-kang",{slug:"123-song-kang",name:"Song Kang",photo:"https://i.mydramalist.com/a.jpg"});
- f.meta.set("456-park-chan-wook",{slug:"456-park-chan-wook",name:"Park Chan-wook",photo:null});
- f.meta.set("789-kim-go-eun",{slug:"789-kim-go-eun",name:"Kim Go-eun",photo:"https://evil.test/x.jpg"});
- const r=await p.rankings();
- assert(r.catalogs.map((c:any)=>c.label).join("|")==="Newest Shows · South Korea|Top Airing Shows · South Korea|Top Rated Movies · Japan"/* Labels use the catalog names from explore.ts. */,"catalog ranking: "+r.catalogs.map((c:any)=>c.label).join("|"));
- assert(r.catalogs[0].count===12&&r.catalogs[1].count===null,"counts show only from 10 adds: "+JSON.stringify(r.catalogs));
- assert(r.catalogs[0].category==="newest-shows"&&r.catalogs[0].country==="3","catalog keys let the card add the right catalog");
- assert(r.people.map((x:any)=>x.name).join("|")==="Park Chan-wook|Song Kang|Kim Go-eun","acting and directing are combined into one row per person: "+JSON.stringify(r.people));
- assert(r.people[0].mode==="director"&&r.people[0].count===11,"Add uses the filmography people chose most");
- assert(r.people[2].photo===null,"photos from other sites are dropped");
- add("popular.catalog","explore:variety-shows:3",50);
- assert((await p.rankings()).catalogs.length===3,"rankings are reused for an hour");
-});
-
-await test("filmography names and photos come from the request, not the install link",()=>{
- const picks=personPicks([{person:"https://mydramalist.com/people/123-song-kang",mode:"actor"},{explore:{category:"top-shows",country:"3"}}],[{kind:"filmography",personUrl:"https://mydramalist.com/people/123-song-kang",personName:"Song Kang\u0000",personPhoto:"https://i.mydramalist.com/s.jpg"}]);
- assert(picks.length===1&&picks[0].slug==="123-song-kang"&&picks[0].name==="Song Kang"&&picks[0].photo==="https://i.mydramalist.com/s.jpg","person pick: "+JSON.stringify(picks));
 });
 
 await test("admin analytics: people counts, device split, returns, combined Discover catalogs, features and search",async()=>{
@@ -127,56 +96,4 @@ await test("admin analytics: people counts, device split, returns, combined Disc
  assert(!/Manifests today/.test(html),"click totals are gone");
 });
 
-await test("Popular this month is not shown in the app layout",async()=>{
- const html=await(await handler(new Request("https://test/setup/lists"))).text();
- const script=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join("\n");
- const {document,window}=parseHTML(html);let asked=false;
- new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
-  window,document,{getItem:()=>null,setItem(){},removeItem(){}},
-  {href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(s){this.state=s},replaceState(s){this.state=s},back(){}},async(u:string)=>{if(String(u).startsWith("/api/popular"))asked=true;return Response.json({})},()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}}
- );
- (document.querySelector('[data-tab="discover"]') as any).click();await new Promise(r=>setTimeout(r,30));
- assert((document.getElementById("popularCard") as any).hidden&&!asked,"the app layout hides the card and does not load rankings");
-});
-
-// The card's own behavior, checked in the older web layout (still used by the admin wallpaper preview).
-await test("Popular this month card sits under Your Selection on Discover and adds in one tap",async()=>{
- const html=await(await handler(new Request("https://test/setup/lists"))).text();
- const script=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join("\n");
- const saved=new Map<string,string>();const {document,window}=parseHTML(html);
- const popular={catalogs:[{category:"newest-shows",country:"3",label:"Newest Shows · South Korea",count:78},{category:"airing-shows",country:"3",label:"Airing Shows · South Korea",count:null},{category:"top-movies",country:"1",label:"Top Movies · Japan",count:null}],people:[{slug:"123-song-kang",mode:"actor",name:"Song Kang",photo:"https://i.mydramalist.com/s.jpg",count:12},{slug:"456-park-chan-wook",mode:"director",name:"Park Chan-wook",photo:null,count:null},{slug:"789-kim-go-eun",mode:"actor",name:"Kim Go-eun",photo:null,count:null}]};
- const fetcher=async(input:string)=>{const url=String(input);
-  if(url.startsWith("/api/popular"))return Response.json(popular);
-  if(url.startsWith("/api/mdl/filmography?mode=actor"))return Response.json({list:{kind:"filmography",url:"person:actor:123-song-kang",catalogId:"person:actor:123-song-kang",name:"Song Kang’s Filmography",personUrl:"https://mydramalist.com/people/123-song-kang",mode:"actor",personDisplayName:"Song Kang",profileAvatar:"https://i.mydramalist.com/s.jpg",posters:[]},items:[]});
-  return Response.json({});
- };
- new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(
-  window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},
-  {href:"https://test/setup/lists?wallpaper-preview=1",origin:"https://test",pathname:"/setup/lists",search:"?wallpaper-preview=1",hostname:"test"},{state:null,pushState(s){this.state=s},replaceState(s){this.state=s},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}}
- );
- const settle=()=>new Promise(r=>setTimeout(r,10));
- const waitFor=async(check:()=>unknown,message:string)=>{for(let i=0;i<200;i++){if(check())return;await settle()}throw Error(message)};
- const card=document.getElementById("popularCard") as any;
- assert(card.closest("aside.sidebar"),"the card lives in the right column under Your Selection");
- (document.querySelector('[data-tab="discover"]') as any).click();
- await waitFor(()=>!card.hidden&&card.querySelector(".popularRow"),"card appears on the Discover tab");
- assert(card.querySelector("h3").textContent==="Popular this month","title");
- const rows=()=>[...card.querySelectorAll(".popularRow")] as any[];
- assert(rows().length===3&&/Newest Shows · South Korea78 people/.test(rows()[0].textContent)&&!/adds/.test(rows()[1].textContent),"catalog rows with counts only when shown");
- assert(!/weekly|week’s picks/i.test(card.textContent),"this week's picks are not in the ranking");
- rows()[0].querySelector(".popularAdd").click();
- let selection=JSON.parse(saved.get("ydl-v3-selection")!);
- assert(selection.length===1&&selection[0].kind==="explore"&&selection[0].category==="newest-shows"&&selection[0].country==="3","catalog added: "+JSON.stringify(selection));
- assert(rows()[0].querySelector(".popularAdd").textContent==="✓ Added","row shows Added: "+rows()[0].querySelector(".popularAdd").textContent);
- const tab=[...card.querySelectorAll(".popularTab")].find((b:any)=>b.textContent==="Actors & directors") as any;
- assert(tab,"the people tab appears when both lists have entries");tab.click();
- assert(rows().map((r:any)=>r.querySelector(".popularName").firstChild.textContent).join("|")==="Song Kang|Park Chan-wook|Kim Go-eun","names only, no Actor or Director labels");
- assert(rows()[0].querySelector(".popularFace img")?.getAttribute("src")==="https://i.mydramalist.com/s.jpg"&&rows()[1].querySelector(".popularFace").textContent==="P","round photo, or the first initial");
- rows()[0].querySelector(".popularAdd").click();
- await waitFor(()=>JSON.parse(saved.get("ydl-v3-selection")!).length===2,"filmography is added in one tap");
- selection=JSON.parse(saved.get("ydl-v3-selection")!);
- assert(selection[1].kind==="filmography"&&selection[1].mode==="actor"&&selection[1].analyticsSource==="popular-this-month","filmography added from the card");
- (document.querySelector('[data-tab="profiles"]') as any).click();
- assert(card.hidden,"the card only shows on the Discover tab");
-});
 console.log(JSON.stringify({passed}));

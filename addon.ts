@@ -14,7 +14,7 @@ import {localizedCatalogName} from './catalogLabels.ts';
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
-import {popularity,personPicks,visitorAddress} from './popularity.ts';
+import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
 type Entry={id:string;name:string;type:'series'|'movie';filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
@@ -231,7 +231,7 @@ export async function handleAddon(req:Request){
    scopes.push('feature.selected:'+(prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl'));
    scopes.push('feature.selected:'+(config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb'));
    for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)scopes.push('feature.selected:'+category);}
-   await popularity.recordManifest(req,scopes,personPicks(config.entries,(body as any)?.catalogs));
+   await popularity.recordManifest(req,scopes);
    return Response.json({url:u.origin+'/addon/'+token+'/manifest.json'},{headers});
   }catch{return diagnose('configuration',400,'manifest-generation');}
  }
