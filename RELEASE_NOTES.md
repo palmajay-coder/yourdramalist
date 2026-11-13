@@ -1,4 +1,4 @@
-## YourDramaList 1.1.23 Beta
+## YourDramaList 1.1.24 Beta
 
 YourDramaList is a free, unofficial catalog add-on for Nuvio.
 
@@ -10,7 +10,7 @@ YourDramaList is a free, unofficial catalog add-on for Nuvio.
 
 ### Android
 
-Download **YourDramaList-1.1.23-beta-android.apk** under **Assets**, open it, and launch **YourDramaList Test**. The beta requires Android 8.0 or later and an internet connection. [Download the Android beta](https://github.com/palmajay-coder/yourdramalist/releases/tag/v1.1.23-beta)
+The existing Android beta opens the hosted app. Download **YourDramaList-1.1.23-beta-android.apk** under **Assets**, open it, and launch **YourDramaList Test**. The beta requires Android 8.0 or later and an internet connection. [Download the Android beta](https://github.com/palmajay-coder/yourdramalist/releases/tag/v1.1.23-beta)
 
 APK SHA-256
 

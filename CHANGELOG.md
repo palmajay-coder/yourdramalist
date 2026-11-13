@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.23 Beta
+## 1.1.24 Beta
 
 - Desktop and landscape browsers now use the available width for poster rows and catalog grids. Connect, Discover, and Community stay in the bottom navigation.
 - The selection icon in the top bar opens selected catalogs and **Build add-on**. Rotating a phone in the browser preserves the active tab, filters, and selections.
