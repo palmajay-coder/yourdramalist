@@ -22,7 +22,7 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 
 - Drama search, actor and director filmographies (from TMDB), watchlists by username, custom lists by pasted link, drama details, and reviews in Nuvio.
 - Discover catalogs by country, built from TMDB, with localized names.
-- The featured banner and This Week's Picks.
+- This Week's Picks.
 - A Sort by menu on the Discover country catalogs (Default order, Newest, Oldest, Highest rated, A to Z), also saved into the install link.
 - Preferences, including poster styles, provider keys, and TMDB language.
 - Admin pages, with an owner password login.
@@ -35,14 +35,16 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 - The Android test app loads the main site address. A new APK (fresh install, different signing key) replaced the old one on the GitHub release `v1.1.23-beta` on November 13. The old APK had 4 downloads (2 by the owner).
 - [x] Deleted the mobile test Worker (`yourdramalist-mobile-test`) on November 13. Its database and bucket (both `ydl-mobile-test`) and `wrangler.mobile-test.toml` were deleted the same day. APK users on the old app, and Nuvio add-ons made on that address, need the new APK and a new install link.
 - New install links get their own Nuvio add-on id per setup. Links made earlier keep working.
-- Offline tests rewritten November 13 for Kuryana, TMDB catalogs and the app layout: all 22 suites pass (`deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts`). The page tests drive the app layout; the Popular this month card is checked in the older web layout, since the app layout hides it.
+- Offline tests rewritten November 13 for Kuryana, TMDB catalogs and the app layout: all 20 suites pass (`deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts`).
+- Cleanup November 13: removed everything the app layout never showed (Popular this month, the featured banner, the landing page, the admin Wallpaper section and header picture, drama search, related lists, the desktop filmography shelf, and the desktop-only code and styles). The page structure the app reshapes at startup stays. The site opens on Connect; the admin page keeps Usage analytics, Weekly picks and Errors.
 
 ## Accepted limits
 
 These features are gone or different, and we agreed they are acceptable:
 
 - Viewer verdicts and profile pictures.
-- Discovering user lists from a drama name. The Dramas tab was removed.
+- Discovering user lists from a drama name, and drama search. The Dramas tab was removed.
+- Popular this month, the seasonal featured banner, the landing page, and the admin wallpaper and header picture settings (removed November 13, since the app layout never showed them).
 - Custom lists under a username. Visitors paste a list link instead.
 - Creator names for pasted lists.
 - Popular lists.
