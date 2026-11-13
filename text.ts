@@ -68,9 +68,6 @@ export const TEXT = {
   directorFilmographyDescription: "Explore films directed by {name}.",
   filmographyTitles: "{count} titles",
   filmographyBack: "Back",
-  siteName: "YourDramaList",
-  subtitle: "Bring your favorite lists from MyDramaList to Nuvio.",
-  getStarted: "Get Started",
   stepConnect: "CONNECT",
   stepLists: "SELECT LISTS",
   stepPreferences: "PREFERENCES",
@@ -235,7 +232,6 @@ export const TEXT = {
   emptySelection: "No lists added yet.",
   continue: "Continue",
   back: "Back",
-  mobileFooter: "A FREE unofficial add-on for Nuvio.",
   footer:
     "YourDramaList is a FREE unofficial add-on designed for Nuvio based on MyDramaList and is not affiliated with either party.",
   disclaimer: "",

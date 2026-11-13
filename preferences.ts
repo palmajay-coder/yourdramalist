@@ -128,5 +128,5 @@ export function pageForPath(path: string) {
   return path === "/setup/preferences" ? "preferences"
     : path === "/setup/confirm" ? "confirm"
     : path.startsWith("/setup/lists") ? "selection"
-    : path.startsWith("/setup") ? "connect" : "landing";
+    : "connect";
 }

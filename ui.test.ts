@@ -15,6 +15,6 @@ if(/brandVersion|landingBrandVersion/.test(html.replace(/<style>[\s\S]*?<\/style
 if(!html.includes("Catalogs by Country")||!html.includes("catalogShelves.css"))throw Error("Catalog shelf integration missing");
 // One design for every device: the app layout is on for all visitors, mouse users get row buttons,
 // and wide screens show a centered column. The old hostname gate must not come back.
-if(!html.includes("const mobileWeb=!isWallpaperPreview&&!androidApp;")||/mobileBetaHost|mobile-test\.palmajay/.test(html))throw Error("App layout is not on for every visitor");
+if(!html.includes("const compactAndroid=true;")||/mobileBetaHost|mobile-test\.palmajay/.test(html))throw Error("App layout is not on for every visitor");
 if(!html.includes("rowScrollButtons")||!html.includes("@media(min-width:560px){body.androidSetup>header"))throw Error("Desktop support for the app layout missing");
 console.log("PASS catalog integration and no visible version badge");

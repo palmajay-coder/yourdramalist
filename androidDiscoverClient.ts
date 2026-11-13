@@ -144,7 +144,7 @@ export function installAndroidDiscover() {
   if (mobileWeb && location.pathname !== "/") startPage = pageForPath(location.pathname);
   if (startPage === "confirm" && !state.selection.length) startPage = "selection";
   const path = {connect:"/setup", selection:"/setup/lists", preferences:"/setup/preferences", confirm:"/setup/confirm"}[startPage];
-  history.replaceState({ ydlPage: startPage, ydlFlowStep: 0 }, "", path + (androidPreview ? location.search : ""));
+  history.replaceState({ ydlPage: startPage, ydlFlowStep: 0 }, "", path);
   navigate(startPage, false);
   exploreUI.render();
   syncNav(startPage);
