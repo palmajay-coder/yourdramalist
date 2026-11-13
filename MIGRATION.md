@@ -28,6 +28,14 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 - Admin pages, with an owner password login.
 - Add-on manifest with CORS headers, so Nuvio can read it from a browser.
 
+## One design for every device (November 13)
+
+- The mobile version (1.1.23, built on branch `mobile/one-handed-setup`) is now the only design. The Android app, phone browsers in portrait and landscape, iPhones and computers all get the same screens. Wide screens show it in a centered phone-width column.
+- Mouse users get ‹ › buttons on sideways rows, since they cannot swipe.
+- The Android test app loads the main site address. The separate mobile test Worker (`wrangler.mobile-test.toml`) can be deleted once the main site is confirmed.
+- New install links get their own Nuvio add-on id per setup. Links made earlier keep working.
+- The older offline page tests (`ui`, `selection`, `shelves`, `dramaSearch`, `popularity`, `filmography`, `explore`, `addon`) already failed on 1.1.23 before this change, because they expect the old desktop page. They need rewriting for the app layout.
+
 ## Accepted limits
 
 These features are gone or different, and we agreed they are acceptable:

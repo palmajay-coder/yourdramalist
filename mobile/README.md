@@ -1,6 +1,6 @@
 # YourDramaList mobile test builds
 
-The Android and iOS apps load the shared mobile setup from the YourDramaList Cloudflare test Worker. The test app has its own application ID, com.palmajay.yourdramalist.mobiletest.
+The Android and iOS apps load the main YourDramaList site (`yourdramalist.palmajay.workers.dev`), which shows the same app layout to every visitor. Change the address in `capacitor.config.json`, `android-test/MainActivity.java` and `www/index.html` when the final domain is chosen. The test app has its own application ID, com.palmajay.yourdramalist.mobiletest.
 
 From this directory, run `npm ci`. Create a native project with `npx cap add android` or `npx cap add ios`. Run `python3 brand-icons.py` with Pillow installed to apply the YourDramaList icon. Run `npm run sync` after updating the Capacitor configuration.
 

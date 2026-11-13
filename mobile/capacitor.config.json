@@ -3,6 +3,6 @@
   "appName": "YourDramaList Test",
   "webDir": "www",
   "server": {
-    "url": "https://yourdramalist-mobile-test.palmajay.workers.dev"
+    "url": "https://yourdramalist.palmajay.workers.dev"
   }
 }
