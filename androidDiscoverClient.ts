@@ -12,7 +12,7 @@ export function installAndroidDiscover() {
   const form = $("profileForm");
   form.querySelector("label").classList.add("androidScreenReader");
   const input = $("profileInput");
-  input.placeholder = "MyDramaList username or list link";
+  input.placeholder = "Example: Jaesan or https://mydramalist.com/list/Lp6xJJr4";
   input.setAttribute("enterkeyhint", "search");
   input.required = false;
   $("communityViews").querySelector("[data-community-view]").remove();
@@ -36,7 +36,7 @@ export function installAndroidDiscover() {
   selectionButton.onclick = () => $("reviewSelection").click();
   actions.append(selectionButton);
   document.querySelector("header").append(actions);
-  input.setAttribute("aria-label", input.placeholder);
+  input.setAttribute("aria-label", "MyDramaList username or list URL");
   home.insertBefore(toolbar, workspace);
 
   const discoverForm = $("discoverForm");
@@ -98,7 +98,7 @@ export function installAndroidDiscover() {
           loadProfile(connectedUser);
         } else {
           input.value = "";
-          $("results").textContent = "Search a MyDramaList username or paste a list link to explore community lists.";
+          $("results").textContent = "";
         }
       }
       syncNav(currentPage, key);
@@ -111,7 +111,7 @@ export function installAndroidDiscover() {
   function syncNav(page, explicit) {
     const selected = explicit || (page === "connect" ? "connect" : state.tab === "profiles" ? "community" : "discover");
     const inDiscover = state.tab === "discover";
-    heading.textContent = inDiscover ? "Discover" : "Community";
+    heading.textContent = inDiscover ? "Discover" : "Search by Username or paste a list URL from MyDramaList";
     catalogs.hidden = !inDiscover;
     actions.classList.toggle("hidden", page !== "selection");
     actions.dataset.section = inDiscover ? "discover" : "community";
