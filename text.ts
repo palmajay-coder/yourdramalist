@@ -248,7 +248,6 @@ export const TEXT = {
   emptyWatchlist: "User has not added any titles yet",
   watchlistArtworkUnavailable: "Poster preview unavailable",
   dramaPoster: "Drama poster",
-  searchDramas: "Try searching 'Our Sticky Love', 'Marry my Husband' etc..",
   searchActors: "Try searching 'Son Ye Jin', 'Takuya Kimura' etc..",
   searchDirectors: "Try searching 'Park Chan Wook', 'Kiyoshi Kurosawa'...",
 } as const;

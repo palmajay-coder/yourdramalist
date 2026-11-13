@@ -27,9 +27,7 @@ import { synopsisPreview } from './dramaDetails.ts';
 import { APP_VERSION, TEXT } from './text.ts';
 import { recordCatalogAddition as recordCatalogAdditionRequest } from './analyticsApi.ts';
 import { popularity } from './popularity.ts';
-import { handlePopularLists } from './popularListsApi.ts';
 import { handleDramaDetails } from './dramaDetailsApi.ts';
-import { handleDramaSearch } from './dramaSearchApi.ts';
 import { privacyPage } from './privacyPage.ts';
 const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>YourDramaList</title><link rel="manifest" href="/site.webmanifest"><link rel="apple-touch-icon" href="/assets/ydl-classic-blue-v1.png"><meta name="theme-color" content="#181818">
@@ -353,7 +351,7 @@ $('continue').disabled=!state.selection.length;if(compactAndroid)$('mobileContin
   }
 };row.append(title,remove);root.append(row)}}}
 $('clearSelection').onclick=()=>{state.selection=[];renderSelection();document.querySelectorAll('#listItems input[type=checkbox]').forEach(c=>{c.checked=false});exploreUI.sync();peopleUI.sync();communityUI.sync()};
-function catalogAddSource(list){if(["discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","weekly-picks"].includes(list.analyticsSource))return list.analyticsSource;if(list.kind==='weekly')return'weekly-picks';if(list.kind==='explore')return'discover-catalog';if(list.kind==='filmography')return list.mode==='director'?'discover-director-filmography':'discover-actor-filmography';if(list.kind==='watchlist')return'community-watchlist';return'community-public-list'}
+function catalogAddSource(list){if(["discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","weekly-picks"].includes(list.analyticsSource))return list.analyticsSource;if(list.kind==='weekly')return'weekly-picks';if(list.kind==='explore')return'discover-catalog';if(list.kind==='filmography')return list.mode==='director'?'discover-director-filmography':'discover-actor-filmography';if(list.kind==='watchlist')return'community-watchlist';return'community-public-list'}
 function recordCatalogAddition(list){fetch('/api/analytics/catalog-add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source:catalogAddSource(list)}),keepalive:true}).catch(()=>{})}
 function toggleList(l){const exists=state.selection.some(x=>x.url===l.url);if(!exists&&state.selection.length>=MAX_CATALOGS){notices.show(copy.catalogLimitReached.replace('{max}',MAX_CATALOGS),copy.catalogLimitTitle);document.querySelectorAll('#listItems input[type=checkbox]').forEach(c=>{c.checked=state.selection.some(x=>x.url===c.dataset.url)});exploreUI.sync();peopleUI.sync();communityUI.sync();return}state.selection=exists?state.selection.filter(x=>x.url!==l.url):[...state.selection,l];if(!exists)recordCatalogAddition(l);localStorage.setItem(selectionKey,JSON.stringify(state.selection));renderSelection();document.querySelectorAll('#listItems input[type=checkbox]').forEach(c=>{c.checked=state.selection.some(x=>x.url===c.dataset.url)});exploreUI.sync();peopleUI.sync();communityUI.sync()}
 function addWatchlistPlaceholder(posters,empty){const placeholder=document.createElement('span');placeholder.className='watchlistPosterPlaceholder';placeholder.textContent=empty?copy.emptyWatchlist:copy.watchlistArtworkUnavailable;posters.append(placeholder)}
@@ -422,22 +420,12 @@ async function loadProfile(username){
 
 renderSelection();
 function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();requestAnimationFrame(alignSelection);listRequest++;if(compactAndroid)communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';if(!compactAndroid&&tab==='discover'&&state.filter==='catalogs')exploreUI.render();window.syncAndroidNav?.(currentPage)}
-function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs){exploreUI.render();requestAnimationFrame(alignSelection);return}$('discoverInput').placeholder=f==='drama'?copy.searchDramas:f==='actor'?copy.searchActors:copy.searchDirectors;$('discoverInput').setAttribute('aria-label',f==='drama'?'Drama name or MyDramaList URL':'Person name or MyDramaList URL');$('discoverLabel').textContent=copy.discoverSearchLabel;requestAnimationFrame(alignSelection)}
+function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs){exploreUI.render();requestAnimationFrame(alignSelection);return}$('discoverInput').placeholder=f==='actor'?copy.searchActors:copy.searchDirectors;$('discoverInput').setAttribute('aria-label','Person name or MyDramaList URL');$('discoverLabel').textContent=copy.discoverSearchLabel;requestAnimationFrame(alignSelection)}
 function openSelection(tab){navigate('selection');switchTab(tab)}
 ;
 $('skip').onclick=()=>{setConnectedUser('');openSelection('discover')};
 $('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;setConnectedUser(p.value);$('profileInput').value=$('source').value.trim();openSelection('profiles');if(compactAndroid)document.querySelector('.androidDiscoverToolbar h1').textContent='Community';loadProfile(p.value)};
 $('profileForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('profileInput').value);if(!p){$('results').textContent=copy.invalidProfile;return}state.source=p;if(p.type==='profile')loadProfile(p.value);else loadDirectList(p.value)};
-let lastDramaSearch=null;
-function searchBackButton(){if(!lastDramaSearch)return;const back=document.createElement('button');back.type='button';back.className='secondary';back.textContent='Back';back.onclick=()=>{listRequest++;renderDramaMatches(lastDramaSearch)};$('results').append(document.createTextNode(' '),back)}
-async function loadDramaLists(dramaUrl,name){
-const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent='';
-try{const response=await fetch('/api/mdl/popular-lists?url='+encodeURIComponent(dramaUrl));const data=await response.json();if(requestId!==listRequest)return;if(!response.ok)throw Error(data.error||'Popular Lists lookup failed');
-const lists=(data.lists||[]).map(l=>({...l,count:l.titleCount,posters:l.posterUrls,analyticsSource:'discover-drama-related'}));
-renderLists(lists);$('results').textContent=lists.length?(data.warnings&&data.warnings.length?'Some details are unavailable.':''):'No related user lists were shown on this drama page.';
-}catch(e){if(requestId!==listRequest)return;$('results').textContent=copy.loadFailed+e.message}
-searchBackButton();
-}
 const synopsisPreview = ${synopsisPreview.toString()};
 function renderScore(root,score){
 root.replaceChildren();if(typeof score!=='number'||!Number.isFinite(score)||score<=0||score>10)return;
@@ -450,40 +438,6 @@ star.append(icon());const fraction=Math.max(0,Math.min(1,score-i));if(fraction>0
 const label=document.createElement('span');label.className='ratingValue';label.textContent=score.toFixed(1);const max=document.createElement('span');max.className='ratingMax';max.textContent=' / 10';label.append(max);root.append(stars,label);
 }
 function renderSynopsis(root,text){root.replaceChildren();if(!text)return;const content=document.createElement('span');content.textContent=synopsisPreview(text);root.append(content)}
-async function enrichDramaCards(jobs,requestId){
-let cursor=0;async function worker(){while(cursor<jobs.length){if(requestId!==listRequest)return;const job=jobs[cursor++];try{const response=await fetch('/api/mdl/drama-details?url='+encodeURIComponent(job.drama.url));const data=await response.json();if(requestId!==listRequest)return;if(!response.ok)throw Error(data.error||'Details unavailable');job.drama.enrichment=data;job.apply(data)}catch{if(requestId===listRequest)job.status.textContent='Drama details are temporarily unavailable.'}}}
-await Promise.all([worker(),worker(),worker()]);
-}
-function renderDramaMatches(data,options={}){
-const requestId=listRequest;const jobs=[];
-if(!options.append){$('listItems').replaceChildren();$('results').textContent=data.dramas.length?'':'No matching titles found. Try another name.';}
-for(const drama of data.dramas){
-const card=document.createElement('article');card.className='dramaMatch';
-if(drama.poster){const img=document.createElement('img');img.src=drama.poster;img.alt=drama.name+' poster';img.loading='lazy';img.referrerPolicy='no-referrer';card.append(img)}
-const info=document.createElement('div');info.className='dramaMatchInfo';
-const title=document.createElement('h3');title.textContent=drama.name;
-const details=document.createElement('p');details.textContent=drama.details;
-const choose=document.createElement('button');choose.type='button';choose.className='secondary';choose.textContent='View related lists from users';choose.setAttribute('aria-label','View related lists from users for '+drama.name);choose.onclick=()=>loadDramaLists(drama.url,drama.name);
-const synopsis=document.createElement('p');synopsis.className='dramaSynopsis';
-const stats=document.createElement('div');stats.className='dramaStats';if(drama.score)renderScore(stats,Number(drama.score));
-const popularity=document.createElement('span');popularity.className='dramaPopularity';popularity.hidden=true;
-const heading=document.createElement('div');heading.className='dramaHeading';heading.append(title,popularity);
-const status=document.createElement('p');status.className='detailsStatus';status.textContent='';
-const apply=data=>{renderSynopsis(synopsis,data.synopsis);const score=data.score??(drama.score&&Number(drama.score)>0&&Number(drama.score)<=10?Number(drama.score):null);renderScore(stats,score);popularity.hidden=!(typeof data.popularity==='number'&&data.popularity>0);popularity.textContent=popularity.hidden?'':'Popularity #'+data.popularity.toLocaleString();status.textContent=data.status==='unavailable'?(data.warning||'Drama details are temporarily unavailable.'):data.status==='stale'?'Showing saved MyDramaList details. Live refresh is temporarily unavailable.':!data.synopsis?'No synopsis was provided on this drama page.':'';};
-if(drama.enrichment)apply(drama.enrichment);else jobs.push({drama,apply,status});
-if(options.relatedLists===false)info.append(heading,details,stats,synopsis,status);else info.append(heading,details,stats,synopsis,status,choose);card.append(info);$('listItems').append(card);
-}
-enrichDramaCards(jobs,requestId);
-if(data.page>1||data.hasNextPage){const nav=document.createElement('nav');nav.className='searchPages';nav.setAttribute('aria-label','Search result pages');
-if(data.page>1){const prev=document.createElement('button');prev.type='button';prev.className='secondary';prev.textContent='Previous matches';prev.onclick=()=>searchDramas(data.query,data.page-1);nav.append(prev)}
-if(data.hasNextPage){const next=document.createElement('button');next.type='button';next.className='secondary';next.textContent='More matches';next.onclick=()=>searchDramas(data.query,data.page+1);nav.append(next)}
-$('listItems').append(nav)}
-}
-async function searchDramas(query,page=1){
-const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent='';
-try{const response=await fetch('/api/mdl/drama-search?q='+encodeURIComponent(query)+'&page='+page);if(requestId!==listRequest){await response.body?.cancel();return}if(response.status===429){await response.body?.cancel();notices.show(copy.searchRetry);return}const data=await response.json();if(requestId!==listRequest)return;if(!response.ok)throw Error(data.error||'Search failed');notices.hide();lastDramaSearch=data;renderDramaMatches(data)}
-catch(e){if(requestId===listRequest)$('results').textContent='Unable to search: '+e.message}
-}
 const CATEGORIES=${JSON.stringify(CATEGORIES)},COUNTRIES=${JSON.stringify(COUNTRIES)};const exploreCategories=CATEGORIES,exploreCountries=COUNTRIES;
 const exploreCatalog=${exploreCatalog.toString()};
 
@@ -494,13 +448,9 @@ const FILTER_COUNTRIES=${JSON.stringify(FILTER_COUNTRIES)},FILTER_GENRES=${JSON.
 const shelfCountry=${shelfCountry.toString()},normalizeShelfFilter=${normalizeShelfFilter.toString()},applyShelfFilter=${applyShelfFilter.toString()},shelfFilterLabel=${shelfFilterLabel.toString()},shelfFilterKey=${shelfFilterKey.toString()},shelfNeedsFacts=${shelfNeedsFacts.toString()};
 const communityUI=(${installCommunityShelves.toString()})();
 $('discoverForm').onsubmit=e=>{
-e.preventDefault();listRequest++;lastDramaSearch=null;$('listItems').replaceChildren();
+e.preventDefault();listRequest++;$('listItems').replaceChildren();
 const input=$('discoverInput').value.trim();
-if(state.filter!=='drama'){if(/^https?:/i.test(input))peopleUI.fromUrl(input);else if(input.length>=2&&input.length<=100)peopleUI.search(input);else $('results').textContent='Enter a person name between 2 and 100 characters, or a MyDramaList person URL.';return}
-if(!/^https?:/i.test(input)){if(input.length<2||input.length>100){$('results').textContent='Enter a drama name between 2 and 100 characters.';return}searchDramas(input);return}
-let dramaUrl;try{dramaUrl=new URL(input)}catch{$('results').textContent='Enter a valid MyDramaList drama URL.';return}
-if(dramaUrl.protocol!=='https:'||!['mydramalist.com','www.mydramalist.com'].includes(dramaUrl.hostname)||dramaUrl.username||dramaUrl.password||dramaUrl.port||!/^\\/[1-9]\\d*-[A-Za-z0-9-]+\\/?$/.test(dramaUrl.pathname)){$('results').textContent='Enter a valid HTTPS MyDramaList drama URL.';return}
-loadDramaLists(dramaUrl.href,'');
+if(/^https?:/i.test(input))peopleUI.fromUrl(input);else if(input.length>=2&&input.length<=100)peopleUI.search(input);else $('results').textContent='Enter a person name between 2 and 100 characters, or a MyDramaList person URL.';
 };
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
@@ -564,5 +514,5 @@ async function handleProfile(url: URL): Promise<Response> {
 async function handler(req: Request): Promise<Response> {
 const url=new URL(req.url);
 if(url.pathname==='/site.webmanifest')return Response.json(webAppManifest,{headers:{'content-type':'application/manifest+json'}});
-if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://www.val.town/x/Niwa710/YourDramaList'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography','/api/mdl/filmography-artwork'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/drama-search')return handleDramaSearch(req);if(url.pathname==='/api/mdl/popular-lists')return handlePopularLists(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
+if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://www.val.town/x/Niwa710/YourDramaList'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography','/api/mdl/filmography-artwork'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
 export default oauthMiddleware(handler);
