@@ -1,4 +1,4 @@
-import {normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter,listStatus} from './addon.ts';
+import {mdlTitleMeta,normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter,listStatus} from './addon.ts';
 import {parseModernWatchlist,profileWatchlistCards,extractMDLTitlePoster} from './addonScrape.ts';
 import {Ge,Sz,Go,Xe} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
@@ -31,6 +31,39 @@ await test('filmography configuration preserves exact person identity and role',
 await test('unused keys are removed from configuration',()=>{const c=normalizeAddon({...body,keys:{tmdb:'private-key',mdblist:'another-key'}});assert(!JSON.stringify(c).includes('private-key'),'unused keys retained')});
 await test('encrypted configuration round trips without revealing API keys',async()=>{const keys={tmdb:'a'.repeat(32),mdblist:'fake-key-for-unit-test'};const c=normalizeAddon({...body,preferences:{posters:true},keys});const codec=createTokenCodec('b'.repeat(64)),token=await codec.seal(c);assert(!token.includes(keys.tmdb)&&!token.includes(keys.mdblist),'plaintext key exposed');assert((await codec.open(token)).keys.tmdb===keys.tmdb,'roundtrip failed');let rejected=false;try{await codec.open(token.slice(0,-8)+'AAAAAAAA')}catch{rejected=true}assert(rejected,'tampered token accepted')});
 await test('mixed catalogs preserve source order and filter future/hidden titles',async()=>{const c=normalizeAddon({...body,preferences:{hideUnreleased:true,hideCompleted:true}});const items=[{slug:'1-first',title:'first',type:'Movie',year:2020},{slug:'2-hidden',title:'hidden',type:'Drama',year:2020},{slug:'3-future',title:'future',type:'Drama',year:2999},{slug:'4-last',title:'last',type:'Drama',year:2021}];const result=await loadCatalog(c,0,0,'https://test/addon/token',{source:async()=>({items}),hidden:async()=>new Set(['2-hidden']),people:()=>{throw Error('unexpected')},map:async(items:any[],type:string)=>items.map(x=>({id:'tt'+x.slug.split('-')[0],name:x.title,type,poster:'https://image.test/poster.jpg'}))} as any);assert(result.metas.map(x=>x.name).join(',')==='first,last','order/filter mismatch')});
+await test('a title with no IMDb id stays in the catalog under a MyDramaList id when a poster is found',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Watchlist',url:'https://mydramalist.com/dramalist/Example/plan_to_watch'}]});
+ const items=[{slug:'1-known-show',title:'Known Show',link:'https://mydramalist.com/1-known-show',type:'Drama',year:2026,image:''},{slug:'2-upcoming-show',title:'Upcoming Show',link:'https://mydramalist.com/2-upcoming-show',type:'Drama',year:2027,image:''},{slug:'3-no-artwork',title:'No Artwork',link:'https://mydramalist.com/3-no-artwork',type:'Drama',year:2027,image:''}];
+ const deps:any={hidden:async()=>new Set(),watchlistCategory:async()=>items,
+  map:async(list:any[],type:string)=>list.map(x=>x.slug==='1-known-show'?{id:'tt7000001',name:x.title,type,releaseInfo:'2026',poster:'https://image.tmdb.org/t/p/w780/known.jpg'}:{id:'mdl:'+x.slug,name:x.title,type,releaseInfo:String(x.year)}),
+  standardArtwork:async(m:any[])=>m,titleArtwork:async(item:any)=>item.name==='Upcoming Show'?{...item,poster:'https://image.tmdb.org/t/p/w780/upcoming.jpg'}:item};
+ const result=await loadCatalog(c,0,0,'https://test/addon/token',deps);
+ const ids=result.metas.map((m:any)=>m.id);
+ assert(ids.join()==='tt7000001,mdl:2-upcoming-show','an IMDb title and an unreleased title with a poster should both appear, and a title with no poster should not: '+ids.join());
+});
+await test('the manifest offers details for MyDramaList ids, and the meta route answers for them',async()=>{
+ const c=normalizeAddon(body);
+ assert(makeManifest(c).resources.some((r:any)=>r?.name==='meta'&&r.idPrefixes?.includes('mdl:')),'meta resource missing from the manifest');
+ const meta=await mdlTitleMeta('series','2-upcoming-show',{kuryana:(async()=>({title:'Upcoming Show',year:2027,poster:'https://i.mydramalist.com/up.jpg',synopsis:'A new drama.'})) as any,artwork:async(item:any)=>({...item,poster:'https://image.tmdb.org/t/p/w780/upcoming.jpg'})});
+ assert(meta?.id==='mdl:2-upcoming-show'&&meta.name==='Upcoming Show'&&meta.releaseInfo==='2027'&&meta.poster==='https://image.tmdb.org/t/p/w780/upcoming.jpg'&&meta.description==='A new drama.'&&meta.website==='https://mydramalist.com/2-upcoming-show','meta details: '+JSON.stringify(meta));
+ assert(await mdlTitleMeta('series','../evil')===null&&await mdlTitleMeta('tv','2-upcoming-show')===null,'bad ids and types are refused');
+ const noData=await mdlTitleMeta('series','9-gone',{kuryana:(async()=>{throw Error('down')}) as any});
+ assert(noData===null,'a missing title gives no meta');
+});
+await test('the meta route answers for a MyDramaList id through a real install link',async()=>{
+ Deno.env.set('YDL_MANIFEST_SECRET','c'.repeat(64));
+ const realFetch=globalThis.fetch;
+ globalThis.fetch=(async(input:any)=>{const u=String(input);return u.includes('/v2/dramas/2-upcoming-show')?Response.json({success:true,data:{title:'Upcoming Show',year:2027,poster:'https://i.mydramalist.com/up.jpg',synopsis:'A new drama.'}}):new Response('no',{status:404})}) as any;
+ try{
+  const made=await handleAddon(new Request('https://test/api/addon/configure',{method:'POST',headers:{origin:'https://test','content-type':'application/json'},body:JSON.stringify(body)}));
+  const link=new URL((await made.json()).url);
+  const reply=await handleAddon(new Request('https://test'+link.pathname.replace('manifest.json','')+'meta/series/'+encodeURIComponent('mdl:2-upcoming-show')+'.json'));
+  const meta=(await reply.json()).meta;
+  assert(reply.status===200&&meta?.id==='mdl:2-upcoming-show'&&meta.name==='Upcoming Show'&&meta.poster==='https://i.mydramalist.com/up.jpg','route reply: '+JSON.stringify(meta));
+  const other=await handleAddon(new Request('https://test'+link.pathname.replace('manifest.json','')+'meta/series/tt1234567.json'));
+  assert((await other.json()).meta===null,'IMDb ids are not answered by this add-on');
+ }finally{globalThis.fetch=realFetch}
+});
 await test('catalog uses an MDL poster when TMDB artwork is unavailable',async()=>{const c=normalizeAddon({...body,catalogs:[{name:'Watchlist',url:'https://mydramalist.com/dramalist/Example/on_hold'}]});const item={slug:'123-pulse',title:'Pulse',link:'https://mydramalist.com/123-pulse',type:'Movie',year:2001,image:''};const result=await loadCatalog(c,0,0,'https://test/addon/token',{hidden:async()=>new Set(),watchlistCategory:async()=>[item],map:async(items,type)=>items.map(()=>({id:'tt1234567',name:'Pulse',type,releaseInfo:'2001'})),standardArtwork:async(items)=>items,mdlPoster:async()=> 'https://i.mydramalist.com/pulse.jpg'} as any);assert(result.metas.length===1&&result.metas[0].poster==='https://i.mydramalist.com/pulse.jpg','MDL poster fallback missing')});
 await test('a title whose only poster is a dead Cinemeta link gets a TMDB poster found by name and year',async()=>{
  const c=normalizeAddon({...body,catalogs:[{name:'Watchlist',url:'https://mydramalist.com/dramalist/Example/plan_to_watch'}]});

@@ -7,6 +7,7 @@ import {tmdbExploreItems,sortExploreItems} from './tmdbExplore.ts';
 import {tmdbPersonLocalizedName} from './tmdbPeople.ts';
 import {handlePeople} from './peopleApi.ts';
 import {loadWatchlist,loadWatchlistCategory,loadMDLTitlePoster,WATCHLIST_CARDS} from './addonScrape.ts';
+import {kuryana,mdlImage,mdlLink} from './kuryana.ts';
 import {Ee,X,G,K,Je,Te} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
@@ -97,7 +98,7 @@ async function personNamesFor(config:AddonConfig):Promise<Record<string,string>>
  }));
  return names;
 }
-export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language,personNames)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language,personNames)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
@@ -160,7 +161,9 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  pool=pool.filter(x=>!hidden.has(x.slug)&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
  const selected=pool.slice(skip,skip+NUVIO_PAGE),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
- const matched=metas.filter((x,i,a)=>x&&/^tt\d+$/.test(x.id)&&a.findIndex(y=>y?.id===x.id)===i);
+ // Titles with no IMDb id (mostly announced, unreleased dramas) keep a MyDramaList based id. Nuvio asks this
+ // add-on for their details through the meta resource. They only appear when a poster can be found.
+ const matched=metas.filter((x,i,a)=>x&&(/^tt\d+$/.test(x.id)||/^mdl:\d+-[a-z0-9-]+$/i.test(x.id))&&a.findIndex(y=>y?.id===x.id)===i);
  const standardPoster=!pattern&&!plusPattern&&!rpdbKey&&!runtime.erdb;
  const artwork=deps.standardArtwork&&(standardPoster||tmdbMetadata)?await deps.standardArtwork(matched,{...artworkMetadata,metadata:tmdbMetadata,poster:standardPoster}):matched;
  const itemById=new Map(metas.map((meta,i)=>[meta?.id,selected[i]]));
@@ -197,6 +200,19 @@ export function createRequestLimiter(max=4,maxWaiting=40,waitMs=15000){
 }
 const catalogLimiter=createRequestLimiter();
 async function readLimited(body:ReadableStream<Uint8Array>|null,limit:number){if(!body)throw Error('body');const reader=body.getReader(),parts:Uint8Array[]=[];let size=0;try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>limit)throw RangeError('size');parts.push(r.value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}
+
+/** Details for a title that has no IMDb id, built from MyDramaList's data service and TMDB. */
+export async function mdlTitleMeta(type:string,slug:string,deps:{kuryana?:typeof kuryana;artwork?:(item:any)=>Promise<any>}={}){
+ if(!['series','movie'].includes(type)||!/^\d+-[a-z0-9-]+$/i.test(slug))return null;
+ const data=await (deps.kuryana??kuryana)('/v2/dramas/'+encodeURIComponent(slug),{timeoutMs:8000}).catch(()=>null);
+ const name=String(data?.title||'').replace(/\s+/g,' ').trim();
+ if(!name)return null;
+ const year=Number(data?.year)||undefined,link=mdlLink('https://mydramalist.com/'+slug)||undefined;
+ const found=await (deps.artwork??((item:any)=>collections.artwork(item)))({name,details:(type==='movie'?'Movie':'Drama')+' - '+(year||''),url:link}).catch(()=>null);
+ const poster=found?.poster||mdlImage(data?.poster)||undefined;
+ const synopsis=String(data?.synopsis||'').replace(/\r\n/g,'\n').trim();
+ return{id:'mdl:'+slug,type,name,poster,background:poster,posterShape:'poster',releaseInfo:year?String(year):undefined,description:synopsis||undefined,links:link?[{name:'Open on MyDramaList',category:'MyDramaList',url:link}]:undefined,website:link};
+}
 export async function handleAddon(req:Request){
  const u=new URL(req.url),headers={'cache-control':'no-store','referrer-policy':'no-referrer'},fail=(error:string,status=400)=>Response.json({error},{status,headers});
  if(u.pathname==='/api/addon/configure'){
@@ -251,6 +267,7 @@ export async function handleAddon(req:Request){
  if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config,await personNamesFor(config)),{headers});
  if(!await catalogLimiter.acquire())return fail('busy',429);
  try{
+  if(parts[2]==='meta'&&parts.length===5){const id=decodeURIComponent(parts[4].replace(/\.json$/,''));if(!id.startsWith('mdl:'))return Response.json({meta:null},{headers});const meta=await mdlTitleMeta(parts[3],id.slice(4));return Response.json({meta},{headers});}
   if(parts[2]==='catalog'&&parts.length>=5){const id=parts[4].replace(/\.json$/,''),match=id.match(/^ydl_(\d+)$/);if(!match)return fail('catalog',404);const i=Number(match[1]);if(config.entries[i]?.type!==parts[3])return fail('catalog',404);const extra=new URLSearchParams(decodeURIComponent((parts[5]||'').replace(/\.json$/,'')));const raw=extra.get('skip')||u.searchParams.get('skip')||'0';if(!/^\d{1,5}$/.test(raw))return fail('skip');return Response.json(await loadCatalog(config,i,Number(raw),u.origin+'/addon/'+parts[1]),{headers});}
   if(parts[2]==='stream'&&parts.length===5&&config.preferences.reviews&&['series','movie'].includes(parts[3])){const title=parts[4].replace(/\.json$/,'');if(!await firstReviewAsk(visitorAddress(req),title,parts[1]))return Response.json({streams:[]},{headers});return Response.json(await Je(parts[3],parts[4].replace(/\.json$/,''),config.user?listStatus(config.user):undefined),{headers});}
 if(parts[2]==='poster'&&parts.length===4&&u.searchParams.get('style')==='better'&&config.betterPosters&&/^tt\d+\.jpg$/.test(parts[3])){const fallback=async()=>{const slug=u.searchParams.get('mdl')||'';if(!/^\d+-[a-z0-9-]+$/i.test(slug))return null;const poster=await loadMDLTitlePoster({slug});if(!poster)return null;const response=await fetch(poster,{signal:AbortSignal.timeout(10000),redirect:'follow'});if(!response.ok||!/^image\/(jpeg|png|webp)/.test(response.headers.get('content-type')||'')){await response.body?.cancel();return null;}return new Response(await readLimited(response.body,3000000),{headers:{...headers,'content-type':response.headers.get('content-type')!,'x-content-type-options':'nosniff'}});};try{const source=config.betterPosters.replace('{imdb_id}',parts[3].replace(/\.jpg$/,''));const image=await fetch(source,{signal:AbortSignal.timeout(12000),redirect:'follow'});if(!image.ok||!/^image\/(jpeg|png|webp)/.test(image.headers.get('content-type')||'')){await image.body?.cancel();throw Error('upstream');}return new Response(await readLimited(image.body,3000000),{headers:{...headers,'content-type':image.headers.get('content-type')!,'x-content-type-options':'nosniff'}});}catch{const image=await fallback();if(image)return image;throw Error('upstream');}}

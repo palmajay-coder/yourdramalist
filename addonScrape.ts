@@ -1,7 +1,7 @@
 // YourDramaList v3 data layer: MyDramaList + Kuryana scraping, parsing, and caching.
 // Imported by main.ts. You should not need to edit this file directly.
 
-import { kuryana, KuryanaError, mdlLink } from "./kuryana.ts";
+import { kuryana, KuryanaError, mdlLink, mdlImage } from "./kuryana.ts";
 import { blob } from "https://esm.town/v/std/blob/main.ts";
 
 export let MDL_TEXT, $e;
@@ -881,8 +881,12 @@ export function extractMDLTitlePoster(html) {
 
 export async function loadMDLTitlePoster(item) {
   const slug = String(item?.slug || V(item?.link || ""));
-  if (!/^\\d+-[a-z0-9-]+$/i.test(slug)) return null;
-  return D(`mdl-title-poster:${slug}`, 7 * 86400000, async () => extractMDLTitlePoster(await _(slug))).catch(() => null);
+  if (!/^\d+-[a-z0-9-]+$/i.test(slug)) return null;
+  // MyDramaList refuses requests from this host's addresses, so the poster comes from Kuryana's drama details.
+  return D(`mdl-title-poster:${slug}`, 7 * 86400000, async () => {
+    const data = await kuryana("/v2/dramas/" + encodeURIComponent(slug), { timeoutMs: 6000 });
+    return mdlImage(data?.poster);
+  }).catch(() => null);
 }
 
 export const WATCHLIST_CARDS = [
