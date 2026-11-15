@@ -7,6 +7,10 @@
 - The selection icon in the top bar opens selected catalogs and **Build add-on**. Rotating a phone in the browser preserves the active tab, filters, and selections.
 - The [website](https://yourdramalist.net/) replaces the retired mobile test site. See the [release notes](RELEASE_NOTES.md) for Android installation and Nuvio setup.
 
+### Known bugs
+
+- Watchlists on MyDramaList's V2 beta layout do not load by username. If a list page on MyDramaList shows a **Switch to V1** link, choose it and load the username again. The site now says this when it happens. Lists added by pasted link, and Discover, are not affected. A fix depends on the data service (Kuryana) learning to read V2 pages.
+
 ## 1.1.3
 
 ### Bug fixes
