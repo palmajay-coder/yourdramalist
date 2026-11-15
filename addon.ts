@@ -102,10 +102,10 @@ const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.prefe
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
 export function listStatus(user:string,load=loadWatchlist){return async(slug:string)=>{const sections=await load(user.toLowerCase());for(const [id,items] of Object.entries(sections||{}))if(STATUS_LABELS[id]&&(items as any[]).some(x=>x.slug===slug))return STATUS_LABELS[id];return null}}
-// Titles Nuvio gets per catalog page. Each title costs about two outside requests (an ID lookup and a
-// poster lookup), and Cloudflare's free plan allows about 50 per visit, so 20 keeps a page under the limit.
-// With the Workers Paid plan this can go back to 30 or more.
-const NUVIO_PAGE=20;
+// Titles Nuvio gets per catalog page. Each title costs a few outside requests (an ID lookup, a poster
+// check and a poster lookup). The Workers Paid plan allows far more than the free plan's 50 per visit,
+// so a full page of 30 fits. On the free plan this had to be 20.
+const NUVIO_PAGE=30;
 export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,mdlPoster:loadMDLTitlePoster}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
  const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus),rpdbKey=rpdbApiKey((config as any).rpdb?.apiKey);

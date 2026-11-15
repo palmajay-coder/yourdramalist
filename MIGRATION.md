@@ -9,7 +9,7 @@ Current checklist for moving YourDramaList off Val Town. Update each item as it 
 
 ## Decisions
 
-- **Host:** Cloudflare Workers. The site runs on the free plan now, and moves to the $5 a month Workers Paid plan in January.
+- **Host:** Cloudflare Workers. The site runs on the $5 a month Workers Paid plan (upgraded November 15, earlier than the January plan).
 - **Render:** Tried and dropped. MyDramaList refuses both Cloudflare and Render, so the site reads MyDramaList data through Kuryana, a public unofficial API, and TMDB.
 - **Repository:** Public, as requested.
 - **Source of truth:** Branch `migration/cloudflare`, which includes the 1.1.3 code that Val Town runs.
@@ -66,7 +66,7 @@ These features are gone or different, and we agreed they are acceptable:
 
 ## Upgrade in January
 
-- [ ] Upgrade Cloudflare to the Workers Paid plan. Until then, Nuvio catalog pages are 20 titles instead of 30 (`NUVIO_PAGE` in `addon.ts`, and `Se` in `addonCore.ts`), added November 12 to stay under the free plan's 50-request limit. After the upgrade, raise both back to 30 or more. This removes the free plan's request limit, which currently causes some lookups to fall back (logs show "Too many subrequests" once a week per country).
+- [x] Upgraded Cloudflare to the Workers Paid plan (November 15). Nuvio catalog pages are back to 30 titles (`NUVIO_PAGE` in `addon.ts`, `Se` in `addonCore.ts`).
 - [ ] Test This Week's Picks on the test site after the upgrade.
 
 ## Cutover (needs your approval)
