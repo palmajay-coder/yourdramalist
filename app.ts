@@ -463,7 +463,7 @@ if(!androidApp){
   (/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
  const width=matchMedia(mobileDevice?'(min-width: 440px)':'(min-width: 560px)');
  const landscape=matchMedia('(orientation: landscape)');
- const screenOrientation=window.screen.orientation;
+ const screenOrientation=window.screen?.orientation;
  const syncLayout=()=>{
   const orientation=screenOrientation?.type;
   const sideways=orientation?orientation.startsWith('landscape'):landscape.matches;
