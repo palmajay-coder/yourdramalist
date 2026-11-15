@@ -82,9 +82,9 @@ assert(JSON.parse(saved.get("ydl-v3-selection")!).length===3,"Select all should 
 console.log("PASS Community Select all adds every list once");
 
 // An empty or unreachable watchlist shows the guidance message and no cards.
-document=mount(async()=>Response.json({error:"We could not find any titles for this username."},{status:404}));
+document=mount(async()=>Response.json({error:"This watchlist uses MyDramaList's V2 beta, which we can't read yet."},{status:404}));
 (document.getElementById("profileInput") as HTMLInputElement).value="NoTitles";
 await (document.getElementById("profileForm") as HTMLFormElement).onsubmit!({preventDefault(){}} as SubmitEvent);
 await new Promise(resolve=>setTimeout(resolve,0));
-assert(document.getElementById("results")!.textContent==="We could not find any titles for this username."&&!document.querySelector("#listItems article"),"The guidance should show alone, without the load-failed prefix and without cards");
+assert(document.getElementById("results")!.textContent==="This watchlist uses MyDramaList's V2 beta, which we can't read yet."&&!document.querySelector("#listItems article"),"The guidance should show alone, without the load-failed prefix and without cards");
 console.log("PASS an empty watchlist shows the guidance message and no cards");

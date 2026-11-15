@@ -157,15 +157,21 @@ await test("Community cards list every profile list and the filter sheet adds a 
 });
 // A watchlist with no titles (private, wrong username, or MyDramaList's data service returning nothing) says so
 // plainly; a partly filled one shows only the lists that have titles.
-await test("profile route explains an empty watchlist and hides empty categories",async()=>{
+await test("profile route tells a V2 beta list from an empty one and hides empty categories",async()=>{
  const realFetch=globalThis.fetch;
  const kuryana=(lists:any)=>Response.json({success:true,data:{lists}});
+ const profile=async(user:string)=>handler(new Request("https://test/api/mdl/profile?username="+user));
  try{
+  // No status boxes at all: the list page uses MyDramaList's V2 beta layout, which Kuryana cannot read.
   globalThis.fetch=(async()=>kuryana({}))as any;
-  const none=await handler(new Request("https://test/api/mdl/profile?username=emptyuser"));
-  assert(none.status===404&&(await none.json()).error===TEXT.communityNoTitles,"an empty watchlist should explain itself");
+  const beta=await profile("betauser");
+  assert(beta.status===404&&(await beta.json()).error===TEXT.communityNewLayout,"a V2 beta list should say so");
+  // Status boxes that are all empty: a real V1 list with no titles yet.
+  globalThis.fetch=(async()=>kuryana({watching:{items:[]},completed:{items:[]}}))as any;
+  const empty=await profile("emptyuser");
+  assert(empty.status===404&&(await empty.json()).error===TEXT.communityNoTitles,"an empty V1 list should explain itself");
   globalThis.fetch=(async()=>kuryana({completed:{items:[{link:"https://mydramalist.com/1-sample-show",title:"Sample Show",year:2020,type:"Drama",country:"South Korea"}]},watching:{items:[]}}))as any;
-  const some=await handler(new Request("https://test/api/mdl/profile?username=someuser"));
+  const some=await profile("someuser");
   const data=await some.json();
   assert(some.status===200&&data.lists.map((l:any)=>l.name).join("|")==="someuser’s Watchlist|someuser’s Completed","only the combined list and categories with titles are shown: "+data.lists.map((l:any)=>l.name).join("|"));
  }finally{globalThis.fetch=realFetch}

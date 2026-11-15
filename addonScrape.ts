@@ -781,6 +781,11 @@ function kuryanaWatchlist(username) {
       }
       throw error;
     }
+    // A V1 list page always has its status boxes, even when they are empty. No boxes at all means the list
+    // is on MyDramaList's V2 beta layout, which Kuryana cannot read yet.
+    if (!data?.lists || typeof data.lists !== "object" || !Object.keys(data.lists).length) {
+      throw Object.assign(new Error("This MyDramaList watchlist uses the V2 beta layout."), { code: "LAYOUT" });
+    }
     const sections = {};
     WATCHLIST_SECTIONS.forEach((status, index) => {
       const list = data?.lists?.[status];
@@ -867,7 +872,8 @@ export const WATCHLIST_CARDS = [
 export function loadWatchlistCategory(username, status) {
   const section = WATCHLIST_SECTIONS.indexOf(status) + 1;
   if (!section) throw Error("Unknown watchlist category");
-  return kuryanaWatchlist(username).then((sections) => sections[section] || []);
+  // A V2 beta list has nothing we can read, so a Nuvio catalog built from it is simply empty.
+  return kuryanaWatchlist(username).then((sections) => sections[section] || [], (error) => { if (error?.code === "LAYOUT") return []; throw error; });
 }
 
 export async function profileWatchlistCards(username, name, load = loadWatchlistCategory, fallbackArtwork = async (_item) => null) {

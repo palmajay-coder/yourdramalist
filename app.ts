@@ -529,7 +529,9 @@ async function handleProfile(url: URL): Promise<Response> {
     };
     return Response.json({username, lists: [combined, ...watchlists.filter(card => !card.empty)], message: "Public watchlist found for " + username + "."}, {headers});
   } catch (error) {
-    const missing = (error as {code?: string})?.code === "PRIVATE";
+    const code = (error as {code?: string})?.code;
+    if (code === "LAYOUT") return Response.json({error: TEXT.communityNewLayout}, {status: 404, headers});
+    const missing = code === "PRIVATE";
     return Response.json({
       error: missing
         ? "Profile not found, or the watchlist is private. Check the username and try again."
