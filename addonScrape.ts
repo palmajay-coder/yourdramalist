@@ -2,6 +2,7 @@
 // Imported by main.ts. You should not need to edit this file directly.
 
 import { kuryana, KuryanaError, mdlLink } from "./kuryana.ts";
+import { blob } from "https://esm.town/v/std/blob/main.ts";
 
 export let MDL_TEXT, $e;
 
@@ -432,16 +433,16 @@ export function Et(t, e, n) {
 export async function ue(t, e) {
   const n = encodeURIComponent(lt(e) || e),
     s = await fetch(`${Rt}/catalog/${t}/top/search=${n}.json`);
-  return s.ok
-    ? ((await s.json().catch(() => ({}))).metas || [])
+  // A failed request must not look like "no such title", so callers can tell a miss from an outage.
+  if (!s.ok) throw Error("Cinemeta " + s.status);
+  return ((await s.json().catch(() => ({}))).metas || [])
       .filter((r) => /^tt\d+/.test(r.id || r.imdb_id || ""))
       .map((r) => ({
         id: r.imdb_id || r.id,
         name: r.name,
         year: Tt(r.releaseInfo || r.year),
         poster: r.poster,
-      }))
-    : [];
+      }));
 }
 
 export async function me(t, e, n, k) {
@@ -450,7 +451,7 @@ export async function me(t, e, n, k) {
   const s = t === "movie" ? "movie" : "tv",
     a = new URLSearchParams({ api_key: K, query: e }),
     r = await fetch(`https://api.themoviedb.org/3/search/${s}?${a}`);
-  if (!r.ok) return [];
+  if (!r.ok) throw Error("TMDB " + r.status);
   const d = ((await r.json().catch(() => ({}))).results || [])
       .slice(0, 5)
       .map((o) => ({
@@ -463,49 +464,74 @@ export async function me(t, e, n, k) {
   if (!l) return [];
   const u = await fetch(
     `https://api.themoviedb.org/3/${s}/${l.tmdbId}/external_ids?api_key=${K}`,
-  ).then((o) => (o.ok ? o.json() : {}));
+  ).then((o) => { if (!o.ok) throw Error("TMDB " + o.status); return o.json(); });
   return u.imdb_id ? [{ id: u.imdb_id, name: l.name, year: l.year }] : [];
 }
 
-export function fe(t, e, k, X1) {
+// Title matches (MyDramaList title to IMDb id) are kept in one stored map so each title is looked up
+// once, not on every catalog load. Real matches last 30 days and real misses one day. A lookup that
+// failed (outage, request limit) is never stored, so the next load simply tries again.
+const MATCH_KEY = "title-matches:v1", MATCH_HIT_MS = 30 * 86400e3, MATCH_MISS_MS = 86400e3, MATCH_KEEP = 4000;
+let matchStore, matchLoading, matchTimer;
+export async function matchEntries() {
+  matchLoading ??= (async () => {
+    matchStore = new Map();
+    try {
+      const rows = await Promise.race([blob.getJSON(MATCH_KEY), new Promise((r) => setTimeout(() => r(null), 1500))]);
+      if (Array.isArray(rows)) for (const [k, v] of rows) if (v?.expires > Date.now()) matchStore.set(k, v);
+    } catch {}
+  })();
+  await matchLoading;
+  return matchStore;
+}
+function saveMatches() {
+  if (matchTimer || !matchStore) return;
+  matchTimer = setTimeout(() => {
+    matchTimer = undefined;
+    // Another running copy of the site may have saved matches too, so merge before writing.
+    Promise.resolve(blob.getJSON(MATCH_KEY)).catch(() => null).then((rows) => {
+      if (Array.isArray(rows)) for (const [k, v] of rows) if (v?.expires > Date.now() && !matchStore.has(k)) matchStore.set(k, v);
+      while (matchStore.size > MATCH_KEEP) matchStore.delete(matchStore.keys().next().value);
+      return blob.setJSON(MATCH_KEY, [...matchStore]);
+    }).catch(() => {});
+  }, 300);
+}
+export async function remember(key, value, ms) {
+  const store = await matchEntries();
+  store.delete(key);
+  store.set(key, { value, expires: Date.now() + ms });
+  saveMatches();
+}
+
+async function lookupMatch(t, e, k, X1, n) {
+  let failed = false;
+  const M = t.title.match(/^(.+?)[\s:,-]+(?:season\s*\d+|part\s*\d+|\d+(?:st|nd|rd|th)\s+season|[2-9])$/i),
+    Q = M ? M[1].trim() : t.title,
+    Y = M ? null : t.year,
+    F = (c) => (M && t.year ? c.filter((z) => !z.year || z.year <= t.year) : c),
+    c = Et(F(await ue(e, Q).catch(() => { failed = true; return []; })), Q, Y),
+    // Cinemeta sometimes lists a later release year (or none). When its pick does not
+    // agree with the MyDramaList year, ask TMDB, which uses original release years.
+    agrees = (m) => !Y || (m && m.year && Math.abs(m.year - Y) <= 1),
+    s = c && agrees(c) ? c : (await me(e, Q, Y, k).catch(() => { failed = true; return []; }))[0] || c;
+  if (!s || (X1 && (lt(s.name) !== lt(Q) || (t.year && s.year && Math.abs(s.year - t.year) > 1 && !M)))) {
+    return { state: failed && !s ? "failed" : "miss", value: null };
+  }
+  return { state: "hit", value: s };
+}
+
+export async function fe(t, e, k, X1) {
   // Cache keys carry a version so matches saved before a matching change are not reused.
-  const n = `${X1 ? "x" : ""}${e}:${t.slug}`,
-    x = O.get("nm2:" + n);
-  return x && x.expires > Date.now()
-    ? Promise.resolve(null)
-    : D("match2:" + n, pe, async () => {
-      const M = t.title.match(
-          /^(.+?)[\s:,-]+(?:season\s*\d+|part\s*\d+|\d+(?:st|nd|rd|th)\s+season|[2-9])$/i,
-        ),
-        Q = M ? M[1].trim() : t.title,
-        Y = M ? null : t.year,
-        F = (c) => (M && t.year
-          ? c.filter((z) => !z.year || z.year <= t.year)
-          : c),
-        c = Et(F(await ue(e, Q).catch(() => [])), Q, Y),
-        // Cinemeta sometimes lists a later release year (or none). When its pick does not
-        // agree with the MyDramaList year, ask TMDB, which uses original release years.
-        agrees = (m) => !Y || (m && m.year && Math.abs(m.year - Y) <= 1),
-        s = c && agrees(c)
-          ? c
-          : (await me(e, Q, Y, k).catch(() => []))[0] || c;
-      if (
-        !s ||
-        (X1 &&
-          (lt(s.name) !== lt(Q) ||
-            (t.year && s.year && Math.abs(s.year - t.year) > 1 && !M)))
-      ) {
-        throw 0;
-      }
-      return s;
-    }).catch(
-      () => (
-        O.set("nm2:" + n, {
-          value: Promise.resolve(null),
-          expires: Date.now() + 216e5,
-        }), null
-      ),
-    );
+  const n = `${X1 ? "x" : ""}${e}:${t.slug}`, key = "m3:" + n;
+  const store = await matchEntries(), saved = store.get(key);
+  if (saved && saved.expires > Date.now()) return saved.value;
+  const waiting = O.get("nm2:" + n);
+  if (waiting && waiting.expires > Date.now()) return null;
+  const result = await D("match3:" + n, 6e4, () => lookupMatch(t, e, k, X1, n)).catch(() => ({ state: "failed", value: null }));
+  if (result.state === "hit") await remember(key, result.value, MATCH_HIT_MS);
+  else if (result.state === "miss") await remember(key, null, MATCH_MISS_MS);
+  else O.set("nm2:" + n, { value: Promise.resolve(null), expires: Date.now() + 6e4 }); // pause a minute, then try again
+  return result.value;
 }
 
 export async function It(t, e, n) {

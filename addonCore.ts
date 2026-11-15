@@ -43,6 +43,8 @@ import {
   ue,
   me,
   fe,
+  matchEntries,
+  remember,
   It,
   Ct,
   ct,
@@ -393,6 +395,8 @@ async function Pz(t, k) {
   if (!k || !/^tt\d+$/.test(t)) return !0;
   const c = O.get("pp:" + t);
   if (c && c.expires > Date.now()) return c.value;
+  const saved = (await matchEntries()).get("pp:" + t);
+  if (saved && saved.expires > Date.now()) return saved.value;
   const r = await fetch(
     `https://api.themoviedb.org/3/find/${t}?external_source=imdb_id&api_key=${k}`,
   )
@@ -400,6 +404,7 @@ async function Pz(t, k) {
     .catch(() => null);
   if (!r) return !0;
   const v = [...(r.tv_results || []), ...(r.movie_results || [])].some((x) => x.poster_path);
+  await remember("pp:" + t, v, v ? 30 * 864e5 : 216e5);
   return (O.set("pp:" + t, { value: v, expires: Date.now() + (v ? 864e5 : 216e5) }), v);
 }
 

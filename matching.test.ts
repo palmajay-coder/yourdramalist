@@ -42,4 +42,37 @@ await test("an undated result no longer outranks an older, dated title",()=>{
  const pick=Et([{id:"tt1",name:"Pulse",year:2005},{id:"tt2",name:"Pulse",year:null}],"Pulse",2001);
  assert(!pick||pick.id!=="tt2","undated title won");
 });
+
+// Matches are stored so each title is looked up once; a failed lookup is retried, not remembered as "no match".
+let cinemetaDown=false,cinemetaCalls=0;
+const baseFetch=globalThis.fetch;
+globalThis.fetch=(async(input:string|URL,init?:any)=>{
+ const u=new URL(String(input));
+ if(u.hostname==="v3-cinemeta.strem.io"){cinemetaCalls++;if(cinemetaDown)return new Response("busy",{status:503});}
+ return baseFetch(input,init);
+}) as typeof fetch;
+await test("a title already matched costs no new requests",async()=>{
+ const title={slug:"5-crash-landing-on-you-again",title:"Crash Landing on You",year:2019};
+ const first=await fe(title,"series","test-key");
+ const before=cinemetaCalls;
+ const second=await fe(title,"series","test-key");
+ assert(first?.id==="tt10850932"&&second?.id==="tt10850932"&&cinemetaCalls===before,"the stored match was not reused");
+});
+await test("a failed lookup is not remembered as no match, and is tried again",async()=>{
+ const title={slug:"6-flaky-lookup",title:"Crash Landing on You",year:2019};
+ cinemetaDown=true;
+ const down=await fe(title,"series","test-key");
+ cinemetaDown=false;
+ // Memory pauses a failed title for a minute; clear that pause to stand in for the next load.
+ const {O}=await import("./addonScrape.ts");O.delete("nm2:series:6-flaky-lookup");O.delete("match3:series:6-flaky-lookup");
+ const up=await fe(title,"series","test-key");
+ assert(down===null&&up?.id==="tt10850932","a title that failed to look up should match on the next try");
+});
+await test("a title with no match anywhere is remembered as a miss, not looked up again",async()=>{
+ const title={slug:"7-no-such-title",title:"Nothing Here At All",year:2020};
+ const none=await fe(title,"series","test-key");
+ const before=cinemetaCalls;
+ const again=await fe(title,"series","test-key");
+ assert(none===null&&again===null&&cinemetaCalls===before,"a real miss should not be looked up again");
+});
 console.log(JSON.stringify({passed}));
