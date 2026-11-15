@@ -50,7 +50,7 @@ These features are gone or different, and we agreed they are acceptable:
 - Popular lists.
 - "Date added" sorting for watchlists.
 - EasyPosters, removed from new setups. Existing setups keep it.
-- Dependence on Kuryana, which is unofficial and may stop or be blocked. On November 15 its watchlist route (`/v2/users/<name>/dramalist`) began answering success with no lists for every user tested, while search, drama details, lists and people still work. Watchlists by username therefore show a plain message (spelling, or try again later) until Kuryana is fixed. MyDramaList watchlists are public by default, so privacy is not the cause. Lists by pasted link and Discover are unaffected.
+- Dependence on Kuryana, which is unofficial and may stop or be blocked. On November 15 one user's watchlist (`Pasha2504`) came back from Kuryana's `/v2/users/<name>/dramalist` with success and no lists, while another account (`Jaesan`, 134 titles) loaded fully, so the problem is specific to some accounts, not the whole service. The site shows a plain message (check the spelling, or try again later) when a username has no titles. Lists by pasted link and Discover are unaffected.
 - Related lists under a drama, even though two replacements were investigated and dropped (November 11). **Trakt** has the lists, but its protection rate-limited every request from Cloudflare's shared Worker addresses (error 1015, with a wait that never counted down). **MDBList** has an official API with a country field on list items, but no request that returns the public lists containing a title (only the signed-in user's own lists), and its free tier allows 1,000 requests a day for the whole account. MDBList could be revisited by asking its maintainer for such a request.
 
 ## Before the cutover
