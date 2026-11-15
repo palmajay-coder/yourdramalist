@@ -13,3 +13,4 @@
 
 - Weekly collections use TMDB keywords/genres and country filters, rather than personal recommendations. They rotate as two shared themes on Mondays at 00:00 UTC. Sparse metadata can produce shorter collections; mood classification is approximate. MDL country catalogs retain MDL order and sources.
 - Version badges are hidden on the website. Current source/manifest version: `1.1.3`.
+- Nuvio needs an IMDb id for every title. Announced titles that are not listed on IMDb or Cinemeta yet (many 2027 dramas) appear on the setup page but not in the Nuvio catalog until they are listed.

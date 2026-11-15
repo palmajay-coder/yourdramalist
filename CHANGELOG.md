@@ -10,6 +10,7 @@
 ### Bug fixes
 
 - Nuvio catalogs from a longer watchlist could show only some of the titles, and some with blank posters. Title lookups that failed (for example when the site ran out of outside requests) were remembered for six hours as "no match". Failed lookups are now tried again on the next load, and each title's match is saved for 30 days, so a title is looked up once instead of on every load.
+- Titles with an IMDb listing but no usable poster there, mostly new and upcoming dramas, showed as blank cards in Nuvio. The site now looks the title up on TMDB by name and year and uses that poster.
 
 ### Known bugs
 

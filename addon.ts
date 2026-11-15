@@ -106,7 +106,7 @@ export function listStatus(user:string,load=loadWatchlist){return async(slug:str
 // check and a poster lookup). The Workers Paid plan allows far more than the free plan's 50 per visit,
 // so a full page of 30 fits. On the free plan this had to be 20.
 const NUVIO_PAGE=30;
-export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,mdlPoster:loadMDLTitlePoster}){
+export async function loadCatalog(config:AddonConfig,index:number,skip:number,base:string,deps={source:X,people:handlePeople,map:Ee,hidden:Te,watchlistSections:loadWatchlist,watchlistCategory:loadWatchlistCategory,standardArtwork:collections.standardArtwork,titleArtwork:(item:any)=>collections.artwork(item),mdlPoster:loadMDLTitlePoster}){
  const entry=config.entries[index];if(!entry)return{metas:[]};const runtime=runtimeConfig(config);
  const pattern=betterPostersPattern(config.betterPosters),plusPattern=posterPlusPattern(config.posterPlus),rpdbKey=rpdbApiKey((config as any).rpdb?.apiKey);
  // TMDB remains primary, with MDL filling in metadata TMDB does not provide.
@@ -165,11 +165,19 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  const artwork=deps.standardArtwork&&(standardPoster||tmdbMetadata)?await deps.standardArtwork(matched,{...artworkMetadata,metadata:tmdbMetadata,poster:standardPoster}):matched;
  const itemById=new Map(metas.map((meta,i)=>[meta?.id,selected[i]]));
  const result=artwork.map(meta=>applyExternalPoster(meta,itemById.get(meta.id)));
- if(standardPoster&&deps.mdlPoster){
-  const itemById=new Map(metas.map((meta,i)=>[meta?.id,selected[i]]));
-  const missing=result.map(meta=>({meta,item:itemById.get(meta.id)})).filter(x=>!x.meta.poster&&x.item?.link).slice(0,5);
+ if(standardPoster){
+  // New and upcoming titles often have an IMDb id but no TMDB poster behind it, so the poster stays the
+  // Cinemeta one, which can be a dead link. Look the title up on TMDB by name and year, and as a last
+  // resort use the MyDramaList poster, so those cards are not blank in Nuvio.
+  const isTmdb=(url?:string)=>/^https:\/\/image\.tmdb\.org\//.test(url||'');
+  const todo=result.map(meta=>({meta,item:itemById.get(meta.id)})).filter(x=>x.item&&!isTmdb(x.meta.poster)).slice(0,12);
   let cursor=0;
-  await Promise.all(Array.from({length:Math.min(2,missing.length)},async()=>{while(cursor<missing.length){const {meta,item}=missing[cursor++];meta.poster=await deps.mdlPoster(item).catch(()=>null);}}));
+  await Promise.all(Array.from({length:Math.min(3,todo.length)},async()=>{while(cursor<todo.length){
+   const {meta,item}=todo[cursor++];
+   const found=(deps as any).titleArtwork?await (deps as any).titleArtwork({name:item.title,details:(K(item.type)==='movie'?'Movie':'Drama')+' - '+(item.year||''),url:item.link||'https://mydramalist.com/'+item.slug}).catch(()=>null):null;
+   if(found?.poster){meta.poster=found.poster;continue}
+   if(!meta.poster&&deps.mdlPoster&&item.link)meta.poster=await deps.mdlPoster(item).catch(()=>null);
+  }}));
  }
  return{metas:result.filter(x=>x.poster)};
 }
