@@ -185,6 +185,7 @@ export const TEXT = {
   catalogLimitReached:
     "You’ve reached the {max}-catalog limit. Remove a catalog to add another.",
   communityNoWatchlists: "No public watchlists found.",
+  communityNoTitles: "We could not find any titles for this username. Check the spelling, and that the watchlist is public on MyDramaList. If it should have titles, MyDramaList's data may be temporarily unavailable, so try again later.",
   communityNoCustomLists: "No public custom lists found.",
   communityAllTitles: "All Dramas & Films",
   communityAllTitlesDescription: "All your lists combined.",

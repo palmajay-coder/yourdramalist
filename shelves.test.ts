@@ -1,5 +1,6 @@
 import {parseHTML} from "npm:linkedom@0.18.12";
 import handler from "./app.ts";
+import {TEXT} from "./text.ts";
 import {applyShelfFilter,normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfCountry,shelfNeedsFacts} from "./shelfFilters.ts";
 import {factsGenresFor,pickTmdbResult,getTitleFacts,expectedCountry} from "./titleFacts.ts";
 import {shelfSource,createShelfHandler} from "./shelfApi.ts";
@@ -153,5 +154,20 @@ await test("Community cards list every profile list and the filter sheet adds a 
  ([...sheet.querySelectorAll("button")].find((b:any)=>b.textContent==="Clear") as any).click();
  ([...sheet.querySelectorAll("button")].find((b:any)=>b.textContent==="Show Results") as any).click();
  await waitFor(()=>completed.querySelector(".catalogAdd").getAttribute("aria-pressed")==="false","clearing the filter shows the unfiltered list, which is not added yet");
+});
+// A watchlist with no titles (private, wrong username, or MyDramaList's data service returning nothing) says so
+// plainly; a partly filled one shows only the lists that have titles.
+await test("profile route explains an empty watchlist and hides empty categories",async()=>{
+ const realFetch=globalThis.fetch;
+ const kuryana=(lists:any)=>Response.json({success:true,data:{lists}});
+ try{
+  globalThis.fetch=(async()=>kuryana({}))as any;
+  const none=await handler(new Request("https://test/api/mdl/profile?username=emptyuser"));
+  assert(none.status===404&&(await none.json()).error===TEXT.communityNoTitles,"an empty watchlist should explain itself");
+  globalThis.fetch=(async()=>kuryana({completed:{items:[{link:"https://mydramalist.com/1-sample-show",title:"Sample Show",year:2020,type:"Drama",country:"South Korea"}]},watching:{items:[]}}))as any;
+  const some=await handler(new Request("https://test/api/mdl/profile?username=someuser"));
+  const data=await some.json();
+  assert(some.status===200&&data.lists.map((l:any)=>l.name).join("|")==="someuser’s Watchlist|someuser’s Completed","only the combined list and categories with titles are shown: "+data.lists.map((l:any)=>l.name).join("|"));
+ }finally{globalThis.fetch=realFetch}
 });
 console.log(JSON.stringify({passed}));

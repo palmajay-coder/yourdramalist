@@ -80,3 +80,11 @@ console.log("PASS Community shows all profile lists in one grid and adds them");
 assert(document.getElementById("count")!.textContent==="(3)","Select all should add the remaining lists without duplicates");
 assert(JSON.parse(saved.get("ydl-v3-selection")!).length===3,"Select all should be saved");
 console.log("PASS Community Select all adds every list once");
+
+// An empty or unreachable watchlist shows the guidance message and no cards.
+document=mount(async()=>Response.json({error:"We could not find any titles for this username."},{status:404}));
+(document.getElementById("profileInput") as HTMLInputElement).value="NoTitles";
+await (document.getElementById("profileForm") as HTMLFormElement).onsubmit!({preventDefault(){}} as SubmitEvent);
+await new Promise(resolve=>setTimeout(resolve,0));
+assert(document.getElementById("results")!.textContent==="We could not find any titles for this username."&&!document.querySelector("#listItems article"),"The guidance should show alone, without the load-failed prefix and without cards");
+console.log("PASS an empty watchlist shows the guidance message and no cards");

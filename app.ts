@@ -412,7 +412,7 @@ async function loadProfile(username){
  try{
   const response=await fetch('/api/mdl/profile?username='+encodeURIComponent(username),{signal:AbortSignal.timeout(20000)});
   const data=await response.json();if(requestId!==listRequest)return;
-  if(!response.ok)throw Error(data.error||'Profile lookup failed');
+  if(!response.ok)throw Object.assign(Error(data.error||'Profile lookup failed'),{plain:response.status===404});
   const lists=(data.lists||[]).filter(l=>!l.unavailable&&l.url);
   const watchlists=lists.filter(l=>l.kind==='watchlist'&&!l.combined);
   const combined=lists.filter(l=>l.combined).map(l=>({...l,name:(data.profileName||username)+'’s '+copy.communityAllTitles,description:copy.communityAllTitlesDescription}));
@@ -422,7 +422,7 @@ async function loadProfile(username){
   profileLists=[...combined,...watchlists,...custom].map(l=>({...l,profile:username,analyticsSource:l.kind==='watchlist'?'community-watchlist':'community-public-list'}));
   $('communityViews').classList.remove('hidden');
   showCommunityView('watchlists');
- }catch(e){if(requestId===listRequest)$('results').textContent=copy.loadFailed+(['TimeoutError','AbortError'].includes(e.name)?copy.searchRetry:e.message)}
+ }catch(e){if(requestId===listRequest)$('results').textContent=(e.plain?'':copy.loadFailed)+(['TimeoutError','AbortError'].includes(e.name)?copy.searchRetry:e.message)}
 }
 
 renderSelection();
@@ -513,6 +513,11 @@ async function handleProfile(url: URL): Promise<Response> {
     const sections = await loadWatchlist(username);
     // The shelves load title artwork separately. Profile search only needs the watchlist categories.
     const watchlists = await profileWatchlistCards(username, username);
+    // No titles in any section: say so plainly instead of showing empty cards (a private list, a wrong
+    // username, or MyDramaList's data service returning nothing all look the same from here).
+    if (watchlists.every(card => card.empty)) {
+      return Response.json({error: TEXT.communityNoTitles}, {status: 404, headers});
+    }
     const combined = {
       name: username + "’s Watchlist",
       url: "https://mydramalist.com/dramalist/" + username.toLowerCase(),
@@ -522,7 +527,7 @@ async function handleProfile(url: URL): Promise<Response> {
       count: new Set(Object.values(sections).flat().map(item => item?.slug).filter(Boolean)).size,
       posters: [...new Set(watchlists.flatMap(card => card.posters))].slice(0, 5),
     };
-    return Response.json({username, lists: [combined, ...watchlists], message: "Public watchlist found for " + username + "."}, {headers});
+    return Response.json({username, lists: [combined, ...watchlists.filter(card => !card.empty)], message: "Public watchlist found for " + username + "."}, {headers});
   } catch (error) {
     const missing = (error as {code?: string})?.code === "PRIVATE";
     return Response.json({
