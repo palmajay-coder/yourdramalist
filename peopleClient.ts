@@ -149,13 +149,20 @@ export function installPeopleUI() {
       section.append(heading, track);
       results.append(section);
     }
-    if (data2.people.length && (titles.length || data2.query)) {
-      const heading = document.createElement("h3");
-      heading.className = "catalogSectionTitle";
-      heading.textContent = "Actors and directors";
-      results.append(heading);
+    if (data2.people.length) {
+      const section = document.createElement("section");
+      section.className = "discoverPeopleResults";
+      if (titles.length || data2.query) {
+        const heading = document.createElement("h3");
+        heading.className = "catalogSectionTitle";
+        heading.textContent = "Actors and directors";
+        section.append(heading);
+      }
+      for (const person of data2.people) section.append(compactPerson(person));
+      // The server ranks results by how well they match; a name that matches better than any title leads.
+      if (data2.peopleFirst) results.prepend(section);
+      else results.append(section);
     }
-    for (const person of data2.people) results.append(compactPerson(person));
     sync();
     if (data2.page > 1 || data2.hasNextPage) {
       const nav = document.createElement("nav");

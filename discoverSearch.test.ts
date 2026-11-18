@@ -3,6 +3,7 @@ import {parseHTML} from "npm:linkedom@0.18.12";
 import {installFloatingNotice} from "./notifications.ts";
 import {TEXT} from "./text.ts";
 import handler from "./app.ts";
+import {matchScore,rankSearchResults} from "./searchRanking.ts";
 let passed=0;
 const assert=(v:unknown,m:string)=>{if(!v)throw Error(m)};
 async function test(name:string,fn:()=>unknown){await fn();passed++;console.log("PASS "+name);}
@@ -163,5 +164,36 @@ await test("the green + opens a full-screen search that shows results on the sam
  assert(!items().length,"Clear removes them all");
  blocked=true;const before=searches();await enter("Goblin");
  assert(searches()===before+1,"search still works when storage is blocked");
+});
+await test("search results are ordered by how well they match what was typed",()=>{
+ assert(matchScore("gong yoo","Gong Yoo")===100&&matchScore("Yoo Gong","Gong Yoo")===95,"exact and reversed names match best");
+ assert(matchScore("lovely run","Lovely Runner")>matchScore("lovely run","Run On"),"word starts beat loose matches");
+ assert(matchScore("Moving","Moving")>matchScore("Moving","Moving Pictures")&&matchScore("Moving","Moving Pictures")>matchScore("Moving","Love Is Moving On"),"exact, then starts with, then contains");
+ assert(matchScore("Kim Go Eun","Kim Go-eun")===100,"punctuation and case are ignored");
+ assert(matchScore("goblin","Stranger")===0,"unrelated names score nothing");
+ assert(matchScore("Song Kang","Tie Xue Kang Lian Zhi Xue Zhan Song Shan Jian")===0,"scattered words do not count as a match");
+ assert(matchScore("Kim Go Eun","When the Stars Gossip")===0,"partial word hits do not count as a match");
+ const actor=rankSearchResults({titles:[{name:"The Gong Show"},{name:"Coffee Prince"}],people:[{name:"Lee Gong"},{name:"Gong Yoo"}]},"Gong Yoo");
+ assert(actor.peopleFirst&&actor.people[0].name==="Gong Yoo","an actor's name puts actors first, best match on top: "+JSON.stringify(actor));
+ const drama=rankSearchResults({titles:[{name:"Moving On"},{name:"Moving"}],people:[{name:"Moving Kim"}]},"Moving");
+ assert(!drama.peopleFirst&&drama.titles[0].name==="Moving","a title wins when it matches better: "+JSON.stringify(drama));
+ const tie=rankSearchResults({titles:[{name:"A"},{name:"B"}],people:[]},"zzz");
+ assert(tie.titles.map((x:any)=>x.name).join()==="A,B"&&!tie.peopleFirst,"equal scores keep MyDramaList's order");
+});
+await test("Discover shows actors and directors first when the search is a name",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const storage={getItem:()=>null,setItem(){},removeItem(){}};
+ const location={href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"};
+ let reply:any;
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,location,{state:null,pushState(){},replaceState(){},back(){}},async()=>Response.json(reply),()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ const run=async(q:string)=>{(document.getElementById("discoverInput") as HTMLInputElement).value=q;(document.getElementById("discoverForm") as any).dispatchEvent(new window.Event("submit",{cancelable:true}));await new Promise(r=>setTimeout(r,20));};
+ const order=()=>[...document.querySelectorAll("#listItems .catalogSectionTitle")].map(h=>h.textContent).join("|");
+ reply={query:"Gong Yoo",page:1,titles:[{name:"The Gong Show",url:"https://mydramalist.com/1-a"}],people:[{id:"440",name:"Gong Yoo"}],peopleFirst:true,hasNextPage:false};
+ await run("Gong Yoo");
+ assert(order()==="Actors and directors|Dramas and movies","a name lists actors first: "+order());
+ reply={...reply,peopleFirst:false};
+ await run("Goblin");
+ assert(order()==="Dramas and movies|Actors and directors","a title lists dramas first: "+order());
 });
 console.log(JSON.stringify({passed}));
