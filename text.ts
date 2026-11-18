@@ -1,6 +1,6 @@
 /** Editable copy for YourDramaList. Change the text between quotes and save. */
-export const APP_VERSION = "1.1.26";
-export const DISPLAY_VERSION = "1.1.26";
+export const APP_VERSION = "1.1.27";
+export const DISPLAY_VERSION = "1.1.27";
 
 export const TEXT = {
   catalogCountry: "Country",

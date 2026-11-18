@@ -75,10 +75,8 @@ export function installCatalogTitlePreview() {
     backdrop.hidden = true;
     if (discover) {
       header.prepend(backdrop);
-      const add = element("button", "discoverCollectionAction");
-      add.type = "button";
-      add.onclick = () => openCollectionPicker({...item, type, year, poster: image.getAttribute("src") || item.poster}, dialog);
-      add.innerHTML = layeredPostersIcon + "Add to Collection";
+      const add = makeDiscoverTitleAdd(item, "preview", setSaving =>
+        openCollectionPicker({...item, type, year, poster: image.getAttribute("src") || item.poster}, dialog, setSaving));
       actions.append(add);
       if (mdlUrl) actions.append(link("Open in MyDramaList", mdlUrl));
       body.append(actions, element("h3", "", "Story"), tagline, synopsis, facts);

@@ -1,3 +1,4 @@
+import {installDiscoverAddButtons} from "./discoverAddButtons.ts";
 import {handlePersonalCatalog} from "./personalCatalogs.ts";
 import {installPersonalCatalogSync} from "./personalCatalogSync.ts";
 import { installMyCollections } from "./myCollectionsClient.ts";
@@ -203,9 +204,16 @@ body.androidSetup.wideWeb :is(#preferences,#confirm){max-width:940px}
   body.androidSetup.wideWeb .prefPanel:has(.prefPosterStylePanels){grid-column:1/-1}
 }
 .discoverTitlePreview .discoverPreviewActions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-top:4px}
-.discoverTitlePreview .discoverPreviewActions :is(a,.discoverCollectionAction){display:flex;align-items:center;justify-content:center;gap:5px;min-height:34px;margin:0;padding:7px 8px;text-align:center;border:1px solid #8793ad;border-radius:24px;text-decoration:none;font-size:13px;font-weight:700;line-height:1.25;color:var(--text)}
-.discoverTitlePreview .discoverPreviewActions .discoverCollectionAction{appearance:none;background:#2164eb;border-color:#2164eb;color:#fff;box-shadow:none}
-.discoverCollectionAction .layeredPostersIcon i{background:#2164eb}
+.discoverTitlePreview .discoverPreviewActions :is(a,.discoverCollectionAction){display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;margin:0;padding:7px 8px;text-align:center;border:1px solid #8793ad;border-radius:24px;text-decoration:none;font-size:13px;font-weight:700;line-height:1.25;color:var(--text)}
+.discoverTitlePreview .discoverPreviewActions .discoverCollectionAction, .discoverAddPill.discoverAddPill{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;max-width:none;padding:8px 13px;border:0;border-radius:999px;background:#2878eb;color:#fff;box-shadow:none;font-size:13px;font-weight:650;white-space:nowrap;transition:background 180ms ease,transform 180ms ease}
+.discoverTitlePreview .discoverPreviewActions .discoverCollectionAction{padding-inline:7px;white-space:normal}
+.discoverTitlePreview .discoverPreviewActions .discoverCollectionAction.is-added,.discoverAddPill.discoverAddPill.is-added{background:#166534;color:#fff}
+.discoverCollectionAction .layeredPostersIcon i{background:#2878eb}
+.discoverAddIcon{font-size:14px;line-height:1}
+.discoverAddPill.discoverAddPill:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.discoverAddPill.discoverAddPill:active{transform:scale(.97)}
+.discoverAddPill.discoverAddPill:disabled{opacity:.65;cursor:wait}
+@media(prefers-reduced-motion:reduce){.discoverAddPill.discoverAddPill{transition:none}.discoverAddPill.discoverAddPill:active{transform:none}}
 </style></head><body><header><a class="brand" href="/" aria-label="YourDramaList home"><span class="desktopBrandName">YourDramaList</span><span class="mobileBrandMark" aria-hidden="true">YDL<span class="mobileBrandVersion">v${APP_VERSION}</span></span></a><nav class="steps" aria-label="Setup progress"><button id="step1" type="button" class="active" disabled>${TEXT.stepConnect}</button><button id="step2" type="button" disabled>${TEXT.stepLists}</button><button id="step3" type="button" disabled>${TEXT.stepPreferences}</button><button id="step4" type="button" disabled>${TEXT.stepConfirm}</button></nav></header><main class="shell">
 
 <div id="setup" class="hidden">
@@ -466,6 +474,7 @@ const CATEGORIES=${JSON.stringify(CATEGORIES)},COUNTRIES=${JSON.stringify(COUNTR
 const exploreCatalog=${exploreCatalog.toString()};
 
 const userCollectionsKey = "ydl.userCollections.v1";
+const makeDiscoverTitleAdd=(${installDiscoverAddButtons.toString()})();
 const layeredPostersIcon = '<span class="layeredPostersIcon" aria-hidden="true"><i></i><i></i><i></i></span>';
 const personalCatalogSync=(${installPersonalCatalogSync.toString()})();
 const showMyCollections=(${installMyCollections.toString()})();

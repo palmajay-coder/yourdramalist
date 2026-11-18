@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.27
+
+### Improvements
+
+- Discover title results use a compact blue **Add** button. Titles already saved in one of your collections show a green **Added** button. Both open the collection picker with your saved collections checked.
+- A button turns green only after the save succeeds and turns blue again once the title leaves its last collection. Canceling, or a save that fails, leaves the button as it was.
+- The title preview keeps the blue **Add to Collection** button next to **Open in MyDramaList** and shows a green **Added** once the title is saved.
+- **Weekly Picks** and the country shelves keep **Add** and **Added** and still add or remove the whole shelf in **Your Selection**.
+- The buttons show a plus or check icon, a visible keyboard focus ring, and a touch target at least 44 px tall.
+
+## 1.1.26
+
+- The Android app with the 1.1.25 features, signed with the permanent YourDramaList key. It installs over 1.1.25 as an update.
+- The website version badge matches the app, and the GitHub release notes list the same features as the app's **What’s new** dialog.
+
 ## 1.1.25
 
 ### What’s new

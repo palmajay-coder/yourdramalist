@@ -136,11 +136,8 @@ export function installPeopleUI() {
         title.textContent = item.name;
         button.append(artwork, title);
         button.onclick = () => showCatalogTitle(item, {discover: true});
-        const add = document.createElement("button");
-        add.type = "button";
-        add.className = "secondary discoverTitleAdd";
-        add.textContent = "+ Add to Collection";
-        add.onclick = () => openCollectionPicker(item);
+        const add = makeDiscoverTitleAdd(item, "search",
+          setSaving => openCollectionPicker(item, document.body, setSaving));
         row.append(button, add);
         track.append(row);
       }

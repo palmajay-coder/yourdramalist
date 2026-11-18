@@ -56,7 +56,7 @@ export function installCollectionPicker() {
     feedbackTimer = setTimeout(() => feedback.remove(), 3200);
   };
 
-  return (item, returnSurface = document.body) => {
+  return (item, returnSurface = document.body, setSaving = () => {}) => {
     if (dialog.open) return;
     const title = {url: item.url, name: item.title || item.name, poster: item.poster || null,
       year: item.year || item.date?.slice(0, 4) || item.details?.match(/\b\d{4}\b/)?.[0], type: item.type};
@@ -179,7 +179,16 @@ export function installCollectionPicker() {
           added++;
         }
         if (added || removed) {
-          localStorage.setItem(userCollectionsKey, JSON.stringify(collections));
+          save.disabled = true;
+          save.textContent = "Saving…";
+          setSaving(true);
+          try {
+            localStorage.setItem(userCollectionsKey, JSON.stringify(collections));
+          } finally {
+            setSaving(false);
+            updateSave();
+          }
+          document.dispatchEvent(new window.Event("ydl:collections-changed"));
           personalCatalogSync.changed(changes.keys());
         }
         dialog.close();

@@ -100,6 +100,7 @@ export function installMyCollections() {
         return;
       }
       deleted = true;
+      document.dispatchEvent(new window.Event("ydl:collections-changed"));
       personalCatalogSync.changed([id]);
       reconcileSelection(remaining);
       render();
