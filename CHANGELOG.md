@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.28 (not released yet: testing on the preview site)
+
+Ship as a full app release, not a website-only update: set the version to 1.1.28 in `text.ts` and
+`mobile/android-version.txt`, put the What's new lines below in `mobile/whats-new.md`, deploy the site,
+and push so the Android release workflow publishes the signed APK.
+
+### What's new (draft for the app dialog and release notes)
+
+- Quick add: tap the green + in the middle of the bottom bar to search dramas and movies and add them to your collections. Recent searches are saved.
+- Cleaner Add to Collection sheet: new Create New Collection, Cancel, and Save buttons.
+- Compact page headers: Community, Discover, and My Collections show their name at the top. Connect has a clean title screen.
+
 ## 1.1.27
 
 ### Improvements
