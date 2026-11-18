@@ -1,0 +1,43 @@
+name: Android release names (one time)
+# Gives the 1.1.25, 1.1.26 and 1.1.27 releases the same names as 1.1.23 and 1.1.24:
+# tag v1.1.27, title "YourDramaList 1.1.27", file YourDramaList-1.1.27-android.apk.
+# Nothing is deleted: the APK is renamed in place, and the old android-v tags stay on the same commits.
+# Safe to run again: releases that already have the new names are skipped.
+on:
+  push:
+    branches: [migration/cloudflare, main]
+    paths: ['.github/workflows/android-rename.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Rename the releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for v in 1.1.25 1.1.26 1.1.27; do
+            apk="YourDramaList-$v-android.apk"
+            if ! id=$(gh api "repos/$R/releases/tags/android-v$v" -q .id 2>/dev/null); then
+              echo "$v: already renamed"; continue
+            fi
+            sha=$(gh api "repos/$R/git/ref/tags/android-v$v" -q .object.sha)
+            gh api "repos/$R/git/ref/tags/v$v" > /dev/null 2>&1 || gh api "repos/$R/git/refs" -f ref="refs/tags/v$v" -f sha="$sha" > /dev/null
+            asset=$(gh api "repos/$R/releases/$id" -q '.assets[] | select(.name == "YourDramaList.apk") | .id')
+            [[ -z "$asset" ]] || gh api -X PATCH "repos/$R/releases/assets/$asset" -f name="$apk" > /dev/null
+            gh api "repos/$R/releases/$id" -q .body | sed "s/YourDramaList\.apk/$apk/g" > "$RUNNER_TEMP/body.md"
+            gh api -X PATCH "repos/$R/releases/$id" -f tag_name="v$v" -f name="YourDramaList $v" \
+              -F body=@"$RUNNER_TEMP/body.md" -f make_latest=false > /dev/null
+            echo "$v: tag v$v, title \"YourDramaList $v\", file $apk"
+          done
+          latest=$(gh api "repos/$R/releases/tags/v1.1.27" -q .id)
+          gh api -X PATCH "repos/$R/releases/$latest" -f make_latest=true > /dev/null
+          gh api "repos/$R/releases/latest" -q '"Latest: \(.tag_name) \(.name) \(.assets | map(.name) | join(", "))"'

@@ -10,4 +10,4 @@ if [[ -s "$dir/whats-new.md" ]]; then cat "$dir/whats-new.md"; else echo "- Fixe
 echo
 echo "## Install"
 echo
-echo "Download YourDramaList.apk on your Android phone and open it to install. It is signed with the permanent YourDramaList key, so it installs over 1.1.25 or later and keeps your setup. If you have 1.1.24 or earlier, uninstall that app first (one time only)."
+echo "Download YourDramaList-$version-android.apk on your Android phone and open it to install. It is signed with the permanent YourDramaList key, so it installs over 1.1.25 or later and keeps your setup. If you have 1.1.24 or earlier, uninstall that app first (one time only)."

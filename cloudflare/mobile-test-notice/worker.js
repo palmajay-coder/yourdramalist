@@ -1,6 +1,7 @@
 // Notice page for the first 1.1.23 Android app, which opens this retired test address.
 // It holds no copy of the site: it only explains the one-time reinstall and links to the current app.
-const DOWNLOAD = "https://github.com/palmajay-coder/yourdramalist/releases/latest/download/YourDramaList.apk";
+// The site redirects this permanent link to the newest APK (YourDramaList-<version>-android.apk).
+const DOWNLOAD = "https://yourdramalist.net/download/android";
 const SITE = "https://yourdramalist.net/";
 const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>YourDramaList: please update the app</title>

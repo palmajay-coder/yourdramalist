@@ -37,7 +37,8 @@ jobs:
         run: |
           VERSION="${INPUT_VERSION:-$(tr -d '[:space:]' < mobile/android-version.txt)}"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Enter a version like 1.1.25"; exit 1; }
-          if gh release view "android-v$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then echo "android-v$VERSION is already released. Raise the version."; exit 1; fi
+          for tag in "v$VERSION" "android-v$VERSION"; do if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then echo "$VERSION is already released ($tag). Raise the version."; exit 1; fi; done
+          echo "APK=YourDramaList-$VERSION-android.apk" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" ]] || { echo "Add the YDL_RELEASE_KEYSTORE_BASE64 and YDL_RELEASE_KEYSTORE_PASSWORD secrets first (see mobile/README.md)."; exit 1; }
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -54,8 +55,8 @@ jobs:
           # Version codes only go up: 100 plus this workflow's run number.
           export JAVA_HOME="$JAVA_HOME_17_X64" YDL_KEYSTORE="$RUNNER_TEMP/release.jks"
           export YDL_VERSION_NAME="$VERSION" YDL_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
-          bash mobile/android-test/build.sh "$RUNNER_TEMP/YourDramaList.apk"
-          signer=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$RUNNER_TEMP/YourDramaList.apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
+          bash mobile/android-test/build.sh "$RUNNER_TEMP/$APK"
+          signer=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$RUNNER_TEMP/$APK" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
           [[ "$signer" == "$RELEASE_CERT_SHA256" ]] || { echo "Signed with an unexpected key: $signer"; exit 1; }
           printf '{"versionCode":%s,"versionName":"%s"}\n' "$YDL_VERSION_CODE" "$VERSION" > "$RUNNER_TEMP/android-latest.json"
           rm -f "$RUNNER_TEMP/release.jks"
@@ -65,7 +66,9 @@ jobs:
         run: |
           # Same feature list as the app's What's new dialog (mobile/whats-new.md).
           bash mobile/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
-          gh release create "android-v$VERSION" "$RUNNER_TEMP/YourDramaList.apk" "$RUNNER_TEMP/android-latest.json" \
+          # Names match the earlier releases: tag v1.1.27, title "YourDramaList 1.1.27",
+          # file YourDramaList-1.1.27-android.apk.
+          gh release create "v$VERSION" "$RUNNER_TEMP/$APK" "$RUNNER_TEMP/android-latest.json" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
-            --title "YourDramaList $VERSION for Android" \
+            --title "YourDramaList $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md"
