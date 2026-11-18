@@ -11,6 +11,7 @@ and push so the Android release workflow publishes the signed APK.
 - Quick add: tap the green + in the middle of the bottom bar to search dramas and movies and add them to your collections. Recent searches are saved.
 - Full details everywhere: tap any drama or movie for its story, cast, reviews, and Add to Collection. Tap an actor or director to see their titles.
 - Cleaner Add to Collection sheet: new Create New Collection, Cancel, and Save buttons.
+- Smoother app: screens slide in and out, sheets rise from the bottom, posters fade in, and the tab highlight glides. Turning on reduced motion on your phone turns these off.
 - Compact page headers: Community, Discover, and My Collections show their name at the top. Connect has a clean title screen.
 
 ## 1.1.27

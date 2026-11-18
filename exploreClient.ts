@@ -139,8 +139,25 @@ export function installExploreUI() {
     }
     return { card, track, fill };
   }
+  // Loading: shimmering poster tiles, with the loading text kept for screen readers.
   function skeleton(track) {
-    track.textContent = copy.loadingLists;
+    const label = document.createElement("span");
+    label.className = "androidScreenReader";
+    label.textContent = copy.loadingLists;
+    const tiles = Array.from({ length: 4 }, () => {
+      const tile = document.createElement("span");
+      tile.className = "catalogPoster shelfSkeleton";
+      tile.setAttribute("aria-hidden", "true");
+      return tile;
+    });
+    if (track.classList.contains("catalogShelfTrack")) {
+      track.replaceChildren(label, ...tiles);
+    } else {
+      const row = document.createElement("div");
+      row.className = "catalogShelfTrack";
+      row.append(...tiles);
+      track.replaceChildren(label, row);
+    }
   }
   function pruneButtons() {
     for (const [url, {button}] of buttons) {

@@ -6,6 +6,7 @@ import { installCollectionPicker } from "./collectionPicker.ts";
 import { installCatalogTitlePreview } from "./catalogTitlePreview.ts";
 import { installAndroidDiscover } from "./androidDiscoverClient.ts";
 import { installQuickSearch } from "./quickSearchClient.ts";
+import { installMotion } from "./motionClient.ts";
 import {NOTIFICATION_CSS,installFloatingNotice} from "./notifications.ts";
 import {addonIcon} from "./addonIcon.ts";
 import {profileWatchlistCards,loadWatchlist} from "./addonScrape.ts";
@@ -563,6 +564,7 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dat
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
 const quickSearch=(${installQuickSearch.toString()})();
 (${installAndroidDiscover.toString()})();
+(${installMotion.toString()})();
 // Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Older apps
 // (1.1.24 and earlier) do not, and were signed with a key that is lost, so they need one reinstall.
 (()=>{

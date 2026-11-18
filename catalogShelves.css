@@ -322,3 +322,54 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
   background:#153727;
   color:#bff9d5;
 }
+
+/* ---------- Motion: subtle and quick, in the spirit of Letterboxd ---------- */
+/* Full-screen pages slide in from the right and back out; sheets rise from the bottom; small dialogs fade. */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog),
+  :is(.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog) {
+    transition: transform 240ms cubic-bezier(.2,0,0,1), opacity 200ms ease, overlay 240ms allow-discrete, display 240ms allow-discrete;
+  }
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog):not([open]) {transform: translateX(100%)}
+  @starting-style {:is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog)[open] {transform: translateX(100%)}}
+  :is(.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog):not([open]) {transform: translateY(100%)}
+  @starting-style {:is(.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog)[open] {transform: translateY(100%)}}
+  .myCollectionDeleteDialog:not([open]) {opacity: 0; transform: scale(.96)}
+  @starting-style {.myCollectionDeleteDialog[open] {opacity: 0; transform: scale(.96)}}
+  /* Wide screens: a short slide and fade instead of a full-width push. */
+  @media (min-width: 700px) and (pointer: fine) {
+    :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog):not([open]) {transform: translateX(32px); opacity: 0}
+    @starting-style {:is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog)[open] {transform: translateX(32px); opacity: 0}}
+  }
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog,.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog)::backdrop {
+    transition: opacity 240ms ease, overlay 240ms allow-discrete, display 240ms allow-discrete;
+  }
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog,.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog):not([open])::backdrop {opacity: 0}
+  @starting-style {:is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog,.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog)[open]::backdrop {opacity: 0}}
+
+  /* Notices slide in. */
+  .noticeToast {transition: opacity 200ms ease, transform 220ms cubic-bezier(.2,0,0,1), display 220ms allow-discrete}
+  @starting-style {.noticeToast:not([hidden]) {opacity: 0; transform: translateY(-10px)}}
+  .collectionPickerSuccess {transition: opacity 200ms ease, translate 220ms cubic-bezier(.2,0,0,1)}
+  @starting-style {.collectionPickerSuccess {opacity: 0; translate: 0 10px}}
+
+  /* Posters and artwork fade in once loaded. */
+  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personTitlesDialog .androidWatchlistHeader) img {transition: opacity 260ms ease}
+  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personTitlesDialog .androidWatchlistHeader) img:not(.ydlLoaded) {opacity: 0}
+
+  /* A quick check pop when a tapped Add turns Added. */
+  .discoverAddPill.ydlPop .discoverAddIcon {animation: ydlPop 320ms cubic-bezier(.2,0,0,1)}
+  @keyframes ydlPop {0% {transform: scale(.4)} 60% {transform: scale(1.25)} 100% {transform: scale(1)}}
+
+  /* The blue highlight glides between tabs. */
+  .androidBottomNav.indicatorReady .androidNavIndicator {transition: transform 260ms cubic-bezier(.2,0,0,1), width 260ms cubic-bezier(.2,0,0,1), height 260ms cubic-bezier(.2,0,0,1)}
+}
+.androidNavIndicator {position: absolute; top: 0; left: 0; z-index: 0; border-radius: 18px; background: #2674ec; pointer-events: none}
+.androidNavIndicator[hidden] {display: none}
+body.androidSetup .androidBottomNav.hasIndicator .androidNavItem {position: relative; z-index: 1}
+body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.androidNavAdd) .androidNavIcon {background: transparent}
+
+/* Loading tiles shimmer softly (still, for reduced motion). */
+.shelfSkeleton {display: block; aspect-ratio: 2/3; border-radius: 7px; background: linear-gradient(100deg, #1e232d 30%, #2a303c 50%, #1e232d 70%) 0 0 / 300% 100%}
+@media (prefers-reduced-motion: no-preference) {.shelfSkeleton {animation: ydlShimmer 1.4s ease-in-out infinite}}
+@keyframes ydlShimmer {from {background-position: 100% 0} to {background-position: 0 0}}
