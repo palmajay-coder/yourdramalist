@@ -209,7 +209,7 @@ await test("the green + opens a full-screen search that shows results on the sam
  assert(sheet().open&&focused===box(),"the + opens the search with the box focused");
  assert(sheet().querySelector(".quickSearchIntro")!.textContent==="Search","the screen is titled Search");
  const steps=[...sheet().querySelectorAll(".quickSearchSteps li")].map((li:any)=>li.textContent);
- assert(steps.join("|")==="Search a drama or movie|Add titles to your own collection|Create catalogs from your favorite actors or directors|Install the collection in Nuvio"&&sheet().querySelectorAll(".quickSearchSteps .quickSearchStepIcon svg").length===4&&!/\bOr\b/.test(steps.join(" ")),"the tip explains titles, filmographies and collections: "+steps.join("|"));
+ assert(steps.join("|")==="Search a drama or movie|Add titles to your own collection|Create catalogs from your favorite actors or directors|Install them in Nuvio"&&sheet().querySelectorAll(".quickSearchSteps .quickSearchStepIcon svg").length===4&&!/\bOr\b/.test(steps.join(" ")),"the tip explains titles, filmographies and collections: "+steps.join("|"));
  assert((document.getElementById("discoverForm") as any).hidden,"Discover no longer shows its own search bar");
  assert(sheet().querySelector("form").classList.contains("withIntro"),"the heading sits above the search box while there are no recent searches");
  (sheet().querySelector(".quickSearchBack") as any).click();

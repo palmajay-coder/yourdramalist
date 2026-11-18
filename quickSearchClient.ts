@@ -92,7 +92,7 @@ export function installQuickSearch() {
       mark.innerHTML = '<svg viewBox="0 0 24 24">' + icons[icon] + "</svg>";
       return mark;
     };
-    for (const [icon, text] of [["search", "Search a drama or movie"], ["add", "Add titles to your own collection"], ["person", "Create catalogs from your favorite actors or directors"], ["tv", "Install the collection in Nuvio"]]) {
+    for (const [icon, text] of [["search", "Search a drama or movie"], ["add", "Add titles to your own collection"], ["person", "Create catalogs from your favorite actors or directors"], ["tv", "Install them in Nuvio"]]) {
       const step = element("li");
       step.append(iconMark(icon), element("span", "", text));
       steps.append(step);
