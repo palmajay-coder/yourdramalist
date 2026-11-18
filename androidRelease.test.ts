@@ -10,7 +10,7 @@ await test("the version endpoint reads the release's version file and caches it"
  const handle=createAndroidRelease((async()=>{calls++;return Response.json({versionCode:107,versionName:"1.1.25"})}) as any,()=>time);
  const first=await(await handle(new Request("https://test/api/app/android"))).json();
  await handle(new Request("https://test/api/app/android"));
- assert(first.versionCode===107&&first.versionName==="1.1.25"&&first.url==="https://github.com/palmajay-coder/yourdramalist/releases/download/v1.1.25/YourDramaList-1.1.25-android.apk"&&calls===1,"version or cache: "+JSON.stringify(first)+" calls "+calls);
+ assert(first.versionCode===107&&first.versionName==="1.1.25"&&first.url==="https://github.com/palmajay-coder/yourdramalist/releases/latest/download/YourDramaList-1.1.25-android.apk"&&calls===1,"version or cache: "+JSON.stringify(first)+" calls "+calls);
  time+=61*60*1000;await handle(new Request("https://test/api/app/android"));
  assert(calls===2,"the cache should expire after an hour");
 });

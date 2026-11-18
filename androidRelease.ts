@@ -1,9 +1,10 @@
 // The newest Android app release, read from the version file the "Android app release" GitHub workflow
 // publishes with each release. The setup page uses it to offer an update inside the app.
 const REPO = "palmajay-coder/yourdramalist";
-// Releases are named like the earlier ones: tag v1.1.27, file YourDramaList-1.1.27-android.apk.
+// The APK is named like the earlier releases: YourDramaList-1.1.27-android.apk. The version comes from the
+// latest release's android-latest.json, so the file is read from that same latest release.
 export const androidApkUrl = (version: string) =>
-  `https://github.com/${REPO}/releases/download/v${version}/YourDramaList-${version}-android.apk`;
+  `https://github.com/${REPO}/releases/latest/download/YourDramaList-${version}-android.apk`;
 /** The releases page, used when the newest version is unknown. */
 export const ANDROID_RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 const VERSION_URL = `https://github.com/${REPO}/releases/latest/download/android-latest.json`;
