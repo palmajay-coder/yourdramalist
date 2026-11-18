@@ -6,9 +6,13 @@ export function installPosterWall(seeds,enabledPages=["connect"]){
  let initialized=false,pending;const valid=list=>(Array.isArray(list)?list:[]).filter(x=>{try{const u=new URL(x.poster);return u.protocol==="https:"&&u.hostname==="image.tmdb.org"&&!u.username&&!u.password&&!u.port&&/^\/t\/p\/w780\/[A-Za-z0-9]+\.(jpg|png|webp)$/.test(u.pathname)}catch{return false}});
  function render(list){const posters=valid(list);if(!posters.length)return;track.replaceChildren();for(let copy=0;copy<2;copy++){const half=document.createElement("div");half.className="motionHalf";for(let i=0;i<20;i++){const poster=posters[i%posters.length],frame=document.createElement("div"),img=document.createElement("img");frame.className="motionPoster";img.src=poster.poster;img.alt="";img.width=780;img.height=1170;img.decoding="async";img.loading=copy===0&&i<5?"eager":"lazy";img.referrerPolicy="no-referrer";frame.append(img);half.append(frame)}track.append(half)}}
  function update(page){const active=enabledPages.includes(page);root.classList.toggle("motionActive",active);if(!active||initialized)return;initialized=true;render(seeds);pending=fetch("/api/background/posters",{signal:AbortSignal.timeout(30000)}).then(r=>r.ok?r.json():null).then(v=>{if(valid(v?.posters).length>=8&&v.status!=="fallback")render(v.posters)}).catch(()=>{});}
+ // Tint: the owner's color as a soft vignette, a little darker toward the edges (same shape as the default).
  function setTint(color,opacity){
-  shade.style.background = color;
-  shade.style.opacity = String(opacity);
+  const hex=/^#([0-9a-f]{6})$/i.exec(String(color||""));const alpha=Number(opacity);
+  if(!hex||!Number.isFinite(alpha)||alpha<0||alpha>1)return;
+  const n=parseInt(hex[1],16),rgb=[(n>>16)&255,(n>>8)&255,n&255].join(",");
+  const at=extra=>"rgba("+rgb+","+Math.min(1,alpha+extra).toFixed(2)+")";
+  shade.style.setProperty("--poster-shade","radial-gradient(ellipse at center,"+at(0)+" 0%,"+at(0.07)+" 65%,"+at(0.19)+" 100%)");
  }
  return {update,setTint};
 }
