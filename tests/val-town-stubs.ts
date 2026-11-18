@@ -3,6 +3,7 @@
 export const blob = {
   async getJSON(_key: string) { return undefined; },
   async setJSON(_key: string, _value: unknown) {},
+  async delete(_key: string) {},
   async get(_key: string): Promise<Response> { throw Error("No stored blob in offline tests"); },
   async set(_key: string, _value: unknown) {},
 };

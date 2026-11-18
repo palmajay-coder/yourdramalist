@@ -19,6 +19,7 @@ export const TEXT = {
   catalogAdded: "✓ Added",
   catalogSelect: "Select catalog",
   catalogTitlePreview: "Title preview",
+  closePreview: "Close title preview",
   catalogPopularity: "Popularity",
   catalogRatingUnavailable: "MyDramaList rating unavailable",
   catalogPrevious: "Previous titles",
@@ -192,8 +193,7 @@ export const TEXT = {
   profileSearchLabel: "Enter a username or paste a link from any list.",
   profilePlaceholder:
     "For example: Jaesan or https://mydramalist.com/list/Ln8NRep4",
-  discoverSearchLabel:
-    "Discover new catalogs by entering the name of any actor or director and select your choice.",
+  discoverSearchLabel: "name a title, actor, director...",
   dramas: "Dramas",
   actors: "Actors",
   directors: "Directors",
@@ -220,6 +220,4 @@ export const TEXT = {
   remove: "Remove ",
   emptyWatchlist: "User has not added any titles yet",
   watchlistArtworkUnavailable: "Poster preview unavailable",
-  searchActors: "Try searching 'Son Ye Jin', 'Takuya Kimura' etc..",
-  searchDirectors: "Try searching 'Park Chan Wook', 'Kiyoshi Kurosawa'...",
 } as const;

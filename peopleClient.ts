@@ -99,17 +99,63 @@ export function installPeopleUI() {
   function renderMatches(data2) {
     cleanup();
     const mode = data2.mode;
-    $("listItems").replaceChildren();
-    $("results").textContent = data2.people.length ? "" : "No matching people found. Try another name.";
-    if (data2.warning) $("results").append(document.createTextNode(" \xB7 " + data2.warning));
-    for (const person of data2.people) {
-      $("listItems").append(compactPerson(person));
+    const results = $("listItems");
+    const titles = data2.titles || [];
+    results.replaceChildren();
+    $("results").textContent = titles.length || data2.people.length ? "" : "No matches found. Try another search.";
+    if (data2.warning) $("results").append(document.createTextNode(" · " + data2.warning));
+    if (titles.length) {
+      const section = document.createElement("section");
+      const heading = document.createElement("h3");
+      heading.className = "catalogSectionTitle";
+      heading.textContent = "Dramas and movies";
+      const track = document.createElement("div");
+      track.className = "discoverTitleRows";
+      for (const item of titles) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "discoverTitleIdentity";
+        const row = document.createElement("article");
+        row.className = "catalogShelf discoverTitleRow";
+        const artwork = document.createElement(item.poster ? "img" : "span");
+        if (item.poster) {
+          artwork.src = item.poster;
+          artwork.alt = "";
+          artwork.loading = "lazy";
+          artwork.referrerPolicy = "no-referrer";
+          artwork.addEventListener("error", () => {
+            const blank = document.createElement("span");
+            blank.className = "shelfPosterBlank";
+            artwork.replaceWith(blank);
+          }, { once: true });
+        } else {
+          artwork.className = "shelfPosterBlank";
+          artwork.setAttribute("aria-hidden", "true");
+        }
+        const title = document.createElement("strong");
+        title.textContent = item.name;
+        button.append(artwork, title);
+        button.onclick = () => showCatalogTitle(item, {discover: true});
+        const add = makeDiscoverTitleAdd(item, "search",
+          setSaving => openCollectionPicker(item, document.body, setSaving));
+        row.append(button, add);
+        track.append(row);
+      }
+      section.append(heading, track);
+      results.append(section);
     }
+    if (data2.people.length && (titles.length || data2.query)) {
+      const heading = document.createElement("h3");
+      heading.className = "catalogSectionTitle";
+      heading.textContent = "Actors and directors";
+      results.append(heading);
+    }
+    for (const person of data2.people) results.append(compactPerson(person));
     sync();
     if (data2.page > 1 || data2.hasNextPage) {
       const nav = document.createElement("nav");
       nav.className = "searchPages";
-      nav.setAttribute("aria-label", "People search result pages");
+      nav.setAttribute("aria-label", "Discover search result pages");
       for (const step of [-1, 1]) {
         if (step === -1 && data2.page === 1 || step === 1 && !data2.hasNextPage) continue;
         const button = document.createElement("button");
@@ -132,7 +178,7 @@ export function installPeopleUI() {
       if (requestId !== listRequest) return;
       renderMatches(data2);
     } catch (e) {
-      if (requestId === listRequest) $("results").textContent = "Unable to search people: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId === listRequest) $("results").textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
   async function fromUrl(raw, mode = state.filter) {

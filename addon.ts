@@ -16,7 +16,8 @@ import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,app
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
-type Entry={id:string;name:string;type:'series'|'movie';filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+import {loadPersonalCatalog,personalCatalogId} from './personalCatalogs.ts';
+type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -38,6 +39,11 @@ export function normalizeAddon(body:any){
  if((body.betterPosters && (!betterPosters || preferences.posters || posterPlus || rpdb)) || (body.posterPlus && (!posterPlus || preferences.posters || betterPosters || rpdb)) || (body.rpdb && (!rpdb || preferences.posters || betterPosters || posterPlus)) || preferenceIssue(preferences,keys))throw new InvalidConfig('preferences');
  const entries:Entry[]=body.catalogs.map((item:any)=>{
   const name=String(item.name||'').trim().slice(0,180);if(!name)throw new InvalidConfig('catalog-entry');
+  if(item.kind==='user-collection'){
+   const ref=typeof item.url==='string'&&item.url.startsWith('ydl-personal:')?item.url.slice('ydl-personal:'.length):'';
+   if(!personalCatalogId.test(ref))throw new InvalidConfig('catalog-entry');
+   return{id:ref,name,type:'series',personal:true};
+  }
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return withFilter({id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}},item.filter);}
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
@@ -140,7 +146,12 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  let pool:any[];
- if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
+ if(entry.personal){
+  const catalog=await ((deps as any).personalCatalog??loadPersonalCatalog)(entry.id);
+  if(!catalog?.items?.length)return{metas:[]};
+  pool=catalog.items;
+ }
+ else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
  else if(entry.watchlist&&entry.watchlistStatus)pool=await (deps.watchlistCategory??loadWatchlistCategory)(entry.watchlist,entry.watchlistStatus);
  else if(entry.watchlist){
   const sections=await (deps.watchlistSections??loadWatchlist)(entry.watchlist);
@@ -224,7 +235,7 @@ export async function handleAddon(req:Request){
     else if(entry.explore)scopes.push(`catalog.selected:explore:${entry.explore.category}:${entry.explore.country||'all'}`);
     else if(entry.person)scopes.push('feature.selected:'+(entry.mode==='director'?'director-filmography':'actor-filmography'));
     else if(entry.watchlist)scopes.push('feature.selected:'+(entry.watchlistAll?'community-combined-watchlist':'community-watchlist'));
-    else scopes.push('feature.selected:community-public-list');
+    else if(!entry.personal)scopes.push('feature.selected:community-public-list');
     if(entry.filter)scopes.push('feature.selected:filtered-catalog');
    }
    const prefs=config.preferences as any;

@@ -40,9 +40,16 @@ export function installExploreUI() {
   let workers = 0;
   const jobs = [];
   function sync() {
-    for (const [url, button] of buttons) {
+    for (const [url, {button, catalog}] of buttons) {
       const on = state.selection.some((x) => x.url === url);
-      button.textContent = on ? copy.catalogAdded : copy.compactCatalogAdd;
+      const label = copy.compactCatalogAdd;
+      const icon = document.createElement("span");
+      icon.className = "discoverAddIcon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = on ? "✓" : "+";
+      button.replaceChildren(icon, document.createTextNode(on ? "Added" : label));
+      button.classList.toggle("is-added", on);
+      button.setAttribute("aria-label", label + ": " + catalog.name);
       button.setAttribute("aria-pressed", String(on));
     }
   }
@@ -72,10 +79,9 @@ export function installExploreUI() {
     actions.className = "catalogRowActions";
     const add2 = document.createElement("button");
     add2.type = "button";
-    add2.className = "secondary catalogAdd";
-    add2.setAttribute("aria-label", copy.catalogSelect + " " + c.name);
+    add2.className = "catalogAdd discoverAddPill";
     add2.onclick = () => toggleList(c);
-    buttons.set(c.url, add2);
+    buttons.set(c.url, {button:add2, catalog:c});
     actions.append(add2);
     head.append(info, actions);
     const track = document.createElement("div");
@@ -137,7 +143,7 @@ export function installExploreUI() {
     track.textContent = copy.loadingLists;
   }
   function pruneButtons() {
-    for (const [url, button] of buttons) {
+    for (const [url, {button}] of buttons) {
       if (!button.isConnected) buttons.delete(url);
     }
   }

@@ -42,10 +42,7 @@ export function installAndroidDiscover() {
   const discoverForm = $("discoverForm");
   const discoverInput = $("discoverInput");
   $("discoverSearch").querySelector(".discoverModes").classList.add("hidden");
-  $("discoverLabel").textContent = "Search actors and directors";
   $("discoverLabel").classList.add("androidScreenReader");
-  discoverInput.placeholder = "Search actors and directors";
-  discoverInput.setAttribute("aria-label", discoverInput.placeholder);
   discoverInput.setAttribute("enterkeyhint", "search");
   discoverInput.required = false;
 
@@ -65,10 +62,9 @@ export function installAndroidDiscover() {
     clearPeopleResults();
     if (!query) return;
     discoverInput.blur();
-    // Both credit types use the same MyDramaList people lookup.
     if (/^https?:/i.test(query)) peopleUI.fromUrl(query, "actor");
     else if (query.length >= 2 && query.length <= 100) peopleUI.search(query, 1, "actor");
-    else $("results").textContent = "Enter a name between 2 and 100 characters or paste a MyDramaList person link.";
+    else $("results").textContent = "Enter a title or name between 2 and 100 characters, or paste a MyDramaList person link.";
   };
 
   $("continue").textContent = "Build add-on";
@@ -77,8 +73,9 @@ export function installAndroidDiscover() {
   bottomNav.setAttribute("aria-label", "Main navigation");
   const destinations = [
     ["connect", '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>', "Connect"],
-    ["discover", "▦", "Discover"],
     ["community", "♡", "Community"],
+    ["discover", "▦", "Discover"],
+    ["collections", layeredPostersIcon, "My Collections"],
   ];
   const navButtons = new Map();
   for (const [key, icon, label] of destinations) {
@@ -90,17 +87,8 @@ export function installAndroidDiscover() {
     button.innerHTML = `<span class="androidNavIcon" aria-hidden="true">${icon}</span><span>${label}</span>`;
     button.onclick = () => {
       if (key === "connect") navigate("connect");
-      if (key === "discover") openSelection("discover");
-      if (key === "community") {
-        openSelection("profiles");
-        if (connectedUser) {
-          input.value = connectedUser;
-          loadProfile(connectedUser);
-        } else {
-          input.value = "";
-          $("results").textContent = "";
-        }
-      }
+      if (key === "discover" || key === "collections") openSelection(key);
+      if (key === "community") openCommunity(connectedUser);
       syncNav(currentPage, key);
     };
     navButtons.set(key, button);
@@ -109,9 +97,11 @@ export function installAndroidDiscover() {
   document.body.append(bottomNav);
   let wasInDiscover = false;
   function syncNav(page, explicit) {
-    const selected = explicit || (page === "connect" ? "connect" : state.tab === "profiles" ? "community" : "discover");
+    const selected = explicit || (page === "connect" ? "connect" : state.tab === "profiles" ? "community" : state.tab);
     const inDiscover = state.tab === "discover";
-    heading.textContent = inDiscover ? "Discover" : "Search by Username or paste a list URL from MyDramaList";
+    const inCollections = state.tab === "collections";
+    heading.textContent = inCollections ? "My Collections" : inDiscover ? "Discover" : "Community";
+    filters.hidden = inCollections;
     catalogs.hidden = !inDiscover;
     actions.classList.toggle("hidden", page !== "selection");
     actions.dataset.section = inDiscover ? "discover" : "community";
@@ -144,8 +134,13 @@ export function installAndroidDiscover() {
   if (!androidApp && location.pathname !== "/") startPage = pageForPath(location.pathname);
   if (startPage === "confirm" && !state.selection.length) startPage = "selection";
   const path = {connect:"/setup", selection:"/setup/lists", preferences:"/setup/preferences", confirm:"/setup/confirm"}[startPage];
-  history.replaceState({ ydlPage: startPage, ydlFlowStep: 0 }, "", path);
+  const trailerDemo = startPage === "selection" && new URLSearchParams(location.search).has("trailer-preview");
+  history.replaceState({ ydlPage: startPage, ydlFlowStep: 0 }, "", path + (trailerDemo ? "?trailer-preview" : ""));
   navigate(startPage, false);
   exploreUI.render();
   syncNav(startPage);
+  if (trailerDemo) {
+    discoverInput.value = "Our Sticky Love";
+    discoverForm.requestSubmit();
+  }
 }

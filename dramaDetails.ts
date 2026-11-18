@@ -1,5 +1,5 @@
 import { load } from "npm:cheerio@1.0.0";
-import { kuryana, KuryanaError } from "./kuryana.ts";
+import { kuryana, KuryanaError, mdlImage } from "./kuryana.ts";
 
 export function dramaUrl(raw: string): string | null {
   try {
@@ -33,13 +33,27 @@ export function extractDramaDetails(html: string, expectedUrl: string) {
 }
 
 // Kuryana version of extractDramaDetails (MyDramaList refuses cloud hosts). Same fields.
-export function detailsFromKuryana(data: any, expectedUrl: string): Details {
+export function detailsFromKuryana(data: any, expectedUrl: string) {
   const id = expectedUrl.match(/^https:\/\/mydramalist.com\/(\d+)-/)?.[1];
   if (!id || String(data?.id) !== id) throw Error("Unexpected drama page");
   const positive = (value: unknown) => { const n = Number(value); return Number.isSafeInteger(n) && n > 0 ? n : null; };
   const rating = Number(data?.rating);
   const synopsis = String(data?.synopsis || "").replace(/\r\n/g, "\n").trim() || null;
-  return { sourceUrl: expectedUrl, synopsis, score: Number.isFinite(rating) && rating > 0 && rating <= 10 ? rating : null, rank: positive(data?.ranked), popularity: positive(data?.popularity) };
+  const fields = data?.details || {};
+  const value = (field: string) => {
+    const raw = data?.[field] ?? fields[field];
+    return typeof raw === "string" || typeof raw === "number" ? String(raw).slice(0, 120) : undefined;
+  };
+  const cast = (Array.isArray(data?.casts) ? data.casts : Array.isArray(data?.cast) ? data.cast : [])
+    .slice(0, 10).filter(person => typeof person?.name === "string").map(person => ({
+      name: person.name.slice(0, 120),
+      role: String(person.character || person.role || "").slice(0, 120),
+      image: mdlImage(person.profile_image || person.image),
+    }));
+  return { sourceUrl: expectedUrl, synopsis, cast, name: value("title"), type: value("type"),
+    year: String(value("year") || value("aired") || value("release_date") || "").match(/\b(?:19|20)\d{2}\b/)?.[0],
+    country: value("country"), duration: value("duration"), episodes: positive(value("episodes")),
+    titleStatus: value("status"), score: Number.isFinite(rating) && rating > 0 && rating <= 10 ? rating : null, rank: positive(data?.ranked), popularity: positive(data?.popularity) };
 }
 
 export type Details = ReturnType<typeof extractDramaDetails>;
