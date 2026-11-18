@@ -1,6 +1,7 @@
 import { extractDramaDetails, synopsisPreview, dramaUrl, createDetailsService, type Entry } from './dramaDetails.ts';
 import { goblinHtml } from './goblinFixture.ts';
 import { tmdbOnlyPreview } from './dramaDetailsApi.ts';
+import { matchCatalogTitle } from './catalogMdlMatch.ts';
 const url='https://mydramalist.com/18452-goblin';
 let passed=0;
 function assert(ok: unknown, message: string) { if(!ok) throw Error(message); }
@@ -72,5 +73,23 @@ await test('a TMDB title with no MyDramaList match still gets the full preview f
  assert(!('poster' in preview)&&!('genres' in preview)&&!('tagline' in preview),'empty TMDB fields are dropped');
  assert(!('mdlUrl' in preview)&&preview.status==='unavailable'&&preview.reviews.length===0,'no MyDramaList link or reviews, so no Add button');
  assert(tmdbOnlyPreview({kind:'movie',synopsis:null}).type==='Movie','movies are labelled Movie');
+});
+await test('TMDB titles match MyDramaList even with one-letter names or subtitles',async()=>{
+ const results=[
+  {title:'W',slug:'16589-w',link:'https://mydramalist.com/16589-w',year:2016,type:'Korean Drama',rating:8.3},
+  {title:'W: The Unfinished Story',slug:'21631-w-the-unfinished-story',link:'https://mydramalist.com/21631-w-the-unfinished-story',year:2016,type:'Korean TV Show'},
+  {title:'W Special',slug:'19970-w-special',link:'https://mydramalist.com/19970-w-special',year:2016,type:'Korean Special'},
+  {title:'The Next Stop W',slug:'721665-w-two-worlds',link:'https://mydramalist.com/721665-w-two-worlds',year:2023,type:'Chinese Drama'},
+ ];
+ const asked:string[]=[];const search=async(q:string)=>{asked.push(q);return {dramas:results}};
+ const w=await matchCatalogTitle({kind:'tv',year:2016,names:['W','W - Two Worlds Apart'],countries:['KR']},search);
+ assert(w?.url==='https://mydramalist.com/16589-w'&&w.score===8.3,'"W" matches MyDramaList\'s W: '+JSON.stringify(w));
+ assert(asked.includes('W'),'the one-letter name is searched: '+asked.join(', '));
+ const subtitle=await matchCatalogTitle({kind:'tv',year:2016,names:['W: Two Worlds'],countries:['KR']},search);
+ assert(subtitle?.url==='https://mydramalist.com/16589-w','the short title before a subtitle matches');
+ assert(await matchCatalogTitle({kind:'tv',year:2017,names:['W'],countries:['KR']},search)===null,'the wrong year does not match');
+ assert(await matchCatalogTitle({kind:'movie',year:2016,names:['W'],countries:['KR']},search)===null,'a movie does not match a drama');
+ const twice=async()=>({dramas:[results[0],{...results[0],slug:'99-w',link:'https://mydramalist.com/99-w'}]});
+ assert(await matchCatalogTitle({kind:'tv',year:2016,names:['W'],countries:['KR']},twice)===null,'two equal matches stay unmatched');
 });
 console.log(JSON.stringify({passed}));

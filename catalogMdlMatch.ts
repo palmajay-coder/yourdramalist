@@ -17,18 +17,35 @@ const countryNames: Record<string, string> = {
 const normalize = (name: string) => String(name || "").normalize("NFKD").toLowerCase()
   .replace(/\p{M}/gu, "").replace(/[^\p{L}\p{N}]/gu, "");
 
-export async function matchCatalogTitle(title: CatalogTitle): Promise<Match | null> {
+type Search = (query: string) => Promise<{dramas?: SearchTitle[]}>;
+const kuryanaSearch: Search = query =>
+  kuryana<{dramas?: SearchTitle[]}>("/v2/search?q=" + encodeURIComponent(query) + "&page=1", {timeoutMs: 3500});
+
+/** A title's names plus the short title before a subtitle ("W: Two Worlds" also counts as "W"). */
+function nameVariants(names: string[]) {
+  const variants = new Set<string>();
+  for (const name of names) {
+    const clean = String(name || "").trim();
+    if (!clean) continue;
+    variants.add(clean);
+    const short = clean.split(/\s*:\s+|\s+[-–—]\s+/)[0]?.trim();
+    if (short && short !== clean) variants.add(short);
+  }
+  return [...variants].filter(name => normalize(name).length >= 1);
+}
+
+export async function matchCatalogTitle(title: CatalogTitle, search: Search = kuryanaSearch): Promise<Match | null> {
   if (!title.year) return null;
-  const queries = [...new Set(title.names.filter(name => normalize(name).length >= 2))].slice(0, 4);
-  const names = new Set(queries.map(normalize));
+  // Single-letter titles such as "W" count too; the year, type and country checks below keep matches exact.
+  const variants = nameVariants(title.names);
+  const queries = variants.slice(0, 4);
+  const names = new Set(variants.map(normalize));
   const countries = title.countries.map(code => countryNames[code]).filter(Boolean);
   const matches = new Map<string, Match>();
 
   let hadFailure = false;
   for (let i = 0; i < queries.length; i += 2) {
-    const results = await Promise.allSettled(queries.slice(i, i + 2).map(query =>
-      kuryana<{dramas?: SearchTitle[]}>("/v2/search?q=" + encodeURIComponent(query) + "&page=1", {timeoutMs: 3500}),
-    ));
+    const results = await Promise.allSettled(queries.slice(i, i + 2).map(query => search(query)));
     for (const result of results) {
       if (result.status !== "fulfilled") {
         hadFailure = true;
