@@ -92,4 +92,18 @@ await test("Weekly Picks keeps Add and Added and still selects the whole shelf",
  assert(JSON.parse(saved.get("ydl-v3-selection")||"[]").length===0&&add.textContent==="+"+TEXT.compactCatalogAdd,"Added removes the whole shelf again");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
+await test("the Connect poster wall uses the saved tint, and the admin preview only from the same site",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const location={href:"https://test/setup?tint-preview=1",origin:"https://test",pathname:"/setup",search:"?tint-preview=1",hostname:"test"};
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:()=>null,setItem(){},removeItem(){}},location,{state:null,pushState(){},replaceState(){},back(){}},async(url:string)=>String(url)==="/api/appearance"?Response.json({tint:"#123456",opacity:0.6}):Response.json({collections:[],items:[],posters:[]}),()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ await new Promise(r=>setTimeout(r,30));
+ const shade=()=>(document.querySelector(".motionShade") as any).style.getPropertyValue("--poster-shade");
+ assert(shade().includes("rgba(18,52,86,0.60) 0%")&&shade().includes("rgba(18,52,86,0.79) 100%"),"the saved tint is applied: "+shade());
+ const message=(origin:string,data:any)=>{const e=new window.Event("message") as any;e.origin=origin;e.source=window.parent;e.data=data;window.dispatchEvent(e)};
+ message("https://evil.example",{type:"ydl-tint-preview",tint:"#ff0000",opacity:0.2});
+ assert(!shade().includes("255,0,0"),"preview messages from other sites are ignored");
+ message("https://test",{type:"ydl-tint-preview",tint:"#ff0000",opacity:0.2});
+ assert(shade().includes("rgba(255,0,0,0.20) 0%"),"the admin preview updates the tint live: "+shade());
+});
 console.log(JSON.stringify({passed}));
