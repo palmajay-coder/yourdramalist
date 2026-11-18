@@ -92,14 +92,12 @@ export function installQuickSearch() {
       mark.innerHTML = '<svg viewBox="0 0 24 24">' + icons[icon] + "</svg>";
       return mark;
     };
-    for (const [icon, text] of [["search", "Search a drama or movie"], ["add", "Add it to your own collection"], ["tv", "Install the collection in Nuvio"]]) {
+    for (const [icon, text] of [["search", "Search a drama or movie"], ["person", "Search an actor or director for their full filmography"], ["add", "Add it to your own collection"], ["tv", "Install the collection in Nuvio"]]) {
       const step = element("li");
       step.append(iconMark(icon), element("span", "", text));
       steps.append(step);
     }
-    const people = element("p", "quickSearchPeopleTip");
-    people.append(iconMark("person"), element("span", "", "Or search an actor or director to add their whole filmography."));
-    box.append(steps, people);
+    box.append(steps);
     return box;
   }
   function render() {

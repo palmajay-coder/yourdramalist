@@ -135,7 +135,6 @@ body.androidSetup #discoverForm[hidden],body.androidSetup #discoverLabel[hidden]
 .quickSearchSteps li{display:flex;align-items:center;gap:14px;font-size:16px;color:#e4e8ef}
 .quickSearchStepIcon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:#2878eb1f;color:#6ea3ff}
 .quickSearchStepIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.quickSearchPeopleTip{display:flex;align-items:center;gap:14px;margin:18px 0 0;padding-top:18px;border-top:1px solid #ffffff12;font-size:16px;color:#e4e8ef;line-height:1.4}
 .quickSearchBar input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 4px;border:0;background:transparent;color:#f1f3f6;font-size:18px;outline:none}
 .quickSearchBar input::placeholder{color:#8f97a6}
 .quickSearchBar input::-webkit-search-cancel-button,.quickSearchBar input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
