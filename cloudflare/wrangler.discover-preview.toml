@@ -1,0 +1,16 @@
+name = "yourdramalist-discover-preview"
+main = "dist/worker.js"
+no_bundle = true
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ydl-discover-preview-db"
+database_id = "5dc38d11-dceb-49ff-b8d6-696246c345c8"
+
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "ydl-discover-preview-data"

@@ -74,7 +74,10 @@ export function installAndroidDiscover() {
     if (!query) return;
     discoverInput.blur();
     if (/^https?:/i.test(query)) peopleUI.fromUrl(query, "actor");
-    else if (query.length >= 2 && query.length <= 100) peopleUI.search(query, 1, "actor");
+    else if (query.length >= 2 && query.length <= 100) {
+      quickSearch.remember(query);
+      peopleUI.search(query, 1, "actor");
+    }
     else $("results").textContent = "Enter a title or name between 2 and 100 characters, or paste a MyDramaList person link.";
   };
 
@@ -85,6 +88,7 @@ export function installAndroidDiscover() {
   const destinations = [
     ["connect", '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>', "Connect"],
     ["community", "♡", "Community"],
+    ["search", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v9M7.5 12h9"/></svg>', "Search titles to add"],
     ["discover", "▦", "Discover"],
     ["collections", layeredPostersIcon, "My Collections"],
   ];
@@ -95,7 +99,15 @@ export function installAndroidDiscover() {
     button.className = "androidNavItem";
     button.dataset.destination = key;
     button.setAttribute("aria-label", label);
-    button.innerHTML = `<span class="androidNavIcon" aria-hidden="true">${icon}</span><span>${label}</span>`;
+    button.innerHTML = `<span class="androidNavIcon" aria-hidden="true">${icon}</span><span${key === "search" ? ' class="androidScreenReader"' : ""}>${label}</span>`;
+    if (key === "search") {
+      // The green + opens the full-screen search; it is an action, not a page, so it is never "active".
+      button.classList.add("androidNavAdd");
+      button.setAttribute("aria-haspopup", "dialog");
+      button.onclick = () => quickSearch.open(button);
+      bottomNav.append(button);
+      continue;
+    }
     button.onclick = () => {
       if (key === "connect") navigate("connect");
       if (key === "discover" || key === "collections") openSelection(key);

@@ -36,7 +36,7 @@ Deno.test("Connect keeps its landing title while other tabs share the mobile hea
   const nav = document.querySelector(".androidBottomNav")!;
   const navLabels = () => [...nav.querySelectorAll("button")].map(button=>button.getAttribute("aria-label")).join("|");
   const iconMarkup = [...header.querySelectorAll(".androidHeaderActions button")].map(node=>node.innerHTML).join("|");
-  assert(navLabels()==="Connect|Community|Discover|My Collections","Navigation order changed");
+  assert(navLabels()==="Connect|Community|Search titles to add|Discover|My Collections","Navigation order changed");
 
   click("connect");
   assert(!header.classList.contains("mobilePageHeader") && !header.querySelector("h1"),"Connect has a navigation heading");
@@ -72,5 +72,5 @@ Deno.test("Connect keeps its landing title while other tabs share the mobile hea
   click("connect");
   (document.getElementById("skip") as HTMLButtonElement).click();
   assert(heading()?.textContent==="Discover","Skip account flow changed");
-  assert(navLabels()==="Connect|Community|Discover|My Collections","Bottom navigation changed during resize");
+  assert(navLabels()==="Connect|Community|Search titles to add|Discover|My Collections","Bottom navigation changed during resize");
 });
