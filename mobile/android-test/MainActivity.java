@@ -22,14 +22,11 @@ import android.widget.Toast;
 public final class MainActivity extends Activity {
     private static final String HOST = "yourdramalist.net";
     private static final String START_URL = "https://" + HOST + "/";
-    private static final String WHATS_NEW_VERSION = "1.1.26";
+    // build.sh fills these from mobile/android-version.txt and mobile/whats-new.md, the same text as the
+    // GitHub release notes. Left unfilled (an empty message), no What's new dialog is shown.
+    private static final String WHATS_NEW_VERSION = "@@WHATS_NEW_VERSION@@";
     private static final String WHATS_NEW_TITLE = "What’s new in " + WHATS_NEW_VERSION;
-    private static final String WHATS_NEW_MESSAGE =
-            "• Unified Discover search: Find dramas, movies, actors, and directors in one search bar.\n\n"
-            + "• Richer title previews: See artwork, ratings, cast, and MyDramaList reviews. Tap the blue Add to Collection button to save a title.\n\n"
-            + "• My Collections: Build custom catalogs, add or remove titles across collections, and delete collections you no longer need.\n\n"
-            + "• Nuvio sync: Install collections as catalogs and sync later title edits without reinstalling. Remove unwanted catalogs on the Confirmation page.\n\n"
-            + "• Simpler navigation: Connect opens your lists in Community. Skip to go straight to Discover, with My Collections next.";
+    private static final String WHATS_NEW_MESSAGE = "@@WHATS_NEW_MESSAGE@@";
     private WebView web;
     private Button retry;
 
@@ -104,7 +101,8 @@ public final class MainActivity extends Activity {
         } catch (PackageManager.NameNotFoundException ignored) {
             return;
         }
-        if (!WHATS_NEW_VERSION.equals(installedPackage.versionName)
+        if (WHATS_NEW_MESSAGE.isEmpty() || WHATS_NEW_MESSAGE.startsWith("@@")
+                || !WHATS_NEW_VERSION.equals(installedPackage.versionName)
                 || installedPackage.lastUpdateTime <= installedPackage.firstInstallTime) return;
 
         SharedPreferences updates = getSharedPreferences("release-notes", MODE_PRIVATE);

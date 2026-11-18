@@ -1,0 +1,32 @@
+name: Android release notes
+# When mobile/whats-new.md changes, update the notes of the current Android release (the version in
+# mobile/android-version.txt) so the release page lists the same features as the app's What's new dialog.
+on:
+  push:
+    branches: [migration/cloudflare, main]
+    paths: ['mobile/whats-new.md']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Update the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(tr -d '[:space:]' < mobile/android-version.txt)
+          if ! gh release view "android-v$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "android-v$VERSION is not released yet; the release workflow will use these notes."
+            exit 0
+          fi
+          bash mobile/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release edit "android-v$VERSION" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/notes.md"

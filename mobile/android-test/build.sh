@@ -39,7 +39,28 @@ Path(sys.argv[2]).write_bytes(base64.b64decode(icon))
 PY
 
 cd "$temporary"
-javac --release 8 -classpath "$platform" -d classes "$source_dir/MainActivity.java"
+# The What's new dialog uses the same text as the GitHub release notes: mobile/whats-new.md.
+mkdir -p src
+python3 - "$source_dir/MainActivity.java" "src/MainActivity.java" "$source_dir/../android-version.txt" "$source_dir/../whats-new.md" "${YDL_VERSION_NAME:-}" <<'PY'
+import sys
+from pathlib import Path
+
+source, target, version_file, notes_file, version = sys.argv[1:6]
+if not version and Path(version_file).exists():
+    version = Path(version_file).read_text().strip()
+lines = []
+if Path(notes_file).exists():
+    for line in Path(notes_file).read_text().splitlines():
+        line = line.strip()
+        if line.startswith(("- ", "* ")):
+            lines.append("\u2022 " + line[2:].strip())
+message = "\n\n".join(lines)
+escape = lambda text: text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+java = Path(source).read_text()
+java = java.replace("@@WHATS_NEW_VERSION@@", escape(version)).replace("@@WHATS_NEW_MESSAGE@@", escape(message))
+Path(target).write_text(java)
+PY
+javac --release 8 -classpath "$platform" -d classes "src/MainActivity.java"
 jar cf classes.jar -C classes .
 "$tools/d8" --min-api 26 --lib "$platform" --output dex classes.jar
 # A release sets its own version. Android only installs an update with a higher version code.

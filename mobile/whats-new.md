@@ -1,0 +1,5 @@
+- Unified Discover search: Find dramas, movies, actors, and directors in one search bar.
+- Richer title previews: See artwork, ratings, cast, and MyDramaList reviews. Tap the blue Add to Collection button to save a title.
+- My Collections: Build custom catalogs, add or remove titles across collections, and delete collections you no longer need.
+- Nuvio sync: Install collections as catalogs and sync later title edits without reinstalling. Remove unwanted catalogs on the Confirmation page.
+- Simpler navigation: Connect opens your lists in Community. Skip to go straight to Discover, with My Collections next.

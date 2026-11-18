@@ -63,7 +63,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Same feature list as the app's What's new dialog (mobile/whats-new.md).
+          bash mobile/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
           gh release create "android-v$VERSION" "$RUNNER_TEMP/YourDramaList.apk" "$RUNNER_TEMP/android-latest.json" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
             --title "YourDramaList $VERSION for Android" \
-            --notes "Download YourDramaList.apk on your Android phone and open it to install. Signed with the permanent YourDramaList key, so later versions install over this one."
+            --notes-file "$RUNNER_TEMP/notes.md"
