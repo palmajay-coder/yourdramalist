@@ -23,19 +23,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           R: ${{ github.repository }}
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           for v in 1.1.25 1.1.26 1.1.27; do
             apk="YourDramaList-$v-android.apk"
             if ! id=$(gh api "repos/$R/releases/tags/android-v$v" -q .id 2>/dev/null); then
               echo "$v: already renamed"; continue
             fi
             sha=$(gh api "repos/$R/git/ref/tags/android-v$v" -q .object.sha)
-            gh api "repos/$R/git/ref/tags/v$v" > /dev/null 2>&1 || gh api "repos/$R/git/refs" -f ref="refs/tags/v$v" -f sha="$sha" > /dev/null
             asset=$(gh api "repos/$R/releases/$id" -q '.assets[] | select(.name == "YourDramaList.apk") | .id')
             [[ -z "$asset" ]] || gh api -X PATCH "repos/$R/releases/assets/$asset" -f name="$apk" > /dev/null
             gh api "repos/$R/releases/$id" -q .body | sed "s/YourDramaList\.apk/$apk/g" > "$RUNNER_TEMP/body.md"
-            gh api -X PATCH "repos/$R/releases/$id" -f tag_name="v$v" -f name="YourDramaList $v" \
-              -F body=@"$RUNNER_TEMP/body.md" -f make_latest=false > /dev/null
+            # The new tag is created on the same commit when the release moves to it.
+            gh api -X PATCH "repos/$R/releases/$id" -f tag_name="v$v" -f target_commitish="$sha" \
+              -f name="YourDramaList $v" -F body=@"$RUNNER_TEMP/body.md" -f make_latest=false > /dev/null
             echo "$v: tag v$v, title \"YourDramaList $v\", file $apk"
           done
           latest=$(gh api "repos/$R/releases/tags/v1.1.27" -q .id)
