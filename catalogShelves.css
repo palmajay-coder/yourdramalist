@@ -195,8 +195,6 @@
 .collectionPickerRowInfo {display:grid;gap:2px;min-width:0;flex:1;overflow-wrap:anywhere}
 .collectionPickerRowInfo strong {font-size:14px}
 .collectionPickerRowInfo small {font-size:11px;color:#b5c0d4}
-.collectionPickerMember {display:inline-block;margin-inline-start:6px;color:#b7ceff}
-.collectionPickerMember:empty {display:none}
 .collectionPickerRow input[type=checkbox] {appearance:auto;accent-color:#428aff;width:18px;height:18px;margin:0;padding:0;flex:none}
 .collectionPickerNew {margin-top:10px;border:1px solid #343e50;border-radius:12px;padding:0 12px;background:transparent}
 .collectionPickerList:empty + .collectionPickerNew {margin-top:0}

@@ -70,6 +70,10 @@ await test("title Add buttons follow saved collections and only turn green after
  assert(added()&&pill().textContent==="✓Added","a successful save shows a green Added: "+pill().textContent);
  assert(!pill().disabled,"the button is enabled again after saving");
  pill().click();assert(box().checked,"Added opens the picker with the saved membership checked");
+ const labels=()=>/Already added|Will add|Will remove/.test(document.querySelector(".collectionPickerList")!.textContent||"");
+ assert(!labels(),"rows show no membership labels");
+ box().checked=false;box().dispatchEvent(new window.Event("change"));assert(!labels(),"unchecking shows no label");
+ box().checked=true;box().dispatchEvent(new window.Event("change"));
  box().checked=false;box().dispatchEvent(new window.Event("change"));submit();
  assert(!added(),"removing the title from its last collection turns the button blue again");
 });

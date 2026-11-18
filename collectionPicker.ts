@@ -125,17 +125,13 @@ export function installCollectionPicker() {
         const count = collection.titles.length;
         const caption = element("small", "", count + (count === 1 ? " title" : " titles"));
         info.append(element("strong", "", collection.name), caption);
-        const membership = element("span", "collectionPickerMember", alreadyAdded ? "Already added" : "");
-        caption.append(membership);
+        // The checkbox alone shows membership; no extra "Already added" / "Will add" labels.
         const check = element("input");
         check.type = "checkbox";
         check.checked = alreadyAdded;
         check.onchange = () => {
           if (check.checked === alreadyAdded) changes.delete(collection.id);
           else changes.set(collection.id, check.checked);
-          membership.textContent = check.checked
-            ? (alreadyAdded ? "Already added" : "Will add")
-            : (alreadyAdded ? "Will remove" : "");
           updateSave();
         };
         row.append(artwork, info, check);
