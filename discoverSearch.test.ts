@@ -104,6 +104,87 @@ await test("Weekly Picks keeps Add and Added and still selects the whole shelf",
  assert(JSON.parse(saved.get("ydl-v3-selection")||"[]").length===0&&add.textContent==="+"+TEXT.compactCatalogAdd,"Added removes the whole shelf again");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
+await test("Weekly Picks titles open the full preview; Add waits for a MyDramaList match",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const storage={getItem:()=>null,setItem(){},removeItem(){}};
+ const location={href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"};
+ const proto=Object.getPrototypeOf(document.createElement("dialog"));
+ if(!proto.showModal){proto.showModal=function(){this.open=true};proto.close=function(){if(!this.open)return;this.open=false;this.dispatchEvent(new window.Event("close"))};}
+ const catalog={id:"weekly-kr-1",name:"This Week: Romance",url:"https://yourdramalist/weekly/kr/1",type:"series"};
+ const asked:string[]=[];
+ const fetcher=async(url:string)=>{
+  asked.push(String(url));
+  if(String(url).startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog,items:[{kind:"tv",id:11,name:"Matched Show",date:"2024-01-01",poster:"https://image.tmdb.org/a.jpg"},{kind:"tv",id:22,name:"New Show",date:"2025-01-01",poster:"https://image.tmdb.org/b.jpg"}]}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
+  if(String(url).includes("themoviedb.org%2Ftv%2F11"))return Response.json({mdlUrl:"https://mydramalist.com/11-matched-show",synopsis:"Story A",score:8.1,reviews:[],genres:["Romance"]});
+  if(String(url).includes("themoviedb.org%2Ftv%2F22"))return Response.json({status:"unavailable",synopsis:"Story B",score:null,reviews:[]});
+  return Response.json({collections:[],items:[]});
+ };
+ const realInterval=globalThis.setInterval,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const tick=(ms=20)=>new Promise(r=>setTimeout(r,ms));
+ try{
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,location,{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  let posters:any[]=[];
+  for(let i=0;i<50&&posters.length<2;i++){await tick(10);posters=[...document.querySelectorAll(".catalogShelfTrack .catalogPoster")];}
+  assert(posters.length===2,"Weekly Picks posters are missing");
+  const preview=()=>document.querySelector(".catalogTitleDialog") as any;
+  posters[0].click();
+  assert(preview().open&&preview().classList.contains("discoverTitlePreview")&&preview().querySelector(".catalogDialogClose").textContent==="Back","Weekly Picks opens the full preview");
+  assert(!preview().querySelector(".discoverPreviewActions button"),"Add waits for a MyDramaList match");
+  await tick();
+  assert(asked.some(u=>u.includes("view=discover")&&u.includes("themoviedb.org%2Ftv%2F11")),"the preview asks for the full view: "+asked.join(", "));
+  assert(preview().querySelector(".discoverPreviewActions .discoverCollectionAction")&&preview().querySelector('.discoverPreviewActions a[href="https://mydramalist.com/11-matched-show"]'),"a match shows Add to Collection and Open in MyDramaList");
+  assert(preview().textContent.includes("Story A")&&preview().textContent.includes("Story"),"the story shows");
+  preview().close();
+  posters[1].click();await tick();
+  assert(preview().open&&!preview().querySelector(".discoverPreviewActions button")&&preview().textContent.includes("Story B"),"no match: TMDB story only, no Add button");
+ }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
+});
+await test("tapping an actor opens their titles, and a title opens the full preview",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const saved=new Map<string,string>(),storage={getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)};
+ const location={href:"https://test/setup",origin:"https://test",pathname:"/setup",search:"",hostname:"test"};
+ const proto=Object.getPrototypeOf(document.createElement("dialog"));
+ if(!proto.showModal){proto.showModal=function(){this.open=true};proto.close=function(){if(!this.open)return;this.open=false;this.dispatchEvent(new window.Event("close"))};}
+ const person={id:"440",name:"Gong Yoo",url:"https://mydramalist.com/people/440-gong-yoo"};
+ const credits=[{id:"1",name:"Goblin",url:"https://mydramalist.com/18452-goblin",year:2016,type:"Drama",poster:"https://i.mydramalist.com/g.jpg"},{id:"2",name:"Coffee Prince",url:"https://mydramalist.com/2-coffee-prince",year:2007,type:"Drama",poster:null}];
+ const asked:string[]=[];
+ const fetcher=async(url:string)=>{
+  asked.push(String(url));const u=String(url);
+  if(u.startsWith("/api/mdl/people-search"))return Response.json({query:"Gong Yoo",page:1,peopleFirst:true,titles:[],people:[person],hasNextPage:false});
+  if(u.startsWith("/api/mdl/person"))return Response.json({person:{...person,actorCount:2,directorCount:0}});
+  if(u.startsWith("/api/mdl/filmography"))return Response.json({items:credits,list:{kind:"filmography",url:"ydl-filmography:actor:440",catalogId:"ydl-filmography:actor:440",name:"Gong Yoo’s Filmography",personId:"440",personName:"Gong Yoo",personDisplayName:"Gong Yoo",mode:"actor",personUrl:person.url,sort:"release-desc"}});
+  if(u.startsWith("/api/mdl/drama-details"))return Response.json({mdlUrl:"https://mydramalist.com/18452-goblin",synopsis:"A goblin story.",reviews:[]});
+  return Response.json({collections:[],items:[]});
+ };
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,location,{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ const tick=(ms=30)=>new Promise(r=>setTimeout(r,ms));
+ (document.querySelector(".androidNavAdd") as any).click();
+ (document.getElementById("quickSearchInput") as HTMLInputElement).value="Gong Yoo";
+ (document.querySelector(".quickSearch form") as any).dispatchEvent(new window.Event("submit",{cancelable:true}));await tick();
+ const row=document.querySelector(".quickSearchResults .compactCatalogRow")!;
+ const rowAdd=row.querySelector(".catalogAdd") as any;
+ assert(rowAdd.classList.contains("discoverAddPill")&&rowAdd.textContent==="+Add Filmography","the row uses the blue Add Filmography pill");
+ (row.querySelector(".compactPersonIdentity") as any).click();await tick();
+ const view=document.querySelector(".personTitlesDialog") as any;
+ assert(view.open&&view.querySelector("h2").textContent==="Gong Yoo"&&view.textContent.includes("2 titles"),"tapping the actor opens their titles");
+ const cards=[...view.querySelectorAll(".androidWatchlistTitle")] as any[];
+ assert(cards.length===2&&cards[0].textContent.includes("Goblin")&&cards[0].textContent.includes("2016 · Drama"),"the grid lists their titles with year and type");
+ assert(asked.filter(u=>u.startsWith("/api/mdl/filmography")).length===1,"the filmography loads once");
+ const headerAdd=view.querySelector(".androidWatchlistHeader .discoverAddPill") as any;
+ headerAdd.click();await tick();
+ assert(JSON.parse(saved.get("ydl-v3-selection")||"[]").some((x:any)=>x.url==="ydl-filmography:actor:440")&&headerAdd.textContent==="✓Added"&&rowAdd.textContent==="✓Added","Add Filmography in the header adds it, and both buttons turn green: "+headerAdd.textContent+" / "+rowAdd.textContent);
+ assert(asked.filter(u=>u.startsWith("/api/mdl/filmography")).length===1,"adding reuses the loaded filmography");
+ cards[0].click();await tick();
+ const preview=document.querySelector(".catalogTitleDialog") as any;
+ assert(preview.open&&preview.classList.contains("discoverTitlePreview")&&preview.textContent.includes("A goblin story.")&&preview.querySelector(".discoverCollectionAction"),"a title opens the full preview with Add to Collection");
+ preview.close();
+ assert(view.open,"closing the preview returns to the titles");
+ (view.querySelector(".androidWatchlistHeader button") as any).click();
+ assert(!view.open,"Back closes the titles");
+});
 await test("the green + opens a full-screen search that shows results on the same screen and keeps recent searches",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

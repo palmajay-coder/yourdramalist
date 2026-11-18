@@ -23,10 +23,13 @@ export function installCatalogTitlePreview() {
     if (!dialog.open) pending?.abort();
   });
 
-  return async (item, {discover = false} = {}) => {
-    dialog.classList.toggle("discoverTitlePreview", discover);
-    close.textContent = discover ? "Back" : "×";
-    close.setAttribute("aria-label", discover ? "Back" : copy.closePreview);
+  // One preview everywhere a drama or movie can be tapped: Discover, the + search, Community lists,
+  // Weekly Picks, country shelves and actor or director titles.
+  return async (item) => {
+    const discover = true;
+    dialog.classList.add("discoverTitlePreview");
+    close.textContent = "Back";
+    close.setAttribute("aria-label", "Back");
     dialog.scrollTop = 0;
     pending?.abort();
     const controller = new AbortController();
@@ -69,28 +72,30 @@ export function installCatalogTitlePreview() {
     const tagline = element("p", "discoverPreviewTagline");
     const facts = element("p", "discoverPreviewFacts");
     const actions = element("div", "discoverPreviewActions");
-    const mdlUrl = /^https:\/\/mydramalist\.com\/\d+-[a-z0-9-]+$/i.test(item.url || "") ? item.url : "";
+    const isMdl = value => /^https:\/\/mydramalist\.com\/\d+-[a-z0-9-]+$/i.test(value || "");
+    // Community items carry the MyDramaList address as "link"; TMDB titles get one once the server matches them.
+    let mdlUrl = isMdl(item.url) ? item.url : isMdl(item.link) ? item.link : "";
     const backdrop = element("img", "discoverPreviewBackdrop");
     backdrop.alt = "";
     backdrop.hidden = true;
-    if (discover) {
-      header.prepend(backdrop);
-      const add = makeDiscoverTitleAdd(item, "preview", setSaving =>
-        openCollectionPicker({...item, type, year, poster: image.getAttribute("src") || item.poster}, dialog, setSaving));
-      actions.append(add);
-      if (mdlUrl) actions.append(link("Open in MyDramaList", mdlUrl));
-      body.append(actions, element("h3", "", "Story"), tagline, synopsis, facts);
-      content.replaceChildren(header, body);
-    } else {
-      content.replaceChildren(header, synopsis);
-    }
+    header.prepend(backdrop);
+    // Collections need a MyDramaList page, so Add and Open in MyDramaList wait for one.
+    const showActions = () => {
+      const titled = {...item, url: mdlUrl};
+      const add = makeDiscoverTitleAdd(titled, "preview", setSaving =>
+        openCollectionPicker({...titled, type, year, poster: image.getAttribute("src") || item.poster}, dialog, setSaving));
+      actions.replaceChildren(add, link("Open in MyDramaList", mdlUrl));
+    };
+    if (mdlUrl) showActions();
+    body.append(actions, element("h3", "", "Story"), tagline, synopsis, facts);
+    content.replaceChildren(header, body);
 
     showAndroidDialog(dialog);
     dialog.scrollTop = 0;
     try {
       // Saved weekly picks have a TMDB ID and media kind, but no URL.
       const isTmdbTitle = (item.kind === "tv" || item.kind === "movie") && /^[1-9]\d{0,9}$/.test(String(item.id));
-      const url = item.url || (isTmdbTitle ? "https://www.themoviedb.org/" + item.kind + "/" + item.id : "");
+      const url = mdlUrl || (isTmdbTitle ? "https://www.themoviedb.org/" + item.kind + "/" + item.id : "");
       if (!url) throw Error("Title source unavailable");
       const endpoint = "/api/mdl/drama-details?url=" + encodeURIComponent(url) + (discover ? "&" + new URLSearchParams({
         view: "discover", title: name, year: String(year || ""), type: type || "",
@@ -105,6 +110,10 @@ export function installCatalogTitlePreview() {
       let details = await lookup();
       if (details.status === "retry" && !controller.signal.aborted) details = await lookup();
       if (controller.signal.aborted || !dialog.open) return;
+      if (!mdlUrl && isMdl(details.mdlUrl)) {
+        mdlUrl = details.mdlUrl;
+        showActions();
+      }
       year = details.year || year;
       type = details.type || type;
       meta.textContent = formatMeta(type, year);
@@ -203,10 +212,6 @@ export function installCatalogTitlePreview() {
         renderScore(score, details.score);
       }
       if (!score.hasChildNodes()) score.textContent = copy.catalogRatingUnavailable;
-      if (!discover && details.popularity > 0) {
-        popularity.textContent = copy.catalogPopularity + " #" + details.popularity.toLocaleString();
-        popularity.hidden = false;
-      }
       renderSynopsis(synopsis, details.synopsis || item.overview);
       if (["unavailable", "retry"].includes(details.status) && !synopsis.textContent) synopsis.textContent = copy.catalogDetailsUnavailable;
       synopsis.hidden = !synopsis.textContent;
