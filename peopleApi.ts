@@ -1,3 +1,4 @@
+import {rankSearchResults} from './searchRanking.ts';
 import {blob} from 'https://esm.town/v/std/blob/main.ts';
 import {personUrl,personFromKuryana,personSummary,peopleSearchFromKuryana,makeFilmography,type Mode} from './people.ts';
 import {kuryana,KuryanaError,mdlImage} from './kuryana.ts';
@@ -68,7 +69,7 @@ export async function handlePeople(req:Request){
  if(search&&(query.length<2||query.length>100||!/^([1-9]|[1-9]\d)$/.test(page)))return fail('Enter a title or name between 2 and 100 characters and a valid search page.');
  if(!search&&!personUrl(raw))return fail('Enter a valid HTTPS MyDramaList person link.');
  try{
-  if(search){const result=await service.search(query,Number(page));return Response.json({...result.data,query,page:Number(page),mode,status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}})}
+  if(search){const result=await service.search(query,Number(page));return Response.json({...rankSearchResults(result.data,query),query,page:Number(page),mode,status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}})}
   const result=await service.person(raw);
   if(u.pathname==='/api/mdl/filmography')return Response.json({...makeFilmography(result.data,mode as Mode),person:personSummary(result.data),status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}});
   return Response.json({person:personSummary(result.data),status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}});

@@ -1,14 +1,30 @@
 // @ts-nocheck -- installed into the existing browser scope.
 export function installPeopleUI() {
   const compactButtons = new Map();
+  // Results go to Discover by default; the + search screen passes its own list and status line.
+  const discoverTarget = {list: () => $("listItems"), status: () => $("results")};
+  let target = discoverTarget;
   function cleanup() {
     compactButtons.clear();
+    if (titlesView?.dialog.open && titlesView.person) watchButton(titlesView.person.id, titlesView.add);
+  }
+  // Blue "+ Add Filmography" / green "✓ Added" pill, like every other Add button.
+  function paintFilmography(button, added) {
+    const icon = document.createElement("span");
+    icon.className = "discoverAddIcon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = added ? "✓" : "+";
+    button.replaceChildren(icon, document.createTextNode(added ? "Added" : "Add Filmography"));
+    button.classList.toggle("is-added", added);
+    button.setAttribute("aria-pressed", String(added));
+  }
+  function watchButton(personId, button) {
+    if (!compactButtons.has(personId)) compactButtons.set(personId, new Set());
+    compactButtons.get(personId).add(button);
   }
   function sync() {
-    for (const [personId, button] of compactButtons) {
-      const added = !!selectedFilmography(personId);
-      button.textContent = added ? copy.catalogAdded : "Add Filmography";
-      button.setAttribute("aria-pressed", String(added));
+    for (const [personId, buttons] of compactButtons) {
+      for (const button of buttons) paintFilmography(button, !!selectedFilmography(personId));
     }
   }
   const personApi = (url, mode) => "/api/mdl/person?mode=" + mode + "&url=" + encodeURIComponent(url);
@@ -17,6 +33,162 @@ export function installPeopleUI() {
     const data2 = await response.json();
     if (!response.ok) throw Error(data2.error || "MyDramaList lookup failed.");
     return data2;
+  }
+  // One filmography request per person, shared by Add Filmography and the titles screen.
+  const filmographies = new Map();
+  function loadFilmography(person) {
+    const key = person.id + (person.enriched ? ":" + person.actorCount + ":" + person.directorCount : "");
+    if (!filmographies.has(key)) {
+      const request = (async () => {
+        const details = person.enriched ? person : (await json(personApi(person.url, "actor"))).person;
+        if (!details.actorCount && !details.directorCount) return {mode: "actor", result: {items: []}};
+        // Keep existing catalog identities and use the larger body of credits for people with both roles.
+        const mode = details.directorCount > details.actorCount ? "director" : "actor";
+        const result = await json("/api/mdl/filmography?mode=" + mode + "&url=" + encodeURIComponent(person.url));
+        return {mode, result};
+      })();
+      filmographies.set(key, request);
+      request.catch(() => filmographies.delete(key));
+      while (filmographies.size > 30) filmographies.delete(filmographies.keys().next().value);
+    }
+    return filmographies.get(key);
+  }
+  /** Adds or removes a person's filmography in Your Selection; report() shows progress or problems. */
+  async function toggleFilmography(person, button, report, stale = () => false) {
+    const selected = selectedFilmography(person.id);
+    if (selected) {
+      toggleList(selected);
+      return;
+    }
+    button.disabled = true;
+    report(copy.loadingLists);
+    try {
+      const {mode, result} = await loadFilmography(person);
+      if (stale()) return;
+      if (!result.items?.length) {
+        report("No filmography credits found.");
+        return;
+      }
+      if (!selectedFilmography(person.id)) {
+        toggleList({ ...result.list, posters: [], analyticsSource: "discover-" + mode + "-filmography" });
+      }
+      report("");
+    } catch {
+      if (!stale()) report(copy.popularUnavailable);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  // Tapping an actor or director opens their titles; tapping a title opens the full drama preview.
+  let titlesView;
+  function buildTitlesView() {
+    const dialog = document.createElement("dialog");
+    dialog.className = "androidWatchlistDialog personTitlesDialog";
+    const header = document.createElement("header");
+    header.className = "androidWatchlistHeader";
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "secondary";
+    back.textContent = "\u2039";
+    back.setAttribute("aria-label", "Back to search results");
+    back.onclick = () => dialog.close();
+    const photo = document.createElement("img");
+    photo.className = "personTitlesPhoto";
+    photo.alt = "";
+    photo.referrerPolicy = "no-referrer";
+    const heading = document.createElement("div");
+    const name = document.createElement("h2");
+    name.id = "personTitlesName";
+    const subtitle = document.createElement("p");
+    subtitle.className = "androidWatchlistOwner";
+    heading.append(name, subtitle);
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "catalogAdd discoverAddPill";
+    header.append(back, photo, heading, add);
+    const body = document.createElement("div");
+    body.className = "androidWatchlistBody";
+    const status = document.createElement("div");
+    status.className = "catalogShelfStatus";
+    status.setAttribute("aria-live", "polite");
+    const grid = document.createElement("div");
+    grid.className = "androidWatchlistGrid";
+    body.append(status, grid);
+    dialog.append(header, body);
+    dialog.setAttribute("aria-labelledby", name.id);
+    document.body.append(dialog);
+    const view = {dialog, photo, name, subtitle, add, body, status, grid, person: null, token: 0};
+    dialog.addEventListener("close", () => {
+      if (dialog.open) return;
+      view.token++;
+      if (view.person) compactButtons.get(view.person.id)?.delete(add);
+      view.person = null;
+      grid.replaceChildren();
+      view.opener?.focus?.();
+    });
+    return view;
+  }
+  function titleCard(credit) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "androidWatchlistTitle";
+    const tile = document.createElement("span");
+    tile.className = "androidWatchlistPoster";
+    tile.textContent = credit.name;
+    if (credit.poster) {
+      const img = document.createElement("img");
+      img.alt = "";
+      img.loading = "lazy";
+      img.referrerPolicy = "no-referrer";
+      img.addEventListener("error", () => img.remove(), { once: true });
+      img.src = credit.poster;
+      tile.append(img);
+    }
+    const title = document.createElement("strong");
+    title.textContent = credit.name;
+    const facts = document.createElement("small");
+    facts.textContent = [credit.year, credit.type].filter(Boolean).join(" \xB7 ");
+    button.append(tile, title, facts);
+    button.onclick = () => showCatalogTitle({name: credit.name, url: credit.url, year: credit.year, type: credit.type, poster: credit.poster});
+    return button;
+  }
+  async function openPersonTitles(person, opener) {
+    titlesView ??= buildTitlesView();
+    const view = titlesView;
+    const token = ++view.token;
+    view.person = person;
+    view.opener = opener;
+    view.name.textContent = person.displayName || person.name;
+    view.photo.hidden = !person.poster;
+    if (person.poster) view.photo.src = person.poster;
+    view.subtitle.textContent = "";
+    view.add.setAttribute("aria-label", "Add or remove filmography for " + (person.displayName || person.name));
+    view.add.onclick = () => toggleFilmography(person, view.add, message => { view.status.textContent = message; },
+      () => token !== view.token);
+    watchButton(person.id, view.add);
+    paintFilmography(view.add, !!selectedFilmography(person.id));
+    view.grid.replaceChildren();
+    view.status.textContent = copy.loadingLists;
+    showAndroidDialog(view.dialog);
+    view.body.scrollTop = 0;
+    try {
+      const {result} = await loadFilmography(person);
+      if (token !== view.token) return;
+      const credits = result.items || [];
+      view.status.textContent = credits.length ? "" : "No filmography credits found.";
+      view.subtitle.textContent = credits.length ? credits.length + (credits.length === 1 ? " title" : " titles") : "";
+      view.grid.replaceChildren(...credits.map(titleCard));
+    } catch {
+      if (token !== view.token) return;
+      view.status.textContent = copy.popularUnavailable + " ";
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "secondary catalogRetry";
+      retry.textContent = copy.catalogRetry;
+      retry.onclick = () => openPersonTitles(person, opener);
+      view.status.append(retry);
+    }
   }
   function selectedFilmography(personId) {
     return state.selection.find(({ url }) =>
@@ -30,8 +202,12 @@ export function installPeopleUI() {
     card.className = "catalogShelf compactCatalogRow";
     const head = document.createElement("div");
     head.className = "catalogShelfHead";
-    const identity = document.createElement("div");
+    const identity = document.createElement("button");
+    identity.type = "button";
     identity.className = "compactPersonIdentity";
+    identity.setAttribute("aria-label", "See titles with " + name);
+    identity.setAttribute("aria-haspopup", "dialog");
+    identity.onclick = () => openPersonTitles(person, identity);
     const title = document.createElement("h3");
     title.textContent = name;
     if (person.poster) {
@@ -46,9 +222,9 @@ export function installPeopleUI() {
     }
     const add = document.createElement("button");
     add.type = "button";
-    add.className = "secondary catalogAdd";
+    add.className = "catalogAdd discoverAddPill";
     add.setAttribute("aria-label", "Add or remove filmography for " + name);
-    compactButtons.set(person.id, add);
+    watchButton(person.id, add);
     const status = document.createElement("p");
     status.className = "catalogShelfStatus";
     status.setAttribute("role", "status");
@@ -61,49 +237,17 @@ export function installPeopleUI() {
       status.textContent = message;
       status.hidden = !message;
     }
-    add.onclick = async () => {
-      const selected = selectedFilmography(person.id);
-      if (selected) {
-        toggleList(selected);
-        return;
-      }
-      add.disabled = true;
-      showStatus(copy.loadingLists);
-      try {
-        const details = person.enriched ? person : (await json(personApi(person.url, "actor"))).person;
-        if (requestId !== listRequest || !card.isConnected) return;
-        if (!details.actorCount && !details.directorCount) {
-          showStatus("No filmography credits found.");
-          return;
-        }
-        // Keep existing catalog identities and use the larger body of credits for people with both roles.
-        const mode = details.directorCount > details.actorCount ? "director" : "actor";
-        const result = await json("/api/mdl/filmography?mode=" + mode + "&url=" + encodeURIComponent(person.url));
-        if (requestId !== listRequest || !card.isConnected) return;
-        if (!result.items.length) {
-          showStatus("No filmography credits found.");
-          return;
-        }
-        if (!selectedFilmography(person.id)) {
-          toggleList({ ...result.list, posters: [], analyticsSource: "discover-" + mode + "-filmography" });
-        }
-        showStatus("");
-      } catch {
-        if (requestId === listRequest && card.isConnected) showStatus(copy.popularUnavailable);
-      } finally {
-        add.disabled = false;
-      }
-    };
+    add.onclick = () => toggleFilmography(person, add, showStatus, () => requestId !== listRequest || !card.isConnected);
     return card;
   }
   function renderMatches(data2) {
     cleanup();
     const mode = data2.mode;
-    const results = $("listItems");
+    const results = target.list();
     const titles = data2.titles || [];
     results.replaceChildren();
-    $("results").textContent = titles.length || data2.people.length ? "" : "No matches found. Try another search.";
-    if (data2.warning) $("results").append(document.createTextNode(" · " + data2.warning));
+    target.status().textContent = titles.length || data2.people.length ? "" : "No matches found. Try another search.";
+    if (data2.warning) target.status().append(document.createTextNode(" · " + data2.warning));
     if (titles.length) {
       const section = document.createElement("section");
       const heading = document.createElement("h3");
@@ -135,7 +279,7 @@ export function installPeopleUI() {
         const title = document.createElement("strong");
         title.textContent = item.name;
         button.append(artwork, title);
-        button.onclick = () => showCatalogTitle(item, {discover: true});
+        button.onclick = () => showCatalogTitle(item);
         const add = makeDiscoverTitleAdd(item, "search",
           setSaving => openCollectionPicker(item, document.body, setSaving));
         row.append(button, add);
@@ -144,13 +288,20 @@ export function installPeopleUI() {
       section.append(heading, track);
       results.append(section);
     }
-    if (data2.people.length && (titles.length || data2.query)) {
-      const heading = document.createElement("h3");
-      heading.className = "catalogSectionTitle";
-      heading.textContent = "Actors and directors";
-      results.append(heading);
+    if (data2.people.length) {
+      const section = document.createElement("section");
+      section.className = "discoverPeopleResults";
+      if (titles.length || data2.query) {
+        const heading = document.createElement("h3");
+        heading.className = "catalogSectionTitle";
+        heading.textContent = "Actors and directors";
+        section.append(heading);
+      }
+      for (const person of data2.people) section.append(compactPerson(person));
+      // The server ranks results by how well they match; a name that matches better than any title leads.
+      if (data2.peopleFirst) results.prepend(section);
+      else results.append(section);
     }
-    for (const person of data2.people) results.append(compactPerson(person));
     sync();
     if (data2.page > 1 || data2.hasNextPage) {
       const nav = document.createElement("nav");
@@ -162,37 +313,39 @@ export function installPeopleUI() {
         button.type = "button";
         button.className = "secondary";
         button.textContent = step === -1 ? "Previous matches" : "More matches";
-        button.onclick = () => search(data2.query, data2.page + step, mode);
+        button.onclick = () => search(data2.query, data2.page + step, mode, target);
         nav.append(button);
       }
-      $("listItems").append(nav);
+      results.append(nav);
     }
   }
-  async function search(query2, page3 = 1, mode = state.filter) {
+  async function search(query2, page3 = 1, mode = state.filter, where = discoverTarget) {
+    target = where;
     cleanup();
     const requestId = ++listRequest;
-    $("listItems").replaceChildren();
-    $("results").textContent = "";
+    target.list().replaceChildren();
+    target.status().textContent = "";
     try {
       const data2 = await json("/api/mdl/people-search?mode=" + mode + "&q=" + encodeURIComponent(query2) + "&page=" + page3);
       if (requestId !== listRequest) return;
       renderMatches(data2);
     } catch (e) {
-      if (requestId === listRequest) $("results").textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId === listRequest) target.status().textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
-  async function fromUrl(raw, mode = state.filter) {
+  async function fromUrl(raw, mode = state.filter, where = discoverTarget) {
+    target = where;
     cleanup();
     const requestId = ++listRequest;
-    $("listItems").replaceChildren();
-    $("results").textContent = "";
+    target.list().replaceChildren();
+    target.status().textContent = "";
     try {
       const data2 = await json(personApi(raw, mode));
       if (requestId !== listRequest) return;
       renderMatches({ mode, people: [{ ...data2.person, enriched: true }], page: 1, hasNextPage: false });
-      if (data2.warning) $("results").append(document.createTextNode(" \xB7 " + data2.warning));
+      if (data2.warning) target.status().append(document.createTextNode(" \xB7 " + data2.warning));
     } catch (e) {
-      if (requestId === listRequest) $("results").textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId === listRequest) target.status().textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
   return { search, fromUrl, cleanup, sync, reset: cleanup };

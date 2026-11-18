@@ -1,5 +1,6 @@
 import { extractDramaDetails, synopsisPreview, dramaUrl, createDetailsService, type Entry } from './dramaDetails.ts';
 import { goblinHtml } from './goblinFixture.ts';
+import { tmdbOnlyPreview } from './dramaDetailsApi.ts';
 const url='https://mydramalist.com/18452-goblin';
 let passed=0;
 function assert(ok: unknown, message: string) { if(!ok) throw Error(message); }
@@ -64,5 +65,12 @@ await test('60 upstream requests per minute; cache hits allowed',async()=>{
 });
 await test('oversized response refused',async()=>{
  const get=createDetailsService(memory(),async()=>new Response('a'.repeat(3000001),{headers:{'content-type':'text/html'}}));assert((await get(url)).status==='unavailable','size limited');
+});
+await test('a TMDB title with no MyDramaList match still gets the full preview from TMDB',()=>{
+ const preview=tmdbOnlyPreview({kind:'tv',year:2025,synopsis:'A new show.',preview:{backdrop:'https://image.tmdb.org/b.jpg',poster:'',genres:[],cast:[{name:'A'}],tagline:null}});
+ assert(preview.synopsis==='A new show.'&&preview.backdrop&&preview.cast.length===1&&preview.type==='Drama'&&preview.year===2025,'TMDB story, art and cast');
+ assert(!('poster' in preview)&&!('genres' in preview)&&!('tagline' in preview),'empty TMDB fields are dropped');
+ assert(!('mdlUrl' in preview)&&preview.status==='unavailable'&&preview.reviews.length===0,'no MyDramaList link or reviews, so no Add button');
+ assert(tmdbOnlyPreview({kind:'movie',synopsis:null}).type==='Movie','movies are labelled Movie');
 });
 console.log(JSON.stringify({passed}));

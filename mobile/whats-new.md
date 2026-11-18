@@ -1,3 +1,5 @@
-- Clearer Add buttons: Discover titles show a blue Add, or a green Added when the title is already in one of your collections. Both open the collection picker with your saved collections checked.
-- Title previews: The blue Add to Collection button turns green Added once the title is saved.
-- Weekly Picks: Add and Added still add or remove the whole shelf in Your Selection.
+- Search from anywhere: tap the green + to find dramas, movies, actors, and directors, closest match first. Recent searches are saved. Discover is now curated picks only.
+- Full details everywhere: tap any drama or movie for its story, cast, reviews, and Add to Collection. Tap an actor or director to see their titles.
+- Cleaner buttons: blue Add and green Added everywhere, a simpler Add to Collection sheet, and a red × to delete a collection.
+- Smoother app: screens slide, sheets rise, posters fade in, and the tab highlight glides. Reduced motion on your phone turns these off.
+- Compact page headers, and a clean title screen on Connect.

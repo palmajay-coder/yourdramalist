@@ -5,6 +5,8 @@ import { installMyCollections } from "./myCollectionsClient.ts";
 import { installCollectionPicker } from "./collectionPicker.ts";
 import { installCatalogTitlePreview } from "./catalogTitlePreview.ts";
 import { installAndroidDiscover } from "./androidDiscoverClient.ts";
+import { installQuickSearch } from "./quickSearchClient.ts";
+import { installMotion } from "./motionClient.ts";
 import {NOTIFICATION_CSS,installFloatingNotice} from "./notifications.ts";
 import {addonIcon} from "./addonIcon.ts";
 import {profileWatchlistCards,loadWatchlist} from "./addonScrape.ts";
@@ -106,12 +108,56 @@ body.androidSetup .androidHeaderActions button{position:relative;display:grid;pl
 body.androidSetup .androidHeaderActions button:hover{background:#ffffff10}
 body.androidSetup .androidHeaderActions svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 body.androidSetup #androidSelectionCount:not([hidden]){position:absolute;top:1px;right:0;min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:#e3374b;color:#fff;font-size:10px;font-weight:700;line-height:18px;text-align:center}
-body.androidSetup .androidBottomNav{position:fixed;z-index:20;inset:auto 0 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:rgba(29,32,40,.97);border-top:1px solid #ffffff12;backdrop-filter:blur(18px)}
+body.androidSetup .androidBottomNav{position:fixed;z-index:20;inset:auto 0 0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:rgba(29,32,40,.97);border-top:1px solid #ffffff12;backdrop-filter:blur(18px)}
 body.androidSetup .androidNavItem{display:flex;min-width:0;min-height:56px;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:2px 4px;border:0;border-radius:16px;background:transparent;color:#b8bec9;font-size:11px;font-weight:600}
 body.androidSetup .androidNavItem.active{color:#fff}
 body.androidSetup .androidNavItem.active .androidNavIcon{display:grid;place-items:center;width:64px;height:32px;border-radius:18px;background:#2674ec;color:#fff}
 body.androidSetup .androidNavIcon{font-size:21px;line-height:1}
 body.androidSetup .androidNavItem:focus-visible{outline:2px solid #75aaff;outline-offset:1px}
+body.androidSetup .androidNavItem.androidNavAdd .androidNavIcon,body.androidSetup .androidNavItem.androidNavAdd.active .androidNavIcon{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:transparent;color:#22c55e}
+body.androidSetup .androidNavAdd svg{width:34px;height:34px}
+body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
+@media(prefers-reduced-motion:reduce){body.androidSetup .androidNavAdd:active .androidNavIcon{transform:none}}
+.quickSearch{position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;background:#1b1e25;color:var(--text,#f1f3f6)}
+.quickSearch::backdrop{background:#000}
+@media(min-width:560px){.quickSearch{max-width:480px;margin-inline:auto;border-inline:1px solid #ffffff14}}
+.quickSearchBar{display:flex;align-items:center;gap:8px;margin:0;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;background:#0f1115;border-bottom:1px solid #ffffff12}
+.quickSearchBack{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#f1f3f6}
+.quickSearchBack svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.quickSearchField{display:flex;flex:1;align-items:center;min-width:0}
+.quickSearchBar.withIntro{display:grid;grid-template-columns:44px minmax(0,1fr);row-gap:12px}
+.quickSearchBar.withIntro .quickSearchField{grid-column:1/-1;padding-inline:8px;border:1px solid #ffffff1f;border-radius:12px;background:#1b1e25}
+.quickSearchIntro{display:none;min-width:0}
+.quickSearchBar.withIntro .quickSearchIntro{display:grid;align-self:center}
+.quickSearchIntro strong{font-size:20px;line-height:1.2;color:#f1f3f6}
+body.androidSetup #discoverForm[hidden],body.androidSetup #discoverLabel[hidden]{display:none}
+.quickSearchTip{margin:20px 4px}
+.quickSearchSteps{display:grid;gap:14px;margin:0;padding:0;list-style:none}
+.quickSearchSteps li{display:flex;align-items:center;gap:14px;font-size:16px;color:#e4e8ef}
+.quickSearchStepIcon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:#2878eb1f;color:#6ea3ff}
+.quickSearchStepIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.quickSearchBar input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 4px;border:0;background:transparent;color:#f1f3f6;font-size:18px;outline:none}
+.quickSearchBar input::placeholder{color:#8f97a6}
+.quickSearchBar input::-webkit-search-cancel-button,.quickSearchBar input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+.quickSearchBody{padding:8px 16px 24px;overflow-y:auto;flex:1;min-height:0}
+.quickSearch[open]{display:flex;flex-direction:column}
+.quickSearchHeading{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.quickSearchHeading h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#a6adba}
+.quickSearchClear{min-height:44px;margin:0;padding:0 8px;border:0;background:transparent;color:#75aaff;font-size:14px;font-weight:600}
+.quickSearchRecent{list-style:none;margin:0;padding:0}
+.quickSearchRecent li{display:flex;align-items:center;gap:4px;border-bottom:1px solid #ffffff0d}
+.quickSearchItem{flex:1;min-width:0;min-height:52px;margin:0;padding:8px 0;border:0;background:transparent;color:#d6dbe3;font-size:17px;font-weight:400;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quickSearchRemove{flex:none;width:44px;height:44px;margin:0;padding:0;border:0;background:transparent;color:#8f97a6;font-size:22px}
+.quickSearchClearText{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#d6dbe3}
+.quickSearchClearText[hidden]{display:none}
+.quickSearchClearText svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.quickSearchRecentView[hidden]{display:none}
+.quickSearchStatus{margin:12px 0;color:#a6adba}.quickSearchStatus:empty{display:none}
+.quickSearchResults .catalogSectionTitle{margin:14px 0 8px;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#a6adba}
+.quickSearchResults .discoverTitleRow{margin:0;padding:10px 0;border:0;border-bottom:1px solid #ffffff12;border-radius:0;background:transparent}
+.quickSearchResults .discoverTitleIdentity img,.quickSearchResults .discoverTitleIdentity .shelfPosterBlank{width:52px;height:78px;flex-basis:52px}
+.quickSearchResults .discoverTitleIdentity strong{font-size:17px}
+:is(.quickSearchBack,.quickSearchClear,.quickSearchClearText,.quickSearchItem,.quickSearchRemove):focus-visible{outline:2px solid #75aaff;outline-offset:2px;border-radius:8px}
 body[data-page=connect] header{display:none}
 body[data-page=connect] #connect h1{text-align:center}
 body.androidSetup .androidFiltersDialog,body.androidSetup .mobileSelectionDialog{background:var(--panel);color:var(--text)}
@@ -520,7 +566,9 @@ const shelfCountry=${shelfCountry.toString()},normalizeShelfFilter=${normalizeSh
 const communityUI=(${installCommunityShelves.toString()})();
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
+const quickSearch=(${installQuickSearch.toString()})();
 (${installAndroidDiscover.toString()})();
+(${installMotion.toString()})();
 // Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Older apps
 // (1.1.24 and earlier) do not, and were signed with a key that is lost, so they need one reinstall.
 (()=>{

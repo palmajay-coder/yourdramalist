@@ -43,12 +43,17 @@ Deno.test("deleting a collection updates selection and picker without changing o
   const find = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
   const assert = (condition: unknown, message: string) => { if (!condition) throw Error(message); };
   const openDelete = () => {
-    find<HTMLDetailsElement>(".myCollectionMenu").open = true;
-    find<HTMLButtonElement>(".myCollectionMenuDelete").click();
+    find<HTMLButtonElement>(".myCollectionDelete").click();
     assert(find<HTMLButtonElement>(".myCollectionDeleteActions .secondary").autofocus, "Cancel should have initial focus");
   };
   show("collections");
+  const addPill = find<HTMLButtonElement>(".myCollectionAdd");
+  assert(addPill.classList.contains("discoverAddPill") && /^[+✓](Add|Added)$/.test(addPill.textContent || ""),
+    "Add should be the blue / green pill: " + addPill.textContent);
+  assert(!document.querySelector(".myCollectionMenu") &&
+    find(".myCollectionDelete").getAttribute("aria-label")?.startsWith("Delete "), "The ⋯ menu should be a red × delete button");
   openDelete();
+  assert(find(".myCollectionDeleteConfirm").textContent === "Delete Collection", "The confirmation keeps its red Delete button");
   find<HTMLButtonElement>(".myCollectionDeleteActions .secondary").click();
   assert(JSON.parse(saved).length === 2 && selectionUpdates === 0, "Cancel changed saved data");
   openDelete();

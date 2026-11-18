@@ -51,6 +51,12 @@
 .androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack .catalogPoster{flex-basis:calc((100% - 27px)/3.35)}
 .androidSetup .catalogShelfTrack .catalogPoster:hover img{transform:none}
 .androidSetup .compactPersonIdentity{display:flex;align-items:center;gap:10px}
+.compactPersonIdentity{flex:1;min-width:0;min-height:44px;margin:0;padding:4px 0;border:0;border-radius:8px;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer;box-shadow:none}
+.compactPersonIdentity:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.compactPersonIdentity h3::after{content:" \203A";color:var(--muted);font-weight:400}
+.personTitlesPhoto{flex:none;width:40px;height:52px;object-fit:cover;border-radius:6px}
+.personTitlesPhoto[hidden]{display:none}
+.personTitlesDialog .androidWatchlistHeader .discoverAddPill{flex:none}
 .androidSetup .compactPersonIdentity h3{margin:0;overflow-wrap:anywhere}
 
 .androidSetup .androidWatchlistCard{margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
@@ -195,20 +201,26 @@
 .collectionPickerRowInfo {display:grid;gap:2px;min-width:0;flex:1;overflow-wrap:anywhere}
 .collectionPickerRowInfo strong {font-size:14px}
 .collectionPickerRowInfo small {font-size:11px;color:#b5c0d4}
-.collectionPickerMember {display:inline-block;margin-inline-start:6px;color:#b7ceff}
-.collectionPickerMember:empty {display:none}
 .collectionPickerRow input[type=checkbox] {appearance:auto;accent-color:#428aff;width:18px;height:18px;margin:0;padding:0;flex:none}
-.collectionPickerNew {margin-top:10px;border:1px solid #343e50;border-radius:10px;padding:0 10px}
+.collectionPickerNew {margin-top:10px;border:1px solid #343e50;border-radius:12px;padding:0 12px;background:transparent}
 .collectionPickerList:empty + .collectionPickerNew {margin-top:0}
-.collectionPickerNew summary {display:flex;align-items:center;min-height:40px;list-style:none;cursor:pointer;color:#a8caff;font-size:14px;font-weight:650}
+.collectionPickerNew summary {display:flex;align-items:center;gap:10px;min-height:44px;list-style:none;cursor:pointer;color:#a8caff;font-size:15px;font-weight:650}
+.collectionPickerNewIcon {color:#4b8bff;font-size:22px;font-weight:700;line-height:1}
+.collectionPickerNew summary:focus-visible {outline:2px solid #93c5fd;outline-offset:3px;border-radius:8px}
 .collectionPickerNew summary::-webkit-details-marker {display:none}
 .collectionPickerNew input {box-sizing:border-box;width:100%;margin-bottom:10px;font-size:16px}
+.collectionPicker .collectionPickerNew input {min-height:44px;border:1px solid #3c475b;border-radius:10px;background:#11161c;color:#f1f3f6;box-shadow:none}
+.collectionPicker .collectionPickerNew input:focus {border-color:#4b8bff;outline:2px solid #93c5fd;outline-offset:2px}
 .collectionPickerStatus {margin:8px 0 0;font-size:13px;color:#ffb2a8}
 .collectionPickerStatus:empty {display:none}
-.collectionPickerFooter {flex:none;display:grid;grid-template-columns:1fr 2fr;gap:8px;padding:10px 18px max(12px,env(safe-area-inset-bottom));border-top:1px solid #303746;background:#171b24}
-.collectionPickerFooter button {min-height:44px;font-size:14px}
-.collectionPickerFooter .collectionPickerSave {background:#2367e8;color:#fff;padding-inline:8px}
-.collectionPickerFooter .collectionPickerSave:disabled {background:#263650;color:#bac7dd}
+.collectionPickerFooter {flex:none;display:grid;grid-template-columns:2fr 3fr;gap:10px;padding:12px 18px max(12px,env(safe-area-inset-bottom));border-top:1px solid #303746;background:#171b24}
+.collectionPicker .collectionPickerFooter button {min-width:0;min-height:48px;margin:0;padding:8px 14px;border-radius:999px;font-size:15px;font-weight:650;box-shadow:none;background-image:none;transition:transform 150ms ease}
+.collectionPicker .collectionPickerFooter .secondary {background:#232833;border:1px solid #3c475b;color:#fff}
+.collectionPicker .collectionPickerFooter .collectionPickerSave {background:#2878eb;border:0;color:#fff}
+.collectionPicker .collectionPickerFooter .collectionPickerSave:disabled {background:#263650;color:#bac7dd;cursor:not-allowed}
+.collectionPicker .collectionPickerFooter button:focus-visible {outline:2px solid #93c5fd;outline-offset:3px}
+.collectionPicker .collectionPickerFooter button:not(:disabled):active {transform:scale(.97)}
+@media(prefers-reduced-motion:reduce){.collectionPicker .collectionPickerFooter button{transition:none}.collectionPicker .collectionPickerFooter button:not(:disabled):active{transform:none}}
 .collectionPickerSuccess {position:fixed;z-index:9999;left:50%;bottom:max(24px,calc(env(safe-area-inset-bottom) + 16px));transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:10px 16px;border:1px solid #397653;border-radius:12px;background:#153727;color:#bff9d5;font-size:14px}
 @media(max-width:600px), (pointer:coarse) {
   .collectionPicker {
@@ -243,8 +255,7 @@
   overflow-wrap:anywhere;
   font-size:clamp(16px,2.2vw,20px);
 }
-.myCollectionTop .myCollectionAdd {min-height:42px;flex:none;padding:7px 13px}
-.myCollectionTop .myCollectionAdd[aria-pressed=true] {color:var(--link);border-color:var(--accent)}
+.myCollectionTop .myCollectionAdd {flex:none}
 .myCollectionStrip {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
 .myCollectionPoster {
   display:block;
@@ -274,30 +285,10 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
 .androidNavItem:not(.active) .androidNavIcon .layeredPostersIcon i {background:#1d2028}
 
 .myCollectionCardActions {display:flex;align-items:center;gap:6px;flex:none}
-.myCollectionMenu {position:relative}
-.myCollectionMenu[open] {z-index:2}
-.myCollectionMenu summary {
-  display:grid;
-  place-items:center;
-  width:42px;
-  min-height:42px;
-  border:1px solid var(--line);
-  border-radius:8px;
-  cursor:pointer;
-  list-style:none;
-  font-size:22px;
-}
-.myCollectionMenu summary::-webkit-details-marker {display:none}
-.myCollectionMenu summary:focus-visible {outline:2px solid var(--link);outline-offset:2px}
-.myCollectionMenu .myCollectionMenuDelete {
-  position:absolute;
-  inset:calc(100% + 5px) 0 auto auto;
-  min-height:44px;
-  width:max-content;
-  background:var(--panel);
-  color:#ffb8be;
-  box-shadow:0 6px 20px #0008;
-}
+.myCollectionDelete {display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:1px solid #4a2e35;border-radius:50%;background:transparent;color:#ff5c67;box-shadow:none;cursor:pointer}
+.myCollectionDelete svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.myCollectionDelete:hover {background:#ff5c6714}
+.myCollectionDelete:focus-visible {outline:2px solid #ff8790;outline-offset:2px}
 .myCollectionDeleteDialog {width:min(370px,calc(100% - 32px));padding:18px;border-radius:18px;text-align:center}
 .myCollectionDeleteDialog::backdrop {background:#080a10a8;backdrop-filter:blur(3px)}
 .myCollectionDeleteDialog h2 {font-size:21px;margin:0 0 6px}
@@ -308,7 +299,7 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
   -webkit-appearance:none;
   min-height:48px;
   padding:8px 10px;
-  border-radius:12px;
+  border-radius:999px;
   box-shadow:none;
   font-weight:600;
 }
@@ -331,3 +322,54 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
   background:#153727;
   color:#bff9d5;
 }
+
+/* ---------- Motion: subtle and quick, in the spirit of Letterboxd ---------- */
+/* Full-screen pages slide in from the right and back out; sheets rise from the bottom; small dialogs fade. */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog),
+  :is(.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog) {
+    transition: transform 240ms cubic-bezier(.2,0,0,1), opacity 200ms ease, overlay 240ms allow-discrete, display 240ms allow-discrete;
+  }
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog):not([open]) {transform: translateX(100%)}
+  @starting-style {:is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog)[open] {transform: translateX(100%)}}
+  :is(.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog):not([open]) {transform: translateY(100%)}
+  @starting-style {:is(.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog)[open] {transform: translateY(100%)}}
+  .myCollectionDeleteDialog:not([open]) {opacity: 0; transform: scale(.96)}
+  @starting-style {.myCollectionDeleteDialog[open] {opacity: 0; transform: scale(.96)}}
+  /* Wide screens: a short slide and fade instead of a full-width push. */
+  @media (min-width: 700px) and (pointer: fine) {
+    :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog):not([open]) {transform: translateX(32px); opacity: 0}
+    @starting-style {:is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog)[open] {transform: translateX(32px); opacity: 0}}
+  }
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog,.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog)::backdrop {
+    transition: opacity 240ms ease, overlay 240ms allow-discrete, display 240ms allow-discrete;
+  }
+  :is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog,.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog):not([open])::backdrop {opacity: 0}
+  @starting-style {:is(.quickSearch,.catalogTitleDialog,.androidWatchlistDialog,.collectionPicker,.mobileSelectionDialog,.androidFiltersDialog,.myCollectionDeleteDialog)[open]::backdrop {opacity: 0}}
+
+  /* Notices slide in. */
+  .noticeToast {transition: opacity 200ms ease, transform 220ms cubic-bezier(.2,0,0,1), display 220ms allow-discrete}
+  @starting-style {.noticeToast:not([hidden]) {opacity: 0; transform: translateY(-10px)}}
+  .collectionPickerSuccess {transition: opacity 200ms ease, translate 220ms cubic-bezier(.2,0,0,1)}
+  @starting-style {.collectionPickerSuccess {opacity: 0; translate: 0 10px}}
+
+  /* Posters and artwork fade in once loaded. */
+  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personTitlesDialog .androidWatchlistHeader) img {transition: opacity 260ms ease}
+  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personTitlesDialog .androidWatchlistHeader) img:not(.ydlLoaded) {opacity: 0}
+
+  /* A quick check pop when a tapped Add turns Added. */
+  .discoverAddPill.ydlPop .discoverAddIcon {animation: ydlPop 320ms cubic-bezier(.2,0,0,1)}
+  @keyframes ydlPop {0% {transform: scale(.4)} 60% {transform: scale(1.25)} 100% {transform: scale(1)}}
+
+  /* The blue highlight glides between tabs. */
+  .androidBottomNav.indicatorReady .androidNavIndicator {transition: transform 260ms cubic-bezier(.2,0,0,1), width 260ms cubic-bezier(.2,0,0,1), height 260ms cubic-bezier(.2,0,0,1)}
+}
+.androidNavIndicator {position: absolute; top: 0; left: 0; z-index: 0; border-radius: 18px; background: #2674ec; pointer-events: none}
+.androidNavIndicator[hidden] {display: none}
+body.androidSetup .androidBottomNav.hasIndicator .androidNavItem {position: relative; z-index: 1}
+body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.androidNavAdd) .androidNavIcon {background: transparent}
+
+/* Loading tiles shimmer softly (still, for reduced motion). */
+.shelfSkeleton {display: block; aspect-ratio: 2/3; border-radius: 7px; background: linear-gradient(100deg, #1e232d 30%, #2a303c 50%, #1e232d 70%) 0 0 / 300% 100%}
+@media (prefers-reduced-motion: no-preference) {.shelfSkeleton {animation: ydlShimmer 1.4s ease-in-out infinite}}
+@keyframes ydlShimmer {from {background-position: 100% 0} to {background-position: 0 0}}

@@ -414,7 +414,7 @@ export function installCommunityShelves() {
       if (description) info.append(node("p", null, description));
       if (stats.length) info.append(node("p", "shelfStats", stats.join(" \xB7 ")));
     }
-    const actions = node("div", "catalogRowActions"), add2 = node("button", "secondary catalogAdd");
+    const actions = node("div", "catalogRowActions"), add2 = node("button", "catalogAdd discoverAddPill");
     add2.type = "button";
     actions.append(add2);
     head.append(info, actions);
@@ -461,7 +461,12 @@ export function installCommunityShelves() {
     };
     row.sync = () => {
       const on = state.selection.some((x) => x.url === row.url());
-      add2.textContent = on ? copy.catalogAdded : copy.compactCatalogAdd;
+      // Same blue Add / green Added pill as Discover and My Collections.
+      const icon = node("span", "discoverAddIcon");
+      icon.textContent = on ? "✓" : "+";
+      icon.setAttribute("aria-hidden", "true");
+      add2.replaceChildren(icon, document.createTextNode(on ? "Added" : copy.compactCatalogAdd));
+      add2.classList.toggle("is-added", on);
       add2.setAttribute("aria-pressed", String(on));
       add2.setAttribute("aria-label", (on ? copy.catalogAdded : copy.catalogSelect) + " " + userListName(row.selectionItem()));
     };

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.28
+
+### What's new
+
+- Search from anywhere: tap the green + to find dramas, movies, actors, and directors, closest match first. Recent searches are saved. Discover is now curated picks only.
+- Full details everywhere: tap any drama or movie for its story, cast, reviews, and Add to Collection. Tap an actor or director to see their titles.
+- Cleaner buttons: blue Add and green Added everywhere, a simpler Add to Collection sheet, and a red × to delete a collection.
+- Smoother app: screens slide, sheets rise, posters fade in, and the tab highlight glides. Reduced motion on your phone turns these off.
+- Compact page headers, and a clean title screen on Connect.
+
+### Also
+
+- The admin page's Connect background section sets the tint color and strength over the moving posters, with a live preview (released early as a website update).
+- Weekly Picks and country-shelf titles are matched to MyDramaList for the full preview. Without a match, the preview shows TMDB info and no Add to Collection.
+
 ## 1.1.27
 
 ### Improvements

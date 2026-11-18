@@ -78,7 +78,10 @@ export function installCollectionPicker() {
     const body = element("div", "collectionPickerBody");
     const list = element("div", "collectionPickerList");
     const createSection = element("details", "collectionPickerNew");
-    const createSummary = element("summary", "", "+ Create New Collection");
+    const createSummary = element("summary");
+    const createIcon = element("span", "collectionPickerNewIcon", "+");
+    createIcon.setAttribute("aria-hidden", "true");
+    createSummary.append(createIcon, document.createTextNode("Create New Collection"));
     const nameField = element("input");
     nameField.id = "newCollectionName";
     nameField.maxLength = 80;
@@ -103,8 +106,7 @@ export function installCollectionPicker() {
       const count = [...changes.values()].filter(Boolean).length + Number(Boolean(pendingName()));
       const hasRemovals = [...changes.values()].includes(false);
       save.disabled = !count && !hasRemovals;
-      save.textContent = hasRemovals ? "Save changes" :
-        count ? "Save to " + count + (count === 1 ? " Collection" : " Collections") : "Save";
+      // The button always reads "Save"; it is enabled only when there is something to save.
       status.textContent = "";
     };
     nameField.oninput = updateSave;
@@ -123,17 +125,13 @@ export function installCollectionPicker() {
         const count = collection.titles.length;
         const caption = element("small", "", count + (count === 1 ? " title" : " titles"));
         info.append(element("strong", "", collection.name), caption);
-        const membership = element("span", "collectionPickerMember", alreadyAdded ? "Already added" : "");
-        caption.append(membership);
+        // The checkbox alone shows membership; no extra "Already added" / "Will add" labels.
         const check = element("input");
         check.type = "checkbox";
         check.checked = alreadyAdded;
         check.onchange = () => {
           if (check.checked === alreadyAdded) changes.delete(collection.id);
           else changes.set(collection.id, check.checked);
-          membership.textContent = check.checked
-            ? (alreadyAdded ? "Already added" : "Will add")
-            : (alreadyAdded ? "Will remove" : "");
           updateSave();
         };
         row.append(artwork, info, check);
@@ -180,7 +178,6 @@ export function installCollectionPicker() {
         }
         if (added || removed) {
           save.disabled = true;
-          save.textContent = "Saving…";
           setSaving(true);
           try {
             localStorage.setItem(userCollectionsKey, JSON.stringify(collections));
