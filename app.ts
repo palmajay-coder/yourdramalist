@@ -134,7 +134,7 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchRecent li{display:flex;align-items:center;gap:4px;border-bottom:1px solid #ffffff0d}
 .quickSearchItem{flex:1;min-width:0;min-height:52px;margin:0;padding:8px 0;border:0;background:transparent;color:#d6dbe3;font-size:17px;font-weight:400;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quickSearchRemove{flex:none;width:44px;height:44px;margin:0;padding:0;border:0;background:transparent;color:#8f97a6;font-size:22px}
-.quickSearchHint{margin:20px 0;color:#a6adba;line-height:1.5}
+.quickSearchHint{margin:28px 0;text-align:center}.quickSearchHint strong{display:block;font-size:19px;color:#f1f3f6}.quickSearchHint p{margin:6px 0 0;color:#a6adba}
 .quickSearchClearText{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#d6dbe3}
 .quickSearchClearText[hidden]{display:none}
 .quickSearchClearText svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}

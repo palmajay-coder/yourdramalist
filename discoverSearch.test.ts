@@ -114,7 +114,7 @@ await test("the green + opens a full-screen search that shows results on the sam
  const items=()=>[...sheet().querySelectorAll(".quickSearchItem")].map((b:any)=>b.textContent);
  plus.click();
  assert(sheet().open&&focused===box(),"the + opens the search with the box focused");
- assert(sheet().textContent.includes("then tap Add"),"an empty history explains what to do");
+ assert(sheet().textContent.includes("Build your own catalog")&&sheet().textContent.includes("Search a title and tap Add."),"an empty history explains what to do");
  (sheet().querySelector(".quickSearchBack") as any).click();
  assert(!sheet().open&&focused===plus,"the back arrow closes the search and returns to the +");
  plus.click();

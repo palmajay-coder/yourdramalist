@@ -74,8 +74,9 @@ export function installQuickSearch() {
     recentView.replaceChildren();
     const items = recent();
     if (!items.length) {
-      recentView.append(element("p", "quickSearchHint",
-        "Search a drama, movie, actor or director, then tap Add to put it in a collection."));
+      const hint = element("div", "quickSearchHint");
+      hint.append(element("strong", "", "Build your own catalog"), element("p", "", "Search a title and tap Add."));
+      recentView.append(hint);
       return;
     }
     const heading = element("div", "quickSearchHeading");
