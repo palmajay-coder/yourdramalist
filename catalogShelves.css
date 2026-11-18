@@ -249,8 +249,7 @@
   overflow-wrap:anywhere;
   font-size:clamp(16px,2.2vw,20px);
 }
-.myCollectionTop .myCollectionAdd {min-height:42px;flex:none;padding:7px 13px}
-.myCollectionTop .myCollectionAdd[aria-pressed=true] {color:var(--link);border-color:var(--accent)}
+.myCollectionTop .myCollectionAdd {flex:none}
 .myCollectionStrip {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
 .myCollectionPoster {
   display:block;
@@ -280,30 +279,10 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
 .androidNavItem:not(.active) .androidNavIcon .layeredPostersIcon i {background:#1d2028}
 
 .myCollectionCardActions {display:flex;align-items:center;gap:6px;flex:none}
-.myCollectionMenu {position:relative}
-.myCollectionMenu[open] {z-index:2}
-.myCollectionMenu summary {
-  display:grid;
-  place-items:center;
-  width:42px;
-  min-height:42px;
-  border:1px solid var(--line);
-  border-radius:8px;
-  cursor:pointer;
-  list-style:none;
-  font-size:22px;
-}
-.myCollectionMenu summary::-webkit-details-marker {display:none}
-.myCollectionMenu summary:focus-visible {outline:2px solid var(--link);outline-offset:2px}
-.myCollectionMenu .myCollectionMenuDelete {
-  position:absolute;
-  inset:calc(100% + 5px) 0 auto auto;
-  min-height:44px;
-  width:max-content;
-  background:var(--panel);
-  color:#ffb8be;
-  box-shadow:0 6px 20px #0008;
-}
+.myCollectionDelete {display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:1px solid #4a2e35;border-radius:50%;background:transparent;color:#ff5c67;box-shadow:none;cursor:pointer}
+.myCollectionDelete svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.myCollectionDelete:hover {background:#ff5c6714}
+.myCollectionDelete:focus-visible {outline:2px solid #ff8790;outline-offset:2px}
 .myCollectionDeleteDialog {width:min(370px,calc(100% - 32px));padding:18px;border-radius:18px;text-align:center}
 .myCollectionDeleteDialog::backdrop {background:#080a10a8;backdrop-filter:blur(3px)}
 .myCollectionDeleteDialog h2 {font-size:21px;margin:0 0 6px}
@@ -314,7 +293,7 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
   -webkit-appearance:none;
   min-height:48px;
   padding:8px 10px;
-  border-radius:12px;
+  border-radius:999px;
   box-shadow:none;
   font-weight:600;
 }

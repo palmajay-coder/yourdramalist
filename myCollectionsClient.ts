@@ -45,20 +45,6 @@ export function installMyCollections() {
     state.selection = remaining;
     renderSelection();
   }
-  const closeMenus = except => {
-    for (const menu of panel.querySelectorAll("details[open]")) {
-      if (menu !== except) menu.open = false;
-    }
-  };
-  document.addEventListener("click", event => closeMenus(event.target.closest?.(".myCollectionMenu")));
-  panel.addEventListener("keydown", event => {
-    const menu = event.target.closest(".myCollectionMenu[open]");
-    if (event.key !== "Escape" || !menu) return;
-    event.preventDefault();
-    menu.open = false;
-    menu.querySelector("summary").focus();
-  });
-
   const dialog = element("dialog", "catalogDialog myCollectionDeleteDialog");
   dialog.setAttribute("aria-labelledby", "deleteCollectionHeading");
   dialog.setAttribute("aria-describedby", "deleteCollectionDescription");
@@ -115,7 +101,7 @@ export function installMyCollections() {
     };
     dialog.addEventListener("close", () => {
       if (!deleted && trigger.isConnected) return trigger.focus();
-      const menus = panel.querySelectorAll(".myCollectionMenu summary");
+      const menus = panel.querySelectorAll(".myCollectionDelete");
       const next = menus[Math.min(index, menus.length - 1)];
       if (next) next.focus();
       else focusHeading();
@@ -128,7 +114,11 @@ export function installMyCollections() {
     const selected = new Set(state.selection.map(list => list.url));
     for (const [url, {button, name}] of buttons) {
       const added = selected.has(url);
-      button.textContent = added ? "Added" : "Add";
+      // Same blue Add / green Added pill as Discover.
+      const icon = element("span", "discoverAddIcon", added ? "✓" : "+");
+      icon.setAttribute("aria-hidden", "true");
+      button.replaceChildren(icon, document.createTextNode(added ? "Added" : "Add"));
+      button.classList.toggle("is-added", added);
       button.setAttribute("aria-pressed", String(added));
       button.setAttribute("aria-label", (added ? "Remove " : "Add ") + name +
         (added ? " from Your Selection" : " to Your Selection"));
@@ -152,23 +142,20 @@ export function installMyCollections() {
     for (const [index, {id, name, titles}] of collections.entries()) {
       const card = element("article", "myCollectionCard");
       const top = element("div", "myCollectionTop");
-      const add = element("button", "secondary myCollectionAdd");
+      const add = element("button", "myCollectionAdd discoverAddPill");
       add.type = "button";
       const url = "ydl-collection:" + id;
       buttons.set(url, {button: add, name});
       add.onclick = () => toggleList({kind: "user-collection", url, name});
       const actions = element("div", "myCollectionCardActions");
-      const menu = element("details", "myCollectionMenu");
-      const trigger = element("summary", "", "⋯");
-      trigger.setAttribute("aria-label", "Manage " + name);
-      const remove = element("button", "myCollectionMenuDelete", "Delete collection");
+      // A red × asks to delete the collection (it never deletes without the confirmation).
+      const remove = element("button", "myCollectionDelete");
       remove.type = "button";
-      remove.onclick = () => {
-        menu.open = false;
-        confirmDeletion({id, name}, trigger, index);
-      };
-      menu.append(trigger, remove);
-      actions.append(add, menu);
+      remove.setAttribute("aria-label", "Delete " + name);
+      remove.setAttribute("aria-haspopup", "dialog");
+      remove.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      remove.onclick = () => confirmDeletion({id, name}, remove, index);
+      actions.append(add, remove);
       top.append(element("h2", "", name), actions);
       const strip = element("div", "myCollectionStrip");
       const count = element("span", "myCollectionCount");
