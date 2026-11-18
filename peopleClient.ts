@@ -1,6 +1,9 @@
 // @ts-nocheck -- installed into the existing browser scope.
 export function installPeopleUI() {
   const compactButtons = new Map();
+  // Results go to Discover by default; the + search screen passes its own list and status line.
+  const discoverTarget = {list: () => $("listItems"), status: () => $("results")};
+  let target = discoverTarget;
   function cleanup() {
     compactButtons.clear();
   }
@@ -99,11 +102,11 @@ export function installPeopleUI() {
   function renderMatches(data2) {
     cleanup();
     const mode = data2.mode;
-    const results = $("listItems");
+    const results = target.list();
     const titles = data2.titles || [];
     results.replaceChildren();
-    $("results").textContent = titles.length || data2.people.length ? "" : "No matches found. Try another search.";
-    if (data2.warning) $("results").append(document.createTextNode(" · " + data2.warning));
+    target.status().textContent = titles.length || data2.people.length ? "" : "No matches found. Try another search.";
+    if (data2.warning) target.status().append(document.createTextNode(" · " + data2.warning));
     if (titles.length) {
       const section = document.createElement("section");
       const heading = document.createElement("h3");
@@ -162,37 +165,39 @@ export function installPeopleUI() {
         button.type = "button";
         button.className = "secondary";
         button.textContent = step === -1 ? "Previous matches" : "More matches";
-        button.onclick = () => search(data2.query, data2.page + step, mode);
+        button.onclick = () => search(data2.query, data2.page + step, mode, target);
         nav.append(button);
       }
-      $("listItems").append(nav);
+      results.append(nav);
     }
   }
-  async function search(query2, page3 = 1, mode = state.filter) {
+  async function search(query2, page3 = 1, mode = state.filter, where = discoverTarget) {
+    target = where;
     cleanup();
     const requestId = ++listRequest;
-    $("listItems").replaceChildren();
-    $("results").textContent = "";
+    target.list().replaceChildren();
+    target.status().textContent = "";
     try {
       const data2 = await json("/api/mdl/people-search?mode=" + mode + "&q=" + encodeURIComponent(query2) + "&page=" + page3);
       if (requestId !== listRequest) return;
       renderMatches(data2);
     } catch (e) {
-      if (requestId === listRequest) $("results").textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId === listRequest) target.status().textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
-  async function fromUrl(raw, mode = state.filter) {
+  async function fromUrl(raw, mode = state.filter, where = discoverTarget) {
+    target = where;
     cleanup();
     const requestId = ++listRequest;
-    $("listItems").replaceChildren();
-    $("results").textContent = "";
+    target.list().replaceChildren();
+    target.status().textContent = "";
     try {
       const data2 = await json(personApi(raw, mode));
       if (requestId !== listRequest) return;
       renderMatches({ mode, people: [{ ...data2.person, enriched: true }], page: 1, hasNextPage: false });
-      if (data2.warning) $("results").append(document.createTextNode(" \xB7 " + data2.warning));
+      if (data2.warning) target.status().append(document.createTextNode(" \xB7 " + data2.warning));
     } catch (e) {
-      if (requestId === listRequest) $("results").textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId === listRequest) target.status().textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
   return { search, fromUrl, cleanup, sync, reset: cleanup };

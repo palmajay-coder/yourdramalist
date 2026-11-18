@@ -1,6 +1,6 @@
 // @ts-nocheck -- installed into the setup page's browser scope.
-// The green + in the bottom bar: a full-screen search with recent searches. Searching hands the text to
-// Discover's own search, so results, previews, Add / Added buttons and the collection picker are shared.
+// The green + in the bottom bar: a full-screen search with recent searches. Results show on this screen,
+// drawn by Discover's own search (peopleUI), so previews, Add / Added buttons and the picker are shared.
 export function installQuickSearch() {
   const storageKey = "ydl.recentSearches.v1";
   const limit = 8;
@@ -42,17 +42,39 @@ export function installQuickSearch() {
   input.setAttribute("enterkeyhint", "search");
   input.autocomplete = "off";
   input.maxLength = 100;
-  form.append(back, input);
+  const clearText = element("button", "quickSearchClearText");
+  clearText.type = "button";
+  clearText.hidden = true;
+  clearText.setAttribute("aria-label", "Clear search");
+  clearText.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  form.append(back, input, clearText);
   const body = element("div", "quickSearchBody");
+  const recentView = element("div", "quickSearchRecentView");
+  const status = element("p", "quickSearchStatus");
+  status.setAttribute("role", "status");
+  const list = element("div", "quickSearchResults");
+  body.append(recentView, status, list);
   dialog.append(form, body);
+  const where = {list: () => list, status: () => status};
   document.body.append(dialog);
 
   let returnFocus = null;
+  let timer = 0;
+  let shown = "";
+  function showRecent() {
+    clearTimeout(timer);
+    shown = "";
+    listRequest++;
+    list.replaceChildren();
+    status.textContent = "";
+    recentView.hidden = false;
+    render();
+  }
   function render() {
-    body.replaceChildren();
+    recentView.replaceChildren();
     const items = recent();
     if (!items.length) {
-      body.append(element("p", "quickSearchHint",
+      recentView.append(element("p", "quickSearchHint",
         "Search a drama, movie, actor or director, then tap Add to put it in a collection."));
       return;
     }
@@ -79,37 +101,51 @@ export function installQuickSearch() {
       row.append(run, remove);
       list.append(row);
     }
-    body.append(heading, list);
+    recentView.append(heading, list);
   }
 
-  function close(then) {
-    const pending = Boolean(history.state?.ydlDialog);
-    returnFocus = then ? null : returnFocus;
+  function close() {
+    clearTimeout(timer);
     dialog.close();
-    if (!then) return;
-    // Closing goes back one history step; wait for it so Discover's page change is not undone.
-    if (!pending) return then();
-    let done = false;
-    const run = () => { if (done) return; done = true; window.removeEventListener("popstate", run); then(); };
-    window.addEventListener("popstate", run, {once: true});
-    setTimeout(run, 400);
+  }
+  function search(query, save = false) {
+    const text = String(query || "").trim();
+    clearTimeout(timer);
+    if (save && text) remember(text);
+    if (text === shown && list.childElementCount) return;
+    if (text.length < 2 || text.length > 100) {
+      if (!text) showRecent();
+      else if (save) status.textContent = "Enter a title or name between 2 and 100 characters.";
+      return;
+    }
+    shown = text;
+    recentView.hidden = true;
+    status.textContent = "Searching…";
+    if (/^https?:/i.test(text)) peopleUI.fromUrl(text, "actor", where);
+    else peopleUI.search(text, 1, "actor", where);
   }
   function submit(query) {
-    const text = String(query || "").trim();
-    if (!text) { input.focus(); return; }
-    remember(text);
-    close(() => {
-      openSelection("discover");
-      window.syncAndroidNav?.(currentPage, "discover");
-      const discoverInput = $("discoverInput");
-      discoverInput.value = text;
-      $("discoverForm").dispatchEvent(new window.Event("submit", {cancelable: true}));
-      window.scrollTo?.({top: 0});
-    });
+    input.value = String(query || "").trim();
+    clearText.hidden = !input.value;
+    search(input.value, true);
+    input.blur();
   }
+  input.addEventListener("input", () => {
+    clearText.hidden = !input.value;
+    clearTimeout(timer);
+    if (!input.value.trim()) { showRecent(); return; }
+    // Search as the person types, after a short pause, like the rest of the app's search boxes.
+    timer = setTimeout(() => search(input.value), 450);
+  });
+  clearText.onclick = () => { input.value = ""; clearText.hidden = true; showRecent(); input.focus(); };
+  // Opening a result counts as using the search, so it joins the recent searches.
+  list.addEventListener("click", event => {
+    if (event.target.closest?.("button") && shown) remember(shown);
+  });
   form.onsubmit = event => { event.preventDefault(); submit(input.value); };
   back.onclick = () => close();
   dialog.addEventListener("close", () => {
+    clearTimeout(timer);
     const target = returnFocus;
     returnFocus = null;
     target?.focus?.();
@@ -122,7 +158,8 @@ export function installQuickSearch() {
       if (dialog.open) return;
       returnFocus = opener || null;
       input.value = "";
-      render();
+      clearText.hidden = true;
+      showRecent();
       showAndroidDialog(dialog);
       input.focus();
     },

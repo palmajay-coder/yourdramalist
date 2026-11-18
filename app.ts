@@ -125,6 +125,7 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchBack svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .quickSearchBar input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 4px;border:0;background:transparent;color:#f1f3f6;font-size:18px;outline:none}
 .quickSearchBar input::placeholder{color:#8f97a6}
+.quickSearchBar input::-webkit-search-cancel-button,.quickSearchBar input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
 .quickSearchBody{padding:8px 16px 24px;overflow-y:auto;height:calc(100% - 70px)}
 .quickSearchHeading{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
 .quickSearchHeading h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#a6adba}
@@ -134,7 +135,16 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchItem{flex:1;min-width:0;min-height:52px;margin:0;padding:8px 0;border:0;background:transparent;color:#d6dbe3;font-size:17px;font-weight:400;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quickSearchRemove{flex:none;width:44px;height:44px;margin:0;padding:0;border:0;background:transparent;color:#8f97a6;font-size:22px}
 .quickSearchHint{margin:20px 0;color:#a6adba;line-height:1.5}
-:is(.quickSearchBack,.quickSearchClear,.quickSearchItem,.quickSearchRemove):focus-visible{outline:2px solid #75aaff;outline-offset:2px;border-radius:8px}
+.quickSearchClearText{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#d6dbe3}
+.quickSearchClearText[hidden]{display:none}
+.quickSearchClearText svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.quickSearchRecentView[hidden]{display:none}
+.quickSearchStatus{margin:12px 0;color:#a6adba}.quickSearchStatus:empty{display:none}
+.quickSearchResults .catalogSectionTitle{margin:14px 0 8px;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#a6adba}
+.quickSearchResults .discoverTitleRow{margin:0;padding:10px 0;border:0;border-bottom:1px solid #ffffff12;border-radius:0;background:transparent}
+.quickSearchResults .discoverTitleIdentity img,.quickSearchResults .discoverTitleIdentity .shelfPosterBlank{width:52px;height:78px;flex-basis:52px}
+.quickSearchResults .discoverTitleIdentity strong{font-size:17px}
+:is(.quickSearchBack,.quickSearchClear,.quickSearchClearText,.quickSearchItem,.quickSearchRemove):focus-visible{outline:2px solid #75aaff;outline-offset:2px;border-radius:8px}
 body[data-page=connect] header{display:none}
 body[data-page=connect] #connect h1{text-align:center}
 body.androidSetup .androidFiltersDialog,body.androidSetup .mobileSelectionDialog{background:var(--panel);color:var(--text)}
