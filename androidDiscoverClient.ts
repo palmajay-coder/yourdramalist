@@ -54,6 +54,9 @@ export function installAndroidDiscover() {
   const discoverInput = $("discoverInput");
   $("discoverSearch").querySelector(".discoverModes").classList.add("hidden");
   $("discoverLabel").classList.add("androidScreenReader");
+  // Discover is curation only (This Week's Picks, Catalogs by Country). Searching lives in the green +.
+  discoverForm.hidden = true;
+  $("discoverLabel").hidden = true;
   discoverInput.setAttribute("enterkeyhint", "search");
   discoverInput.required = false;
 

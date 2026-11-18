@@ -129,6 +129,13 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchIntro{display:none;min-width:0}
 .quickSearchBar.withIntro .quickSearchIntro{display:grid;align-self:center}
 .quickSearchIntro strong{font-size:20px;line-height:1.2;color:#f1f3f6}
+body.androidSetup #discoverForm[hidden],body.androidSetup #discoverLabel[hidden]{display:none}
+.quickSearchTip{margin:20px 4px}
+.quickSearchSteps{display:grid;gap:14px;margin:0;padding:0;list-style:none}
+.quickSearchSteps li{display:flex;align-items:center;gap:14px;font-size:16px;color:#e4e8ef}
+.quickSearchStepIcon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:#2878eb1f;color:#6ea3ff}
+.quickSearchStepIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.quickSearchPeopleTip{margin:20px 0 0;color:#a6adba;line-height:1.5}
 .quickSearchBar input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 4px;border:0;background:transparent;color:#f1f3f6;font-size:18px;outline:none}
 .quickSearchBar input::placeholder{color:#8f97a6}
 .quickSearchBar input::-webkit-search-cancel-button,.quickSearchBar input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}

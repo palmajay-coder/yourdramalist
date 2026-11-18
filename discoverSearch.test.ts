@@ -126,7 +126,10 @@ await test("the green + opens a full-screen search that shows results on the sam
  const items=()=>[...sheet().querySelectorAll(".quickSearchItem")].map((b:any)=>b.textContent);
  plus.click();
  assert(sheet().open&&focused===box(),"the + opens the search with the box focused");
- assert(sheet().textContent.includes("Build your own catalog")&&!sheet().textContent.includes("tap Add"),"an empty history shows only the heading");
+ assert(sheet().querySelector(".quickSearchIntro")!.textContent==="Search","the screen is titled Search");
+ const steps=[...sheet().querySelectorAll(".quickSearchSteps li")].map((li:any)=>li.textContent);
+ assert(steps.join("|")==="Search a drama or movie|Add it to your own collection|Install the collection in Nuvio"&&sheet().textContent.includes("their whole filmography"),"the 3-step tip explains collections and filmographies: "+steps.join("|"));
+ assert((document.getElementById("discoverForm") as any).hidden,"Discover no longer shows its own search bar");
  assert(sheet().querySelector("form").classList.contains("withIntro"),"the heading sits above the search box while there are no recent searches");
  (sheet().querySelector(".quickSearchBack") as any).click();
  assert(!sheet().open&&focused===plus,"the back arrow closes the search and returns to the +");
@@ -137,8 +140,8 @@ await test("the green + opens a full-screen search that shows results on the sam
  assert(searches()===1&&asked[asked.length-1].includes("bullet%20balle"),"pausing searches once: "+asked.join(", "));
  const results=sheet().querySelector(".quickSearchResults");
  assert(sheet().open&&results.querySelector(".discoverTitleIdentity")?.textContent.includes("Bullet Ballet"),"results show on the search screen");
- assert(results.querySelector(".discoverTitleAdd")&&!results.textContent.includes("Shinya Tsukamoto")&&!results.textContent.includes("Actors and directors"),"results use the Discover Add buttons and leave out people");
- assert(box().placeholder==="Search a drama or movie...","the box asks for titles");
+ assert(results.querySelector(".discoverTitleAdd")&&results.textContent.includes("Shinya Tsukamoto")&&results.textContent.includes("Actors and directors"),"results include titles with Add buttons and people with filmographies");
+ assert(box().placeholder==="Dramas, movies, actors, directors...","the box says what can be searched");
  assert(!document.getElementById("listItems")!.textContent.includes("Bullet Ballet"),"Discover's own results are untouched");
  assert(sheet().querySelector(".quickSearchRecentView").hidden&&!sheet().querySelector(".quickSearchClearText").hidden,"recent searches hide and the × shows while results are up");
  assert(!items().length&&!saved.get("ydl.recentSearches.v1"),"typing alone does not save a recent search");

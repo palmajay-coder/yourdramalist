@@ -27,7 +27,7 @@ export function installQuickSearch() {
     return node;
   };
   const dialog = element("dialog", "quickSearch");
-  dialog.setAttribute("aria-label", "Search titles to add");
+  dialog.setAttribute("aria-label", "Search");
   const form = element("form", "quickSearchBar");
   form.setAttribute("role", "search");
   const back = element("button", "quickSearchBack");
@@ -37,8 +37,8 @@ export function installQuickSearch() {
   const input = element("input");
   input.type = "search";
   input.id = "quickSearchInput";
-  input.placeholder = "Search a drama or movie...";
-  input.setAttribute("aria-label", "Search dramas and movies");
+  input.placeholder = "Dramas, movies, actors, directors...";
+  input.setAttribute("aria-label", "Search dramas, movies, actors and directors");
   input.setAttribute("enterkeyhint", "search");
   input.autocomplete = "off";
   input.maxLength = 100;
@@ -49,7 +49,7 @@ export function installQuickSearch() {
   clearText.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   // Shown above the search box until the first search; after that, recent searches take its place.
   const intro = element("div", "quickSearchIntro");
-  intro.append(element("strong", "", "Build your own catalog"));
+  intro.append(element("strong", "", "Search"));
   const field = element("div", "quickSearchField");
   field.append(input, clearText);
   form.append(back, intro, field);
@@ -60,8 +60,8 @@ export function installQuickSearch() {
   const list = element("div", "quickSearchResults");
   body.append(recentView, status, list);
   dialog.append(form, body);
-  // Titles only: actors and directors are whole filmographies, which Discover handles.
-  const where = {list: () => list, status: () => status, titlesOnly: true};
+  // The only search in the app: titles go into the person's own collections, people add a filmography.
+  const where = {list: () => list, status: () => status};
   document.body.append(dialog);
 
   let returnFocus = null;
@@ -76,12 +76,33 @@ export function installQuickSearch() {
     recentView.hidden = false;
     render();
   }
+  // Before the first search: how a single drama becomes your own catalog in Nuvio.
+  function tip() {
+    const box = element("div", "quickSearchTip");
+    const steps = element("ol", "quickSearchSteps");
+    const icons = {
+      search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+      add: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+      tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    };
+    for (const [icon, text] of [["search", "Search a drama or movie"], ["add", "Add it to your own collection"], ["tv", "Install the collection in Nuvio"]]) {
+      const step = element("li");
+      const mark = element("span", "quickSearchStepIcon");
+      mark.setAttribute("aria-hidden", "true");
+      mark.innerHTML = '<svg viewBox="0 0 24 24">' + icons[icon] + "</svg>";
+      step.append(mark, element("span", "", text));
+      steps.append(step);
+    }
+    box.append(steps, element("p", "quickSearchPeopleTip", "Or search an actor or director to add their whole filmography."));
+    return box;
+  }
   function render() {
     recentView.replaceChildren();
     form.classList.remove("withIntro");
     const items = recent();
     if (!items.length) {
       form.classList.add("withIntro");
+      recentView.append(tip());
       return;
     }
     const heading = element("div", "quickSearchHeading");
@@ -121,13 +142,14 @@ export function installQuickSearch() {
     if (text === shown && list.childElementCount) return;
     if (text.length < 2 || text.length > 100) {
       if (!text) showRecent();
-      else if (save) status.textContent = "Enter a title between 2 and 100 characters.";
+      else if (save) status.textContent = "Enter a title or name between 2 and 100 characters.";
       return;
     }
     shown = text;
     recentView.hidden = true;
     status.textContent = "Searching…";
-    peopleUI.search(text, 1, "actor", where);
+    if (/^https?:/i.test(text)) peopleUI.fromUrl(text, "actor", where);
+    else peopleUI.search(text, 1, "actor", where);
   }
   function submit(query) {
     input.value = String(query || "").trim();
