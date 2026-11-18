@@ -22,7 +22,7 @@ import android.widget.Toast;
 public final class MainActivity extends Activity {
     private static final String HOST = "yourdramalist.net";
     private static final String START_URL = "https://" + HOST + "/";
-    private static final String WHATS_NEW_VERSION = "1.1.25";
+    private static final String WHATS_NEW_VERSION = "1.1.26";
     private static final String WHATS_NEW_TITLE = "What’s new in " + WHATS_NEW_VERSION;
     private static final String WHATS_NEW_MESSAGE =
             "• Unified Discover search: Find dramas, movies, actors, and directors in one search bar.\n\n"
