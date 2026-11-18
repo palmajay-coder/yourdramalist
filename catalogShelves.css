@@ -95,3 +95,239 @@
 .catalogTitleScore :is(.ratingStar,.ratingStar svg){width:clamp(9px,3vw,14px);height:clamp(9px,3vw,14px)}
 .catalogTitleScore .ratingValue{white-space:nowrap}
 .catalogTitleDialog .dramaSynopsis{line-height:1.6;margin:16px 0 0}
+
+.discoverTitleRows{display:grid;gap:8px}
+.discoverTitleRow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px}
+.discoverTitleIdentity{display:flex;align-items:center;gap:10px;min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;box-shadow:none}
+.discoverTitleIdentity strong{overflow-wrap:anywhere}
+.discoverTitleIdentity img,.discoverTitleIdentity .shelfPosterBlank{width:40px;height:60px;flex:0 0 40px;object-fit:cover;border-radius:6px}
+.discoverTitleAdd{max-width:9rem;font-size:12px;padding:6px 8px}
+
+.catalogTitleDialog.discoverTitlePreview{inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;overscroll-behavior:contain}
+.discoverTitlePreview .catalogDialogClose{position:fixed;z-index:2;top:max(14px,env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right))}
+.discoverTitlePreview .catalogTitleHeader{position:relative;isolation:isolate;align-items:end;min-height:clamp(250px,49vw,460px);padding:64px max(20px,calc((100vw - 1000px)/2)) 28px;background:linear-gradient(155deg,var(--tab),var(--panel) 76%)}
+.discoverTitlePreview .catalogTitleHeader:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,var(--panel),transparent 85%);pointer-events:none}
+.discoverTitlePreview img.discoverPreviewBackdrop{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center 35%;border-radius:0;float:none;margin:0}
+.discoverTitlePreview .catalogTitleHeader:has(.discoverPreviewBackdrop:not([hidden])){background:#17141d;color:white}
+.discoverTitlePreview .catalogTitleHeader:has(.discoverPreviewBackdrop:not([hidden])):after{background:linear-gradient(0deg,#17141d,rgba(23,20,29,.25) 100%)}
+.discoverTitlePreview h2{font-size:clamp(22px,4vw,42px)}
+.discoverTitlePreview img.discoverPreviewLogo{display:block;float:none;width:auto;max-width:min(100%,380px);max-height:100px;object-fit:contain;margin:0}
+.discoverTitlePreview .discoverPreviewBody{max-width:1000px;margin:auto;padding:0 20px max(36px,env(safe-area-inset-bottom))}
+.discoverPreviewTagline,.discoverPreviewFacts{color:var(--muted)}
+.discoverPreviewTagline:empty,.discoverPreviewFacts:empty{display:none}
+.layeredPostersIcon{position:relative;display:inline-block;width:22px;height:20px;flex:none}
+.layeredPostersIcon i{position:absolute;left:2px;top:1px;width:12px;height:15px;border:1.5px solid currentColor;border-radius:2px;background:var(--panel);transform:rotate(-15deg)}
+.layeredPostersIcon i:nth-child(2){left:5px;top:2px;transform:rotate(-8deg)}
+.layeredPostersIcon i:nth-child(3){left:8px;top:4px;transform:none}
+.discoverPreviewCast{display:flex;gap:12px;overflow:auto;padding-bottom:8px}
+.discoverPreviewCast>div{flex:0 0 100px}
+.discoverTitlePreview .discoverPreviewCast img{display:block;float:none;width:100%;height:125px;object-fit:cover;margin:0 0 5px}
+.discoverPreviewCast small,.discoverPreviewReviews small,.discoverPreviewReviews strong{display:block}
+.discoverPreviewReviews article{padding:12px 0;border-top:1px solid var(--line)}
+
+.catalogTitleDialog.discoverTitlePreview{--panel:#111522;--text:#f3f4fb;--muted:#b6bed0;--line:#414858;--link:#b8d9ff;color:var(--text);background:var(--panel)}
+.discoverTitlePreview .catalogDialogClose{left:max(20px,calc((100vw - 1000px)/2));right:auto;border-radius:24px;background:#161b29;color:var(--text);font-size:13px;padding:5px 13px}
+.discoverTitlePreview .catalogTitleHeader{min-height:clamp(240px,39vw,430px);padding:65px max(20px,calc((100vw - 1000px)/2)) 15px}
+.discoverTitlePreview .catalogTitleInfo h2{padding:0}
+.discoverTitlePreview .catalogTitleArtwork{width:clamp(76px,21vw,150px)}
+.discoverTitlePreview .catalogTitleHeader:has(.discoverPreviewBackdrop:not([hidden])):after{background:linear-gradient(0deg,var(--panel),rgba(17,21,34,.16) 100%)}
+.discoverTitlePreview .catalogTitleInfo p{font-size:13px;color:var(--muted)}
+.discoverTitlePreview .discoverPreviewBody{box-sizing:border-box;max-width:1040px}
+.discoverPreviewGenres{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.discoverPreviewGenres span,.discoverPreviewStatus{border-radius:20px;background:#ffffff19;padding:2px 7px;font-size:11px}
+.discoverPreviewStatus{margin-inline-start:8px;background:#17352e;color:#a8e5c5}
+.discoverTitlePreview .catalogTitleScore{font-size:13px;color:var(--muted)}
+.discoverTitlePreview .catalogTitleScore strong{color:var(--text)}
+.discoverRatingStar{color:#ffc857;font-size:16px;line-height:1}
+.discoverPreviewTagline{font-style:italic;margin:0 0 8px}
+.discoverTitlePreview .dramaSynopsis{color:var(--text);margin:0}
+.discoverPreviewFacts{font-size:12px}
+.discoverPreviewSectionHead{display:flex;justify-content:space-between;align-items:baseline}
+.discoverPreviewSectionHead a,.discoverPreviewReviews a{font-size:12px;color:var(--link)}
+.discoverPreviewReviews article{margin:8px 0;padding:12px;border:1px solid var(--line);border-radius:9px;background:#ffffff08}
+.discoverReviewScore{float:right;font-size:12px;color:var(--muted)}
+
+
+.discoverReviewTotal{color:var(--muted);font-size:.8em;font-weight:500}
+
+.discoverReviewScore{display:inline-flex;align-items:center;gap:4px}
+.discoverReviewScore .discoverRatingStar{font-size:13px}
+@media(max-width:600px){
+  .discoverTitlePreview img.discoverPreviewLogo{
+    width:auto;
+    max-width:min(100%,12rem);
+    max-height:3.25rem;
+    object-fit:contain;
+    object-position:left center;
+  }
+}
+
+.collectionPicker[open] {
+  display:flex;
+  flex-direction:column;
+}
+.collectionPicker {
+  box-sizing:border-box;
+  width:min(480px,calc(100% - 32px));
+  max-height:calc(var(--picker-visible-height,100dvh) - 24px);
+  padding:0;
+  border-radius:22px;
+  background:#171b24;
+  color:#f2f4fb;
+  overflow:hidden;
+}
+.collectionPickerHeader {position:relative;flex:none;padding:18px 18px 14px;border-bottom:1px solid #303746}
+.collectionPickerHeader h2 {margin:0 42px 12px 0;font-size:20px}
+.collectionPicker .collectionPickerClose {position:absolute;top:10px;right:10px;width:40px;height:40px;padding:0;font-size:23px;border-radius:50%}
+.collectionPickerTitle {display:flex;align-items:center;gap:12px}
+.collectionPickerTitle strong {font-size:17px;overflow-wrap:anywhere}
+.collectionPickerTitle p {color:#aeb9ce;font-size:13px;margin:3px 0 0}
+.collectionPickerPoster {display:block;flex:none;width:23px;aspect-ratio:2 / 3;border-radius:4px;overflow:hidden;background:#343e51}
+.collectionPickerTitle .collectionPickerPoster {width:46px;border-radius:6px}
+.collectionPicker .collectionPickerPoster img {display:block;float:none;margin:0;width:100%;height:100%;border-radius:0;object-fit:cover}
+.collectionPickerForm {display:flex;flex-direction:column;min-height:0;margin:0}
+.collectionPickerBody {min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 18px}
+.collectionPickerList {display:grid;gap:6px}
+.collectionPickerList h3 {font-size:15px;margin:0 0 2px}
+.collectionPickerRow {display:flex;align-items:center;gap:10px;margin:0;padding:8px 9px;min-height:38px;border:1px solid #353e50;border-radius:10px;background:#202634;cursor:pointer}
+.collectionPickerRow:has(input:checked) {border-color:#5494ff;background:#202e48}
+.collectionPickerStrip {display:flex;gap:2px;flex:none}
+.collectionPickerRowInfo {display:grid;gap:2px;min-width:0;flex:1;overflow-wrap:anywhere}
+.collectionPickerRowInfo strong {font-size:14px}
+.collectionPickerRowInfo small {font-size:11px;color:#b5c0d4}
+.collectionPickerMember {display:inline-block;margin-inline-start:6px;color:#b7ceff}
+.collectionPickerMember:empty {display:none}
+.collectionPickerRow input[type=checkbox] {appearance:auto;accent-color:#428aff;width:18px;height:18px;margin:0;padding:0;flex:none}
+.collectionPickerNew {margin-top:10px;border:1px solid #343e50;border-radius:10px;padding:0 10px}
+.collectionPickerList:empty + .collectionPickerNew {margin-top:0}
+.collectionPickerNew summary {display:flex;align-items:center;min-height:40px;list-style:none;cursor:pointer;color:#a8caff;font-size:14px;font-weight:650}
+.collectionPickerNew summary::-webkit-details-marker {display:none}
+.collectionPickerNew input {box-sizing:border-box;width:100%;margin-bottom:10px;font-size:16px}
+.collectionPickerStatus {margin:8px 0 0;font-size:13px;color:#ffb2a8}
+.collectionPickerStatus:empty {display:none}
+.collectionPickerFooter {flex:none;display:grid;grid-template-columns:1fr 2fr;gap:8px;padding:10px 18px max(12px,env(safe-area-inset-bottom));border-top:1px solid #303746;background:#171b24}
+.collectionPickerFooter button {min-height:44px;font-size:14px}
+.collectionPickerFooter .collectionPickerSave {background:#2367e8;color:#fff;padding-inline:8px}
+.collectionPickerFooter .collectionPickerSave:disabled {background:#263650;color:#bac7dd}
+.collectionPickerSuccess {position:fixed;z-index:9999;left:50%;bottom:max(24px,calc(env(safe-area-inset-bottom) + 16px));transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:10px 16px;border:1px solid #397653;border-radius:12px;background:#153727;color:#bff9d5;font-size:14px}
+@media(max-width:600px), (pointer:coarse) {
+  .collectionPicker {
+    position:fixed;
+    inset:auto 0 var(--picker-visible-bottom,0px);
+    width:min(100%,540px);
+    max-width:100%;
+    margin:0 auto;
+    border-radius:20px 20px 0 0;
+  }
+}
+
+#myCollections {width:min(100%,680px);margin-inline:auto}
+.myCollectionsMessage {color:var(--muted);margin:0;padding:14px 0}
+.myCollectionCard {
+  padding:clamp(10px,2.5vw,16px);
+  margin-bottom:12px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel);
+}
+.myCollectionTop {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:9px;
+}
+.myCollectionTop h2 {
+  margin:4px 0 0;
+  min-width:0;
+  overflow-wrap:anywhere;
+  font-size:clamp(16px,2.2vw,20px);
+}
+.myCollectionTop .myCollectionAdd {min-height:42px;flex:none;padding:7px 13px}
+.myCollectionTop .myCollectionAdd[aria-pressed=true] {color:var(--link);border-color:var(--accent)}
+.myCollectionStrip {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.myCollectionPoster {
+  display:block;
+  position:relative;
+  aspect-ratio:2 / 3;
+  overflow:hidden;
+  background:#151922;
+  border-radius:7px;
+}
+.myCollectionPoster img {display:block;width:100%;height:100%;object-fit:cover}
+.myCollectionCountTile {grid-column:5;background:#10131a;color:#fff}
+.myCollectionCount {
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:2px;
+  background:#080b12a8;
+  font-size:clamp(10px,2.5vw,14px);
+}
+.myCollectionCount strong {font-size:clamp(15px,4vw,26px);line-height:1}
+body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:none}
+.androidNavIcon .layeredPostersIcon i {background:transparent}
+.androidNavItem.active .androidNavIcon .layeredPostersIcon i {background:#2674ec}
+.androidNavItem:not(.active) .androidNavIcon .layeredPostersIcon i {background:#1d2028}
+
+.myCollectionCardActions {display:flex;align-items:center;gap:6px;flex:none}
+.myCollectionMenu {position:relative}
+.myCollectionMenu[open] {z-index:2}
+.myCollectionMenu summary {
+  display:grid;
+  place-items:center;
+  width:42px;
+  min-height:42px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  cursor:pointer;
+  list-style:none;
+  font-size:22px;
+}
+.myCollectionMenu summary::-webkit-details-marker {display:none}
+.myCollectionMenu summary:focus-visible {outline:2px solid var(--link);outline-offset:2px}
+.myCollectionMenu .myCollectionMenuDelete {
+  position:absolute;
+  inset:calc(100% + 5px) 0 auto auto;
+  min-height:44px;
+  width:max-content;
+  background:var(--panel);
+  color:#ffb8be;
+  box-shadow:0 6px 20px #0008;
+}
+.myCollectionDeleteDialog {width:min(370px,calc(100% - 32px));padding:18px;border-radius:18px;text-align:center}
+.myCollectionDeleteDialog::backdrop {background:#080a10a8;backdrop-filter:blur(3px)}
+.myCollectionDeleteDialog h2 {font-size:21px;margin:0 0 6px}
+.myCollectionDeleteDialog p {margin:0;overflow-wrap:anywhere;line-height:1.5;color:var(--muted)}
+.myCollectionDeleteActions {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:8px;margin-top:16px}
+.myCollectionDeleteActions button {
+  appearance:none;
+  -webkit-appearance:none;
+  min-height:48px;
+  padding:8px 10px;
+  border-radius:12px;
+  box-shadow:none;
+  font-weight:600;
+}
+.myCollectionDeleteActions .myCollectionDeleteCancel {background:#252a34;color:#fff;border:1px solid #414855}
+.myCollectionDeleteActions .myCollectionDeleteConfirm {background:#dc3545;color:#fff;border:none;outline:none}
+.myCollectionDeleteActions .myCollectionDeleteConfirm:hover {background:#c82333}
+.myCollectionDeleteActions button:focus-visible {outline:2px solid var(--link);outline-offset:3px}
+.myCollectionDeleteActions .myCollectionDeleteConfirm:focus-visible {outline:2px solid #ff8790;outline-offset:3px}
+.myCollectionDeleteDialog .myCollectionDeleteError {margin-top:8px;color:#ffb8be}
+.myCollectionDeleteError:empty {display:none}
+.myCollectionsFeedback {
+  position:fixed;
+  z-index:25;
+  inset:auto auto calc(var(--android-nav-height,72px) + 12px) 50%;
+  transform:translateX(-50%);
+  margin:0;
+  padding:9px 14px;
+  border:1px solid #397653;
+  border-radius:10px;
+  background:#153727;
+  color:#bff9d5;
+}

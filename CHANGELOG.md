@@ -1,15 +1,25 @@
 # Changelog
 
-## 1.1.25 (Android app)
+## 1.1.25
 
-### What's new
+### What’s new
 
-- The Android app is now signed with a permanent YourDramaList key and built on GitHub, so from this version on, updates install over the app and keep your setup.
-- Inside the app, a notice offers the newest version with a download button when one is available.
+- Discover now searches drama and movie titles, actors, and directors in one bar. Title results show a compact poster and name, with **+ Add to Collection** beside them. Tap a title for its details.
+- Title previews show a TMDB backdrop, logo, and poster when available, plus the story, cast, release details, MyDramaList rating, and reviews with the current review count. The blue **Add to Collection** action sits next to **Open in MyDramaList**.
+- **My Collections** lets you build custom catalogs from individual titles. Review your collections as poster cards with title counts, add a whole collection to **Your Selection**, or delete it from its card menu.
+- From search results or a title preview, use the collection picker to add to several collections, remove existing memberships, or create a new collection starting with that title. The picker shows pending changes before you save.
+- Install personal collections in Nuvio, alone or alongside other catalogs. Later title edits sync through the same install link. Removing a catalog on the **Confirmation** page keeps the original collection intact.
 
-### Known bugs
+### Improvements
 
-- Apps from 1.1.24 and earlier were signed with a key that was lost, so they cannot update in place. Uninstall the old app once and install 1.1.25. The app shows a notice asking for this.
+- Navigation now goes **Connect → Community → Discover → My Collections**. Connecting with a MyDramaList username opens Community and loads that user’s lists. Continuing without an account opens Discover.
+- The collection picker uses a bottom sheet on mobile, with a title preview, scrollable rows, and a dedicated Save bar. The delete confirmation uses a compact dark dialog with a solid red action.
+- Android shows a brief **What’s new** dialog on the first launch after an in-place update to 1.1.25.
+- A notice in the app offers the newest APK when an update is available. The Android release workflow signs new releases with the permanent YourDramaList key.
+
+### Android upgrade
+
+- Moving from 1.1.24 or earlier requires a one-time reinstall because those APKs used a different key. Releases signed with the permanent key can update in place and preserve app data.
 
 ## 1.1.24
 

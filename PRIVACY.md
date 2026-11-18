@@ -8,6 +8,10 @@ The app saves theme, selected catalogs, non-secret preference switches, badge ch
 
 Selections may include list titles, public list URLs and creator identifiers. Other code running on the same origin, browser extensions, browser sync/backup facilities and people with access to the browser profile may have access to browser data.
 
+## Personal collections
+
+My Collections saves collection names and titles in this browser. Generating an install link syncs the selected collections’ public title information to YourDramaList so Nuvio can load those catalogs. Later changes sync from the browser that created the collection. Deleting a collection removes its synced title data after the browser reconnects and syncs. Anyone with your install link can read the catalogs it provides.
+
 ## Install links
 
 Confirm sends selected catalog identities/names, optional MDL username, preferences and (only for enabled poster ratings) provider keys to the same-origin `/api/addon/configure` endpoint over HTTPS. The server returns a URL containing an AES-GCM encrypted configuration. It does not put user configurations or API keys in an application database.
