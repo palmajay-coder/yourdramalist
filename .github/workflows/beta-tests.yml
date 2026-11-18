@@ -22,3 +22,5 @@ jobs:
           deno-version: v2.9.8
       - name: Run offline assertion suites with test-only Val Town adapters
         run: deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts
+      - name: Run Deno.test suites (header layout, My Collections, personal catalogs)
+        run: deno test --no-check --allow-read --allow-env --import-map=tests/import_map.json mobileHeader.test.ts myCollections.test.ts personalCatalogs.test.ts

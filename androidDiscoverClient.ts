@@ -7,6 +7,17 @@ export function installAndroidDiscover() {
   const heading = document.createElement("h1");
   heading.textContent = "Discover";
   toolbar.append(heading);
+  const header = document.querySelector("body > header");
+  const mainTitles = {profiles: "Community", discover: "Discover", collections: "My Collections"};
+  function syncHeader() {
+    const mobileHeader = currentPage === "selection" && !document.body.classList.contains("wideWeb");
+    header.classList.toggle("mobilePageHeader", mobileHeader);
+    toolbar.hidden = mobileHeader;
+    heading.textContent = mainTitles[state.tab] || "Discover";
+    if (mobileHeader) header.prepend(heading);
+    else toolbar.append(heading);
+  }
+  window.syncMobileHeaderLayout = syncHeader;
   const actions = document.createElement("div");
   actions.className = "androidHeaderActions";
   const form = $("profileForm");
@@ -35,7 +46,7 @@ export function installAndroidDiscover() {
   selectionButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="15" height="17" rx="2"/><path d="M8 8h7M8 12h4M8 16l2 2 5-6"/></svg><span id="androidSelectionCount" hidden></span>';
   selectionButton.onclick = () => $("reviewSelection").click();
   actions.append(selectionButton);
-  document.querySelector("header").append(actions);
+  header.append(actions);
   input.setAttribute("aria-label", "MyDramaList username or list URL");
   home.insertBefore(toolbar, workspace);
 
@@ -100,7 +111,7 @@ export function installAndroidDiscover() {
     const selected = explicit || (page === "connect" ? "connect" : state.tab === "profiles" ? "community" : state.tab);
     const inDiscover = state.tab === "discover";
     const inCollections = state.tab === "collections";
-    heading.textContent = inCollections ? "My Collections" : inDiscover ? "Discover" : "Community";
+    syncHeader();
     filters.hidden = inCollections;
     catalogs.hidden = !inDiscover;
     actions.classList.toggle("hidden", page !== "selection");

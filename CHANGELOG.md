@@ -10,6 +10,10 @@
 - **Weekly Picks** and the country shelves keep **Add** and **Added** and still add or remove the whole shelf in **Your Selection**.
 - The buttons show a plus or check icon, a visible keyboard focus ring, and a touch target at least 44 px tall.
 
+### Website update (no app download)
+
+- Community, Discover, and My Collections show their page name in a compact header with the icons on the right. Connect has no header bar and shows a large, centered **YourDramaList** title over the posters. The app picks this up from the website, so no new APK is needed.
+
 ## 1.1.26
 
 - The Android app with the 1.1.25 features, signed with the permanent YourDramaList key. It installs over 1.1.25 as an update.
