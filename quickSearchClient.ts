@@ -84,16 +84,22 @@ export function installQuickSearch() {
       search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
       add: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
       tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
+      person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     };
-    for (const [icon, text] of [["search", "Search a drama or movie"], ["add", "Add it to your own collection"], ["tv", "Install the collection in Nuvio"]]) {
-      const step = element("li");
+    const iconMark = icon => {
       const mark = element("span", "quickSearchStepIcon");
       mark.setAttribute("aria-hidden", "true");
       mark.innerHTML = '<svg viewBox="0 0 24 24">' + icons[icon] + "</svg>";
-      step.append(mark, element("span", "", text));
+      return mark;
+    };
+    for (const [icon, text] of [["search", "Search a drama or movie"], ["add", "Add it to your own collection"], ["tv", "Install the collection in Nuvio"]]) {
+      const step = element("li");
+      step.append(iconMark(icon), element("span", "", text));
       steps.append(step);
     }
-    box.append(steps, element("p", "quickSearchPeopleTip", "Or search an actor or director to add their whole filmography."));
+    const people = element("p", "quickSearchPeopleTip");
+    people.append(iconMark("person"), element("span", "", "Or search an actor or director to add their whole filmography."));
+    box.append(steps, people);
     return box;
   }
   function render() {
