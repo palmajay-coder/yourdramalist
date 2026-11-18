@@ -65,7 +65,7 @@ export function installMyCollections() {
   document.body.append(dialog);
   let feedbackTimer;
   const focusHeading = () => {
-    const heading = document.querySelector(".androidDiscoverToolbar h1");
+    const heading = document.querySelector("header.mobilePageHeader > h1, .androidDiscoverToolbar h1");
     if (heading) {
       heading.tabIndex = -1;
       heading.focus();

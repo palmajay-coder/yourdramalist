@@ -212,6 +212,35 @@ body.androidSetup.wideWeb :is(#preferences,#confirm){max-width:940px}
 .discoverAddPill.discoverAddPill:active{transform:scale(.97)}
 .discoverAddPill.discoverAddPill:disabled{opacity:.65;cursor:wait}
 @media(prefers-reduced-motion:reduce){.discoverAddPill.discoverAddPill{transition:none}.discoverAddPill.discoverAddPill:active{transform:none}}
+
+body.androidSetup > header.mobilePageHeader {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  min-height:72px;
+  padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px));
+}
+body.androidSetup > header.mobilePageHeader > .brand {display:none}
+body.androidSetup > header.mobilePageHeader > h1 {
+  min-width:0;
+  margin:0;
+  font-size:24px;
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:-.4px;
+  overflow-wrap:normal;
+}
+body.androidSetup > header.mobilePageHeader > .androidHeaderActions {
+  grid-column:2;
+  gap:4px;
+}
+body.androidSetup .androidDiscoverToolbar[hidden] {display:none}
+body.androidSetup:not(.wideWeb)[data-page=connect] #connect > h1 {
+  font-size:clamp(36px,9.5vw,42px);
+  font-weight:700;
+  text-align:center;
+}
 </style></head><body><header><a class="brand" href="/" aria-label="YourDramaList home"><span class="desktopBrandName">YourDramaList</span><span class="mobileBrandMark" aria-hidden="true">YDL<span class="mobileBrandVersion">v${APP_VERSION}</span></span></a><nav class="steps" aria-label="Setup progress"><button id="step1" type="button" class="active" disabled>${TEXT.stepConnect}</button><button id="step2" type="button" disabled>${TEXT.stepLists}</button><button id="step3" type="button" disabled>${TEXT.stepPreferences}</button><button id="step4" type="button" disabled>${TEXT.stepConfirm}</button></nav></header><main class="shell">
 
 <div id="setup" class="hidden">
@@ -497,6 +526,7 @@ if(!androidApp){
   const orientation=screenOrientation?.type;
   const sideways=orientation?orientation.startsWith('landscape'):landscape.matches;
   document.body.classList.toggle('wideWeb',width.matches&&(!mobileDevice||sideways));
+  window.syncMobileHeaderLayout?.();
  };
  width.addEventListener('change',syncLayout);
  if(mobileDevice){
