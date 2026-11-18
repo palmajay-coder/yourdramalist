@@ -1,30 +1,23 @@
-## YourDramaList 1.1.24
+## YourDramaList 1.1.25
 
-YourDramaList is a free, unofficial catalog add-on for Nuvio.
+Build your own custom catalogs for Nuvio.
 
-### What’s new
+- Search dramas, movies, actors, and directors from one bar in **Discover**. Open a title for its artwork, release details, cast, rating, and MyDramaList reviews.
+- Tap **Add to Collection** from search or a title preview. Choose several collections, uncheck existing memberships, or create a collection with the title already included.
+- Browse your catalogs in **My Collections**. Each card shows posters and a title count. Use **Add** to stage the collection or the **⋯** menu to delete it.
+- Install collections in Nuvio. Title changes sync through the same install link. Use **×** on Confirmation to remove a catalog from the setup.
+- The tabs now run **Connect → Community → Discover → My Collections**. Enter your MyDramaList username to load your lists in Community, or continue without an account to open Discover.
 
-- Desktop and landscape browsers show wider poster rows and catalog grids.
-- Connect, Discover, and Community stay in the bottom navigation. Open the selection icon in the top bar to review your catalogs and choose **Build add-on**.
-- Rotating a phone in the browser preserves your active tab, filters, and selected catalogs.
-- Android now shows **YourDramaList** on the home screen.
+See the [changelog](CHANGELOG.md) for the complete update.
 
 ### Android
 
-The custom-domain Android build opens `yourdramalist.net` and displays **YourDramaList**. It requires Android 8.0 or later and an internet connection. Earlier Android builds continue to open the compatibility address.
+The APK opens [yourdramalist.net](https://yourdramalist.net/) and requires Android 8.0 or later. When updating an existing install to 1.1.25, the first launch shows a **What’s new** summary.
 
-Custom-domain APK SHA-256
+### Install your catalogs in Nuvio
 
-`9707ca4867db151f632440c7a9bc57553ac5d325459394ef9c03859b84848245`
-
-### iPhone and browser
-
-Open the website in Safari on iPhone or in your browser on other devices. [Open the YourDramaList website](https://yourdramalist.net/)
-
-### Add your catalogs to Nuvio
-
-Add a public MyDramaList watchlist or choose catalogs in Discover. Open the top-bar selection icon, choose **Build add-on**, set your preferences, and continue to **Confirmation**. Choose **Generate & Install**, then **Install in Nuvio**. You can also copy the manifest URL and paste it into Nuvio’s add-on settings.
+Add the catalogs you want, then open the checklist icon and choose **Build add-on**. Set your preferences, then choose **Generate & Install** on Confirmation. Tap **Install in Nuvio** or copy the manifest URL into Nuvio’s add-on settings.
 
 ### Report an issue
 
-Include your device, browser or app version, and the steps that led to the issue. [Open a GitHub issue](https://github.com/palmajay-coder/yourdramalist/issues)
+[Open a GitHub issue](https://github.com/palmajay-coder/yourdramalist/issues) and include your device, version, and steps to reproduce the issue.

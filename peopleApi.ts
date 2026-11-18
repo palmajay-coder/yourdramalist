@@ -1,6 +1,7 @@
 import {blob} from 'https://esm.town/v/std/blob/main.ts';
 import {personUrl,personFromKuryana,personSummary,peopleSearchFromKuryana,makeFilmography,type Mode} from './people.ts';
-import {kuryana,KuryanaError} from './kuryana.ts';
+import {kuryana,KuryanaError,mdlImage} from './kuryana.ts';
+import {dramaUrl} from './dramaDetails.ts';
 import {tmdbPersonCredits} from './tmdbPeople.ts';
 type Entry={data:any;at:number;expires:number;error?:string};
 type Storage={load:()=>Promise<any>;save:(snapshot:any)=>Promise<unknown>};
@@ -13,6 +14,22 @@ async function withTmdbCredits(person:ReturnType<typeof personFromKuryana>,fetch
  const filmographies={actor:credits.actor.length?credits.actor:person.filmographies.actor,director:credits.director.length?credits.director:person.filmographies.director};
  const sections={actor:Math.max(credits.actor.length?1:0,person.sections.actor),director:Math.max(credits.director.length?1:0,person.sections.director)};
  return {...person,filmographies,sections};
+}
+function discoverSearchResults(data: any, page: number) {
+ const {people} = peopleSearchFromKuryana(data, page);
+ const titles = [];
+ const seen = new Set<string>();
+ for (const item of Array.isArray(data?.dramas) ? data.dramas : []) {
+  const url = dramaUrl(item?.link);
+  const name = typeof item?.title === 'string' ? item.title.trim() : '';
+  if (!url || !name || seen.has(url)) continue;
+  seen.add(url);
+  titles.push({name, url, poster: mdlImage(item.image), type: item.type, year: item.year});
+ }
+ return {
+  people, titles,
+  hasNextPage: (people.length > 0 || titles.length > 0) && page < Math.min(99, Number(data?.pagination?.total_pages) || page),
+ };
 }
 export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,now=Date.now){
  let cache=new Map<string,Entry>(),ready:Promise<void>|undefined,saving=Promise.resolve();const pending=new Map<string,Promise<any>>();let active=0,windowAt=now(),requests=0;
@@ -37,7 +54,7 @@ export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,
  }
  return {
   async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
-  async search(query:string,pageNumber:number){return page('search:'+query.toLowerCase()+':'+pageNumber,'/v2/search?q='+encodeURIComponent(query)+'&page='+pageNumber,data=>peopleSearchFromKuryana(data,pageNumber),300000)}
+  async search(query:string,pageNumber:number){return page('discover-search:'+query.toLowerCase()+':'+pageNumber,'/v2/search?q='+encodeURIComponent(query)+'&page='+pageNumber,data=>discoverSearchResults(data,pageNumber),300000)}
  };
 }
 const service=createPeopleService({load:()=>blob.getJSON('people:v1'),save:snapshot=>blob.setJSON('people:v1',snapshot)});
@@ -48,7 +65,7 @@ export async function handlePeople(req:Request){
  if(!['actor','director'].includes(mode))return fail('Choose Actors / Actresses or Directors.');
  const search=u.pathname==='/api/mdl/people-search';
  const raw=u.searchParams.get('url')||'';const query=(u.searchParams.get('q')||'').trim();const page=u.searchParams.get('page')||'1';
- if(search&&(query.length<2||query.length>100||!/^([1-9]|[1-9]\d)$/.test(page)))return fail('Enter a name between 2 and 100 characters and a valid search page.');
+ if(search&&(query.length<2||query.length>100||!/^([1-9]|[1-9]\d)$/.test(page)))return fail('Enter a title or name between 2 and 100 characters and a valid search page.');
  if(!search&&!personUrl(raw))return fail('Enter a valid HTTPS MyDramaList person link.');
  try{
   if(search){const result=await service.search(query,Number(page));return Response.json({...result.data,query,page:Number(page),mode,status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}})}

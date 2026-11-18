@@ -3,9 +3,12 @@ import {betterPostersPattern, posterPlusPattern, rpdbApiKey, loadPreferences, no
 import type {MetadataProvider, RatingSource} from "./preferences.ts";
 
 /** Keys are never saved to browser storage or logs. RPDB keys are included in its poster URLs. */
+type SelectedCatalog = {name: string; [key: string]: unknown};
 export function installPreferencesUI(api: {
   navigate: (page: string) => void;
-  selection: () => {name: string; [key: string]: unknown}[];
+  selection: () => SelectedCatalog[];
+  removeCatalog?: (url: unknown) => void;
+  publishCollections?: (catalogs: SelectedCatalog[]) => Promise<SelectedCatalog[]>;
   user: () => string;
 }) {
   const root = document.getElementById("preferences")!;
@@ -267,12 +270,27 @@ export function installPreferencesUI(api: {
     save(); api.navigate("confirm");
   };
   let manifestRequest=0,manifestSignature="",manifestValue="";
-  function renderConfirm() {
+  function renderConfirm(focusIndex?: number) {
+    const catalogs = api.selection();
     confirm.replaceChildren(node("h1", "", copy.confirmTitle), paragraph(copy.confirmDescription));
     const s = node("div", "preferencesStack"); confirm.append(s);
     const listCard = node("section", "panel prefPanel"), listHeading = node("div", "prefConfirmHeading"), editLists = button(copy.editLists);
-    listHeading.append(node("h2", "", copy.confirmCatalogs + " (" + api.selection().length + ")"), editLists); editLists.onclick = () => api.navigate("selection");
-    const list = node("ol", "prefConfirmList"); for(const item of api.selection()) list.append(node("li", "", item.name)); listCard.append(listHeading, list); s.append(listCard);
+    listHeading.append(node("h2", "", copy.confirmCatalogs + " (" + catalogs.length + ")"), editLists); editLists.onclick = () => api.navigate("selection");
+    const list = node("ol", "prefConfirmList");
+    const removeButtons = catalogs.map((item, index) => {
+      const row = node("div", "prefConfirmCatalog");
+      const remove = button("×", "prefConfirmRemove");
+      remove.setAttribute("aria-label", copy.remove + item.name);
+      remove.onclick = () => {
+        api.removeCatalog?.(item.url);
+        renderConfirm(index);
+      };
+      row.append(node("span", "", item.name));
+      if (api.removeCatalog) row.append(remove);
+      const li = node("li"); li.append(row); list.append(li);
+      return remove;
+    });
+    listCard.append(listHeading, catalogs.length ? list : paragraph(copy.emptySelection)); s.append(listCard);
     const pCard = node("section", "panel prefPanel"), pHeading = node("div", "prefConfirmHeading"), editPrefs = button(copy.editPreferences);
     pHeading.append(node("h2", "", copy.confirmPreferences), editPrefs); editPrefs.onclick = () => api.navigate("preferences"); pCard.append(pHeading);
     for(const [label, value] of [[copy.reviewsTitle, prefs.reviews], [copy.hideUnreleased, prefs.hideUnreleased], [copy.hideCompleted, !!api.user() && prefs.hideCompleted]] as const) {
@@ -297,8 +315,8 @@ export function installPreferencesUI(api: {
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
     if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));
     if(artworkMode()==="rpdb")manifest.append(paragraph(copy.posterRpdbPrivacy,"prefHelp"));confirm.append(manifest);
-    const data={catalogs:api.selection().map(({name,url,kind,category,country,slot,mode,personUrl,filter,personDisplayName,personName,profileAvatar})=>({name,url,kind,category,country,slot,mode,personUrl,filter,...(kind==="filmography"?{personName:personDisplayName||personName,personPhoto:profileAvatar}:{})})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),rpdb:artworkMode()==="rpdb"?{apiKey:rpdbKey()}:undefined,keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
-    const signature=JSON.stringify(data),id=++manifestRequest;
+    const data={catalogs:catalogs.map(({name,url,kind,category,country,slot,mode,personUrl,filter,personDisplayName,personName,profileAvatar})=>({name,url,kind,category,country,slot,mode,personUrl,filter,...(kind==="filmography"?{personName:personDisplayName||personName,personPhoto:profileAvatar}:{})})),user:api.user(),preferences:{...normalizePreferences(prefs),posters:artworkMode()==="ratings",hideCompleted:!!api.user()&&prefs.hideCompleted},betterPosters:pattern(),posterPlus:plusPattern(),rpdb:artworkMode()==="rpdb"?{apiKey:rpdbKey()}:undefined,keys:artworkMode()==="ratings"?keys():{tmdb:"",mdblist:""}};
+    const id=++manifestRequest;
     function apply(url:string){input.value=url;copyButton.disabled=false;install.href=url.replace(/^https?:/,"stremio:");install.removeAttribute("aria-disabled");
       generate.hidden = true;
       row.hidden = install.hidden = false;
@@ -306,6 +324,19 @@ export function installPreferencesUI(api: {
     async function prepare(){status.textContent="";try{
       if(invalidPattern()){status.textContent=artworkMode()==="posterplus"?copy.posterPlusInvalid:artworkMode()==="rpdb"?copy.posterRpdbInvalid:copy.posterBetterInvalid;return;}
       if(preferenceIssue(data.preferences,keys()))throw Error("keys");
+      const hasCollections=data.catalogs.some(item => item.kind === "user-collection");
+      let published=data.catalogs;
+      if (hasCollections) {
+        try {
+          if (!api.publishCollections) throw Error("Collection sync unavailable");
+          published=await api.publishCollections(data.catalogs) as typeof data.catalogs;
+        } catch {
+          if(id===manifestRequest)status.textContent="Could not sync your collections. Try again.";
+          return;
+        }
+      }
+      if(id!==manifestRequest)return;
+      const signature=JSON.stringify({...data,catalogs:published});
       if(signature===manifestSignature&&manifestValue){apply(manifestValue);return;}
       const response=await fetch("/api/addon/configure",{method:"POST",headers:{"content-type":"application/json"},body:signature,cache:"no-store"}).catch(()=>null);
       if(!response){if(id===manifestRequest){status.textContent=copy.manifestConnectionFailed;}return;}
@@ -332,7 +363,9 @@ export function installPreferencesUI(api: {
         status.textContent = copy.manifestSelectToCopy;
       }
     };
-    const selected=api.selection().length;
+    if(focusIndex !== undefined) (removeButtons[Math.min(focusIndex, removeButtons.length - 1)] || editLists).focus();
+    const selected=catalogs.length;
+    if(!selected){generate.disabled=true;return;}
     if(selected>MAX_CATALOGS){generate.disabled=true;status.textContent=copy.confirmOverLimit.replace("{count}",String(selected)).replace("{max}",String(MAX_CATALOGS)).replace("{extra}",String(selected-MAX_CATALOGS));return;}
     generate.onclick = async () => {
       generate.disabled = true;

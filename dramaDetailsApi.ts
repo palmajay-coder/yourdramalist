@@ -1,10 +1,12 @@
+import { kuryana, mdlLink } from "./kuryana.ts";
+import { tmdbPreviewForMdl } from "./tmdbExplore.ts";
 import { blob } from "https://esm.town/v/std/blob/main.ts";
 import { createDetailsService, dramaUrl, type Entry } from './dramaDetails.ts';
 import { tmdbDetails } from './tmdbExplore.ts';
 import { matchCatalogTitle } from './catalogMdlMatch.ts';
 
 // One bounded, val-scoped snapshot. Never reads or writes YDL-V2 storage.
-const key = 'drama-details:v1';
+const key = 'drama-details:v2';
 let entries = new Map<string, Entry>();
 let loaded: Promise<void> | undefined;
 let writes = Promise.resolve();
@@ -61,6 +63,27 @@ async function catalogDetails(url: string) {
   };
 }
 
+async function reviewTotal(slug: string, page: any): Promise<number | null> {
+  if (!Array.isArray(page?.reviews)) return null;
+  const pagination = page.pagination;
+  const reported = pagination?.total_reviews ?? pagination?.total_items ?? pagination?.total_results ?? pagination?.total;
+  if (reported != null && /^\d+$/.test(String(reported))) {
+    const total = Number(reported);
+    if (Number.isSafeInteger(total) && total >= page.reviews.length) return total;
+  }
+
+  const lastPage = Number(pagination?.total_pages);
+  if (lastPage === 1) return page.reviews.length;
+  if (!Number.isSafeInteger(lastPage) || lastPage < 2 || !page.reviews.length) return null;
+
+  // Earlier pages are full. Fetch only the final page to count its remainder.
+  const last = await kuryana("/v2/dramas/" + slug + "/reviews?page=" + lastPage, {timeoutMs: 4000}).catch(() => null);
+  if (!Array.isArray(last?.reviews) || !last.reviews.length ||
+      last.reviews.length > page.reviews.length || Number(last.pagination?.total_pages) !== lastPage) return null;
+  const total = (lastPage - 1) * page.reviews.length + last.reviews.length;
+  return Number.isSafeInteger(total) ? total : null;
+}
+
 export async function handleDramaDetails(req: Request) {
   if (req.method !== 'GET') return new Response('Method not allowed', {status:405,headers:{Allow:'GET'}});
   const raw = new URL(req.url).searchParams.get('url') || '';
@@ -74,5 +97,32 @@ export async function handleDramaDetails(req: Request) {
     }
   }
   if (!dramaUrl(raw)) return Response.json({error:'Provide an HTTPS MyDramaList drama URL.'},{status:400});
-  return Response.json(await details(raw), {headers});
+  const source = dramaUrl(raw)!;
+  if (new URL(req.url).searchParams.get("view") !== "discover") {
+    return Response.json(await details(source), {headers});
+  }
+  const slug = new URL(source).pathname.slice(1);
+  const [data, reviews] = await Promise.all([
+    details(source),
+    kuryana("/v2/dramas/" + slug + "/reviews?page=1", {timeoutMs: 5000}).catch(() => null),
+  ]);
+  const query = new URL(req.url).searchParams;
+  const hintYear = query.get("year") || "";
+  const [artwork, totalReviews] = await Promise.all([tmdbPreviewForMdl({
+    sourceUrl: source,
+    name: data.name || query.get("title")?.slice(0, 180),
+    year: data.year || (/^\d{4}$/.test(hintYear) ? hintYear : undefined),
+    type: data.type || query.get("type")?.slice(0, 60) || undefined,
+  }).catch(() => null), reviewTotal(slug, reviews)]);
+  const reviewList = Array.isArray(reviews?.reviews) ? reviews.reviews.slice(0, 5).map(review => ({
+    author: String(review?.reviewer?.name || "").slice(0, 120),
+    headline: String(review?.headline || "").slice(0, 160),
+    body: String(review?.body || "").slice(0, 600),
+    spoiler: !!review?.spoiler,
+    score: Number(review?.ratings?.overall) || null,
+    link: mdlLink(String(review?.link || "").replace(/^\/(?!\/)/, "https://mydramalist.com/")) || source,
+  })).filter(review => review.body || review.headline) : [];
+  const availableArtwork = Object.fromEntries(Object.entries(artwork || {}).filter(([, value]) =>
+    value != null && value !== "" && (!Array.isArray(value) || value.length)));
+  return Response.json({...data, ...availableArtwork, reviews: reviewList, totalReviews}, {headers});
 }

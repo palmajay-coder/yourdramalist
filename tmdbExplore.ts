@@ -102,7 +102,7 @@ async function fetchTmdbTitle(raw: string, fetcher: typeof fetch, key: string) {
   if (!key) throw Error("TMDB is not configured.");
   const kind = match[1] === "movie" ? "movie" : "tv";
   const url = new URL(`${TMDB}/${kind}/${match[2]}`);
-  url.search = new URLSearchParams({language: "en-US", append_to_response: "alternative_titles", api_key: key}).toString();
+  url.search = new URLSearchParams({language: "en-US", append_to_response: "alternative_titles,images,credits,videos", include_image_language: "en,null", api_key: key}).toString();
   const response = await fetcher(url, {redirect: "error", signal: AbortSignal.timeout(4000), headers: {Accept: "application/json"}});
   if (!response.ok) { await response.body?.cancel(); throw Error("TMDB details unavailable (HTTP " + response.status + ")."); }
   const data = await response.json();
@@ -111,8 +111,28 @@ async function fetchTmdbTitle(raw: string, fetcher: typeof fetch, key: string) {
   const names = [data.name || data.title, data.original_name || data.original_title,
     ...alternate.filter(entry => ["US", "GB", ...countries].includes(entry.iso_3166_1)).map(entry => entry.title),
   ].filter(name => typeof name === "string" && name.trim());
+  const trailer = data.videos?.results?.filter(video =>
+    video.site === "YouTube" && video.type === "Trailer" && /^[\w-]{11}$/.test(video.key))
+    .sort((a, b) => Number(b.official) - Number(a.official))[0];
+  const logos = data.images?.logos || [];
   return {
     kind, countries, names,
+    preview: {
+      backdrop: posterUrl(data.backdrop_path)?.replace("/w780/", "/w1280/"),
+      poster: posterUrl(data.poster_path),
+      genres: data.genres?.map(genre => genre.name),
+      trailer: trailer ? "https://www.youtube.com/watch?v=" + trailer.key : undefined,
+      logo: posterUrl((logos.find(image => image.iso_639_1 === "en") || logos[0])?.file_path),
+      tagline: data.tagline,
+      country: data.production_countries?.map(country => country.name).join(", "),
+      runtime: data.runtime || data.episode_run_time?.[0],
+      seasons: data.number_of_seasons,
+      episodes: data.number_of_episodes,
+      titleStatus: data.status,
+      cast: data.credits?.cast?.slice(0, 10).map(person => ({
+        name: person.name, role: person.character, image: posterUrl(person.profile_path),
+      })),
+    },
     year: Number(String(data.first_air_date || data.release_date || "").slice(0, 4)),
     synopsis: String(data.overview || "").trim() || null,
   } as const;
@@ -126,4 +146,31 @@ export async function tmdbDetails(raw: string, {fetcher = fetch, key = (typeof D
     while (detailsMemo.size > 300) detailsMemo.delete(detailsMemo.keys().next().value!);
   }
   return data;
+}
+
+export async function tmdbPreviewForMdl(metadata: {name?: string; year?: string; type?: string; sourceUrl?: string}) {
+  const key = (typeof Deno < "u" && Deno.env.get("TMDB_API_KEY")) || "";
+  const {name: title, year, type} = metadata;
+  if (!key || !title || !year || !type) return null;
+  const kind = /movie/i.test(type) ? "movie" : "tv";
+  const alias = metadata.sourceUrl?.split("/").at(-1)?.replace(/^\d+-/, "").replaceAll("-", " ");
+  const url = new URL(TMDB + "/search/" + kind);
+  const normalize = (value: unknown) => String(value || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const names = new Set([title, alias].filter(Boolean).map(normalize));
+  async function search(query: string) {
+    const target = new URL(url);
+    target.search = new URLSearchParams({api_key: key, query, include_adult: "false"}).toString();
+    const response = await fetch(target, {redirect: "error", signal: AbortSignal.timeout(4000)});
+    if (!response.ok) return [];
+    const {results = []} = await response.json();
+    return results.filter(item =>
+      String(item.release_date || item.first_air_date || "").slice(0, 4) === year &&
+      (kind === "movie" || (item.origin_country || []).some(country => ASIAN_COUNTRIES.split("|").includes(country))) &&
+      [item.title, item.name, item.original_title, item.original_name].some(name => names.has(normalize(name))));
+  }
+  let matches = await search(title);
+  if (!matches.length && alias && normalize(alias) !== normalize(title)) matches = await search(alias);
+  if (matches.length !== 1) return null;
+  const detail = await tmdbDetails("https://www.themoviedb.org/" + kind + "/" + matches[0].id);
+  return detail?.preview || null;
 }

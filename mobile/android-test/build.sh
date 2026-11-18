@@ -13,7 +13,7 @@ platform="$ANDROID_HOME/platforms/android-36/android.jar"
 keystore=${ANDROID_DEBUG_KEYSTORE:-"$HOME/.android/debug.keystore"}
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT
-mkdir -p "$temporary"/{classes,dex,res/drawable} "$(dirname "$keystore")"
+mkdir -p "$temporary"/{classes,dex,res/drawable}
 
 python3 - "$source_dir/../../addonIcon.ts" "$temporary/res/drawable/ydl_icon.png" <<'PY'
 import base64
@@ -33,6 +33,11 @@ jar cf classes.jar -C classes .
 "$tools/aapt" package -M "$source_dir/AndroidManifest.xml" -S res -I "$platform" -F unsigned.apk
 zip -q -j unsigned.apk dex/classes.dex
 "$tools/zipalign" -f 4 unsigned.apk aligned.apk
+if [[ "${ANDROID_UNSIGNED:-0}" == 1 ]]; then
+  cp aligned.apk "$output"
+  exit 0
+fi
+mkdir -p "$(dirname "$keystore")"
 if [[ ! -f "$keystore" ]]; then
   keytool -genkeypair -keystore "$keystore" -storepass android -keypass android \
     -alias androiddebugkey -dname 'CN=Android Debug,O=Android,C=US' \
