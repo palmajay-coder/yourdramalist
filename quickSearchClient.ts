@@ -47,7 +47,12 @@ export function installQuickSearch() {
   clearText.hidden = true;
   clearText.setAttribute("aria-label", "Clear search");
   clearText.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  form.append(back, input, clearText);
+  // Shown above the search box until the first search; after that, recent searches take its place.
+  const intro = element("div", "quickSearchIntro");
+  intro.append(element("strong", "", "Build your own catalog"), element("span", "", "Search a title and tap Add."));
+  const field = element("div", "quickSearchField");
+  field.append(input, clearText);
+  form.append(back, intro, field);
   const body = element("div", "quickSearchBody");
   const recentView = element("div", "quickSearchRecentView");
   const status = element("p", "quickSearchStatus");
@@ -72,11 +77,10 @@ export function installQuickSearch() {
   }
   function render() {
     recentView.replaceChildren();
+    form.classList.remove("withIntro");
     const items = recent();
     if (!items.length) {
-      const hint = element("div", "quickSearchHint");
-      hint.append(element("strong", "", "Build your own catalog"), element("p", "", "Search a title and tap Add."));
-      recentView.append(hint);
+      form.classList.add("withIntro");
       return;
     }
     const heading = element("div", "quickSearchHeading");

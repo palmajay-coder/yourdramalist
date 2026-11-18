@@ -123,10 +123,18 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchBar{display:flex;align-items:center;gap:8px;margin:0;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;background:#0f1115;border-bottom:1px solid #ffffff12}
 .quickSearchBack{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#f1f3f6}
 .quickSearchBack svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.quickSearchField{display:flex;flex:1;align-items:center;min-width:0}
+.quickSearchBar.withIntro{display:grid;grid-template-columns:44px minmax(0,1fr);row-gap:12px}
+.quickSearchBar.withIntro .quickSearchField{grid-column:1/-1;padding-inline:8px;border:1px solid #ffffff1f;border-radius:12px;background:#1b1e25}
+.quickSearchIntro{display:none;min-width:0}
+.quickSearchBar.withIntro .quickSearchIntro{display:grid;gap:2px}
+.quickSearchIntro strong{font-size:20px;line-height:1.2;color:#f1f3f6}
+.quickSearchIntro span{font-size:14px;color:#a6adba}
 .quickSearchBar input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 4px;border:0;background:transparent;color:#f1f3f6;font-size:18px;outline:none}
 .quickSearchBar input::placeholder{color:#8f97a6}
 .quickSearchBar input::-webkit-search-cancel-button,.quickSearchBar input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
-.quickSearchBody{padding:8px 16px 24px;overflow-y:auto;height:calc(100% - 70px)}
+.quickSearchBody{padding:8px 16px 24px;overflow-y:auto;flex:1;min-height:0}
+.quickSearch[open]{display:flex;flex-direction:column}
 .quickSearchHeading{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
 .quickSearchHeading h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#a6adba}
 .quickSearchClear{min-height:44px;margin:0;padding:0 8px;border:0;background:transparent;color:#75aaff;font-size:14px;font-weight:600}
@@ -134,7 +142,6 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchRecent li{display:flex;align-items:center;gap:4px;border-bottom:1px solid #ffffff0d}
 .quickSearchItem{flex:1;min-width:0;min-height:52px;margin:0;padding:8px 0;border:0;background:transparent;color:#d6dbe3;font-size:17px;font-weight:400;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quickSearchRemove{flex:none;width:44px;height:44px;margin:0;padding:0;border:0;background:transparent;color:#8f97a6;font-size:22px}
-.quickSearchHint{margin:28px 0;text-align:center}.quickSearchHint strong{display:block;font-size:19px;color:#f1f3f6}.quickSearchHint p{margin:6px 0 0;color:#a6adba}
 .quickSearchClearText{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#d6dbe3}
 .quickSearchClearText[hidden]{display:none}
 .quickSearchClearText svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}

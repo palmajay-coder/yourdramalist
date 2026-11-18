@@ -115,6 +115,7 @@ await test("the green + opens a full-screen search that shows results on the sam
  plus.click();
  assert(sheet().open&&focused===box(),"the + opens the search with the box focused");
  assert(sheet().textContent.includes("Build your own catalog")&&sheet().textContent.includes("Search a title and tap Add."),"an empty history explains what to do");
+ assert(sheet().querySelector("form").classList.contains("withIntro"),"the heading sits above the search box while there are no recent searches");
  (sheet().querySelector(".quickSearchBack") as any).click();
  assert(!sheet().open&&focused===plus,"the back arrow closes the search and returns to the +");
  plus.click();
@@ -133,6 +134,7 @@ await test("the green + opens a full-screen search that shows results on the sam
  assert(JSON.parse(saved.get("ydl.recentSearches.v1")!).join()==="bullet balle","pressing Search saves it");
  (sheet().querySelector(".quickSearchClearText") as any).click();
  assert(box().value===""&&!results.childElementCount&&!sheet().querySelector(".quickSearchRecentView").hidden&&items().join()==="bullet balle","× clears the box and shows recent searches");
+ assert(!sheet().querySelector("form").classList.contains("withIntro"),"recent searches replace the heading");
  (sheet().querySelector(".quickSearchItem") as any).click();await tick();
  assert(searches()===2&&box().value==="bullet balle"&&results.childElementCount,"tapping a recent search searches again on the same screen");
  (sheet().querySelector(".quickSearchBack") as any).click();
