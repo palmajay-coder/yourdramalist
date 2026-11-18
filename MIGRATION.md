@@ -95,4 +95,4 @@ These features are gone or different, and we agreed they are acceptable:
 
 - The key that signed the 1.1.23 and 1.1.24 APKs is lost, so those installs cannot update in place; their users reinstall once.
 - From 1.1.25, APKs are built by the GitHub workflow `.github/workflows/android.yml` and signed with the permanent release key (certificate SHA-256 `31f302187e76b4110fe71bd261936e099d9c195e935a142ad997ebc741c68a63`). The key is stored as two GitHub Actions secrets and in the owner's private backup. See `mobile/README.md`.
-- [ ] Owner adds the two GitHub secrets, runs the workflow for 1.1.25, and keeps the key backup.
+- [x] Secrets added and 1.1.25 released by the workflow (November 18, release `android-v1.1.25`, version code 101, signed with the permanent key). Owner keeps the key backup.
