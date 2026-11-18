@@ -127,9 +127,8 @@ body.androidSetup .androidNavAdd:active .androidNavIcon{transform:scale(.94)}
 .quickSearchBar.withIntro{display:grid;grid-template-columns:44px minmax(0,1fr);row-gap:12px}
 .quickSearchBar.withIntro .quickSearchField{grid-column:1/-1;padding-inline:8px;border:1px solid #ffffff1f;border-radius:12px;background:#1b1e25}
 .quickSearchIntro{display:none;min-width:0}
-.quickSearchBar.withIntro .quickSearchIntro{display:grid;gap:2px}
+.quickSearchBar.withIntro .quickSearchIntro{display:grid;align-self:center}
 .quickSearchIntro strong{font-size:20px;line-height:1.2;color:#f1f3f6}
-.quickSearchIntro span{font-size:14px;color:#a6adba}
 .quickSearchBar input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 4px;border:0;background:transparent;color:#f1f3f6;font-size:18px;outline:none}
 .quickSearchBar input::placeholder{color:#8f97a6}
 .quickSearchBar input::-webkit-search-cancel-button,.quickSearchBar input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}

@@ -49,7 +49,7 @@ export function installQuickSearch() {
   clearText.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   // Shown above the search box until the first search; after that, recent searches take its place.
   const intro = element("div", "quickSearchIntro");
-  intro.append(element("strong", "", "Build your own catalog"), element("span", "", "Search a title and tap Add."));
+  intro.append(element("strong", "", "Build your own catalog"));
   const field = element("div", "quickSearchField");
   field.append(input, clearText);
   form.append(back, intro, field);
