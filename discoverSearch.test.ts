@@ -125,7 +125,8 @@ await test("the green + opens a full-screen search that shows results on the sam
  assert(searches()===1&&asked[asked.length-1].includes("bullet%20balle"),"pausing searches once: "+asked.join(", "));
  const results=sheet().querySelector(".quickSearchResults");
  assert(sheet().open&&results.querySelector(".discoverTitleIdentity")?.textContent.includes("Bullet Ballet"),"results show on the search screen");
- assert(results.querySelector(".discoverTitleAdd")&&results.textContent.includes("Shinya Tsukamoto"),"results use the Discover Add buttons and include people");
+ assert(results.querySelector(".discoverTitleAdd")&&!results.textContent.includes("Shinya Tsukamoto")&&!results.textContent.includes("Actors and directors"),"results use the Discover Add buttons and leave out people");
+ assert(box().placeholder==="Search a drama or movie...","the box asks for titles");
  assert(!document.getElementById("listItems")!.textContent.includes("Bullet Ballet"),"Discover's own results are untouched");
  assert(sheet().querySelector(".quickSearchRecentView").hidden&&!sheet().querySelector(".quickSearchClearText").hidden,"recent searches hide and the × shows while results are up");
  assert(!items().length&&!saved.get("ydl.recentSearches.v1"),"typing alone does not save a recent search");

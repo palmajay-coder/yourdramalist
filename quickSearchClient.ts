@@ -37,8 +37,8 @@ export function installQuickSearch() {
   const input = element("input");
   input.type = "search";
   input.id = "quickSearchInput";
-  input.placeholder = "Search a drama, movie, actor...";
-  input.setAttribute("aria-label", "Search dramas, movies, actors and directors");
+  input.placeholder = "Search a drama or movie...";
+  input.setAttribute("aria-label", "Search dramas and movies");
   input.setAttribute("enterkeyhint", "search");
   input.autocomplete = "off";
   input.maxLength = 100;
@@ -60,7 +60,8 @@ export function installQuickSearch() {
   const list = element("div", "quickSearchResults");
   body.append(recentView, status, list);
   dialog.append(form, body);
-  const where = {list: () => list, status: () => status};
+  // Titles only: actors and directors are whole filmographies, which Discover handles.
+  const where = {list: () => list, status: () => status, titlesOnly: true};
   document.body.append(dialog);
 
   let returnFocus = null;
@@ -120,14 +121,13 @@ export function installQuickSearch() {
     if (text === shown && list.childElementCount) return;
     if (text.length < 2 || text.length > 100) {
       if (!text) showRecent();
-      else if (save) status.textContent = "Enter a title or name between 2 and 100 characters.";
+      else if (save) status.textContent = "Enter a title between 2 and 100 characters.";
       return;
     }
     shown = text;
     recentView.hidden = true;
     status.textContent = "Searching…";
-    if (/^https?:/i.test(text)) peopleUI.fromUrl(text, "actor", where);
-    else peopleUI.search(text, 1, "actor", where);
+    peopleUI.search(text, 1, "actor", where);
   }
   function submit(query) {
     input.value = String(query || "").trim();

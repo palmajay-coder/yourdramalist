@@ -104,6 +104,8 @@ export function installPeopleUI() {
     const mode = data2.mode;
     const results = target.list();
     const titles = data2.titles || [];
+    // The + search builds collections from single titles, so it leaves out actors and directors.
+    if (target.titlesOnly) data2 = {...data2, people: []};
     results.replaceChildren();
     target.status().textContent = titles.length || data2.people.length ? "" : "No matches found. Try another search.";
     if (data2.warning) target.status().append(document.createTextNode(" · " + data2.warning));
