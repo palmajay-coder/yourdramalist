@@ -1,0 +1,6 @@
+# The first 1.1.23 Android app (November 2026) opens this address. The test site that lived here was
+# deleted on November 13, so this Worker only shows those users how to install the current app.
+name = "yourdramalist-mobile-test"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
