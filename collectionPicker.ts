@@ -78,7 +78,10 @@ export function installCollectionPicker() {
     const body = element("div", "collectionPickerBody");
     const list = element("div", "collectionPickerList");
     const createSection = element("details", "collectionPickerNew");
-    const createSummary = element("summary", "", "+ Create New Collection");
+    const createSummary = element("summary");
+    const createIcon = element("span", "collectionPickerNewIcon", "+");
+    createIcon.setAttribute("aria-hidden", "true");
+    createSummary.append(createIcon, document.createTextNode("Create New Collection"));
     const nameField = element("input");
     nameField.id = "newCollectionName";
     nameField.maxLength = 80;

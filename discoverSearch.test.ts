@@ -54,6 +54,13 @@ await test("title Add buttons follow saved collections and only turn green after
  const choose=(on:boolean)=>{pill().click();box().checked=on;box().dispatchEvent(new window.Event("change"));};
  const submit=()=>(document.querySelector(".collectionPickerForm") as HTMLFormElement).dispatchEvent(new window.Event("submit",{cancelable:true}));
  assert(!added()&&pill().textContent==="+Add","starts as a blue Add: "+pill().textContent);
+ pill().click();
+ const summary=document.querySelector(".collectionPickerNew summary")!,save=document.querySelector(".collectionPickerSave") as HTMLButtonElement;
+ assert(summary.querySelector(".collectionPickerNewIcon")?.getAttribute("aria-hidden")==="true"&&summary.textContent==="+Create New Collection","Create New Collection has a separate + icon");
+ assert(save.disabled&&save.textContent==="Save","Save starts disabled with no changes");
+ box().checked=true;box().dispatchEvent(new window.Event("change"));
+ assert(!save.disabled&&!save.textContent!.includes("✓"),"Save has text only, no checkmark: "+save.textContent);
+ (document.querySelector(".collectionPicker") as any).close();
  choose(true);[...document.querySelectorAll(".collectionPicker button")].find(b=>b.textContent==="Cancel")!.dispatchEvent(new window.Event("click"));
  assert(!added(),"canceling must not turn the button green");
  failWrites=true;choose(true);submit();
