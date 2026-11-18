@@ -16,6 +16,13 @@ export function installMotion() {
   document.addEventListener("load", markLoaded, true);
   document.addEventListener("error", markLoaded, true);
   for (const image of document.images || []) if (image.complete) image.classList.add("ydlLoaded");
+  // Images that finished loading before they were added to the page (like title logos) never send a
+  // load event the page can hear, so mark those as soon as they appear.
+  const markAdded = node => {
+    if (node.nodeType !== 1) return;
+    const images = node.tagName === "IMG" ? [node] : node.querySelectorAll?.("img") || [];
+    for (const image of images) if (image.complete && image.naturalWidth) image.classList.add("ydlLoaded");
+  };
 
   // The bottom bar's blue highlight glides to the selected tab, and the page fades in.
   const nav = document.querySelector(".androidBottomNav");
@@ -61,6 +68,9 @@ export function installMotion() {
   // A short pop on the check when a tapped Add button turns Added (not when a page first renders).
   let lastTap = 0;
   document.addEventListener("click", () => { lastTap = Date.now(); }, true);
+  if (Watch) new Watch(records => {
+    for (const record of records) for (const node of record.addedNodes) markAdded(node);
+  }).observe(document.body, {subtree: true, childList: true});
   if (Watch) new Watch(records => {
     if (reduced() || Date.now() - lastTap > 1500) return;
     for (const {target, oldValue} of records) {

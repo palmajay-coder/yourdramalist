@@ -139,7 +139,12 @@ export function installCatalogTitlePreview() {
         if (details.logo) {
           const logo = element("img", "discoverPreviewLogo");
           logo.alt = name;
-          logo.onload = () => { if (!controller.signal.aborted) heading.replaceChildren(logo); };
+          logo.onload = () => {
+            if (controller.signal.aborted) return;
+            // Already loaded before it joins the page, so it skips the poster fade-in.
+            logo.classList.add("ydlLoaded");
+            heading.replaceChildren(logo);
+          };
           logo.src = details.logo;
         }
         tagline.textContent = details.tagline || "";
