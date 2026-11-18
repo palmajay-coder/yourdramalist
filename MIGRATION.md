@@ -90,3 +90,9 @@ These features are gone or different, and we agreed they are acceptable:
 - Confirmed MyDramaList refuses both Cloudflare and Render.
 - Removed YDL-V2 from the setup. Its code remains in `vals/YDL-V2/` as a record.
 - Removed the Render setup from the repository.
+
+## Android app signing (November 18)
+
+- The key that signed the 1.1.23 and 1.1.24 APKs is lost, so those installs cannot update in place; their users reinstall once.
+- From 1.1.25, APKs are built by the GitHub workflow `.github/workflows/android.yml` and signed with the permanent release key (certificate SHA-256 `31f302187e76b4110fe71bd261936e099d9c195e935a142ad997ebc741c68a63`). The key is stored as two GitHub Actions secrets and in the owner's private backup. See `mobile/README.md`.
+- [ ] Owner adds the two GitHub secrets, runs the workflow for 1.1.25, and keeps the key backup.

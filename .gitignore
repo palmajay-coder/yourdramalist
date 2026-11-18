@@ -9,3 +9,7 @@ node_modules/
 coverage/
 private/
 *.log
+
+# Android signing keys must never be committed.
+*.jks
+*.keystore

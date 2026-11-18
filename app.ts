@@ -27,6 +27,7 @@ import { synopsisPreview } from './dramaDetails.ts';
 import { APP_VERSION, TEXT } from './text.ts';
 import { recordCatalogAddition as recordCatalogAdditionRequest } from './analyticsApi.ts';
 import { popularity } from './popularity.ts';
+import { handleAndroidRelease } from './androidRelease.ts';
 import { handleDramaDetails } from './dramaDetailsApi.ts';
 import { privacyPage } from './privacyPage.ts';
 const page = `<!doctype html>
@@ -138,6 +139,8 @@ body.androidSetup .tabs button.active,body.androidSetup .filters button.active{b
   #selection .tabs button{flex:1;min-height:44px}
   #selection .workspace{margin-top:0}
 }
+/* Android app update notice, above the bottom navigation. */
+.appUpdateNotice{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:30;margin:0 auto;max-width:456px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 12px 32px #0008}.appUpdateNotice p{margin:0 0 12px;font-size:14px;line-height:1.45}.appUpdateNotice div{display:flex;gap:10px}.appUpdateNotice a,.appUpdateNotice button{flex:1;text-align:center;text-decoration:none;padding:10px;border-radius:10px;font:inherit;font-size:14px}
 /* Wide screens show the app layout in a centered phone-width column. */
 @media(min-width:560px){body.androidSetup>header,body.androidSetup .shell,body.androidSetup>footer{width:100%;max-width:480px;margin-inline:auto}body.androidSetup .androidBottomNav,body.androidSetup[data-page=selection] .mobileSelectionBar:not([hidden]){left:calc(50% - 240px);right:calc(50% - 240px)}body.androidSetup .androidDiscoverFilters{right:calc(50% - 228px)}}
 html.finePointer .rowScrollButtons{display:flex;justify-content:flex-end;gap:6px;margin:-4px 0 6px}html.finePointer .rowScrollButtons[hidden]{display:none}html.finePointer .rowScrollButton{min-width:34px;height:30px;padding:0 10px;border-radius:15px;font-size:17px;line-height:1}html.finePointer .rowScrollButton:disabled{opacity:.35;cursor:default}html.finePointer .androidSetup :is(#androidCatalogs,#listItems) .catalogShelfTrack{scrollbar-width:thin}
@@ -457,6 +460,27 @@ const communityUI=(${installCommunityShelves.toString()})();
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter(b.dataset.filter));
 (${installAndroidDiscover.toString()})();
+// Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Older apps
+// (1.1.24 and earlier) do not, and were signed with a key that is lost, so they need one reinstall.
+(()=>{
+ const ua=navigator.userAgent,own=ua.match(/YourDramaListApp\\/(\\d+)/),oldApp=!own&&/Android/.test(ua)&&/; wv\\)/.test(ua);
+ if(!own&&!oldApp)return;
+ const current=own?Number(own[1]):0;
+ fetch('/api/app/android',{signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).then(latest=>{
+  if(!latest||!(latest.versionCode>current))return;
+  const key='ydl-app-update-dismissed';
+  try{if(localStorage.getItem(key)===String(latest.versionCode))return}catch{}
+  const bar=document.createElement('aside');bar.className='appUpdateNotice';bar.setAttribute('role','status');
+  const text=document.createElement('p');
+  const title=document.createElement('strong');title.textContent=copy.appUpdateTitle.replace('{version}',latest.versionName);
+  text.append(title,document.createElement('br'),document.createTextNode(oldApp?copy.appUpdateReinstall:copy.appUpdateBody));
+  const actions=document.createElement('div');
+  const get=document.createElement('a');get.className='primary';get.href=latest.url;get.textContent=copy.appUpdateDownload;
+  const later=document.createElement('button');later.type='button';later.className='secondary';later.textContent=copy.appUpdateLater;
+  later.onclick=()=>{try{localStorage.setItem(key,String(latest.versionCode))}catch{}bar.remove()};
+  actions.append(get,later);bar.append(text,actions);document.body.append(bar);
+ }).catch(()=>{});
+})();
 // Share the same controls and state when the browser rotates or resizes.
 if(!androidApp){
  const mobileDevice=navigator.userAgentData?.mobile||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||
@@ -542,6 +566,6 @@ async function handleProfile(url: URL): Promise<Response> {
 
 async function handler(req: Request): Promise<Response> {
 const url=new URL(req.url);
-if(url.pathname==='/site.webmanifest')return Response.json(webAppManifest,{headers:{'content-type':'application/manifest+json'}});
+if(url.pathname==='/api/app/android')return handleAndroidRelease(req);if(url.pathname==='/site.webmanifest')return Response.json(webAppManifest,{headers:{'content-type':'application/manifest+json'}});
 if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://github.com/palmajay-coder/yourdramalist'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
 export default oauthMiddleware(handler);

@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -34,6 +35,15 @@ public final class MainActivity extends Activity {
         web.getSettings().setAllowFileAccess(false);
         web.getSettings().setAllowContentAccess(false);
         web.getSettings().setSupportMultipleWindows(false);
+        // Tell the website which app version is running, so it can offer an update when a newer one exists.
+        try {
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            @SuppressWarnings("deprecation")
+            long code = Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
+            web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " YourDramaListApp/" + code);
+        } catch (Exception ignored) {
+            // The site then treats this as an older app, which only means it may suggest an update.
+        }
 
         FrameLayout layout = new FrameLayout(this);
         layout.addView(web, new FrameLayout.LayoutParams(-1, -1));

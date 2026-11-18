@@ -1,0 +1,63 @@
+name: Android app release
+# Builds the Android app, signs it with the permanent YourDramaList release key, and publishes it as a
+# GitHub release. Every release must use that same key, or phones refuse to install it as an update.
+# Run it from the Actions tab: "Android app release", "Run workflow", then enter the version (for example 1.1.25).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name, for example 1.1.25"
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # SHA-256 of the release key's certificate. A build signed with any other key is refused.
+      RELEASE_CERT_SHA256: 31f302187e76b4110fe71bd261936e099d9c195e935a142ad997ebc741c68a63
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Check the version and the release key
+        env:
+          VERSION: ${{ inputs.version }}
+          KEYSTORE_BASE64: ${{ secrets.YDL_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.YDL_RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Enter a version like 1.1.25"; exit 1; }
+          [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" ]] || { echo "Add the YDL_RELEASE_KEYSTORE_BASE64 and YDL_RELEASE_KEYSTORE_PASSWORD secrets first (see mobile/README.md)."; exit 1; }
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+      - name: Install Android build tools
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" "build-tools;36.0.0" "platforms;android-36" > /dev/null
+      - name: Build and sign the app
+        env:
+          VERSION: ${{ inputs.version }}
+          YDL_RELEASE: "1"
+          YDL_KEYSTORE_PASSWORD: ${{ secrets.YDL_RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          # Version codes only go up: 100 plus this workflow's run number.
+          export JAVA_HOME="$JAVA_HOME_17_X64" YDL_KEYSTORE="$RUNNER_TEMP/release.jks"
+          export YDL_VERSION_NAME="$VERSION" YDL_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))
+          bash mobile/android-test/build.sh "$RUNNER_TEMP/YourDramaList.apk"
+          signer=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$RUNNER_TEMP/YourDramaList.apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
+          [[ "$signer" == "$RELEASE_CERT_SHA256" ]] || { echo "Signed with an unexpected key: $signer"; exit 1; }
+          printf '{"versionCode":%s,"versionName":"%s"}\n' "$YDL_VERSION_CODE" "$VERSION" > "$RUNNER_TEMP/android-latest.json"
+          rm -f "$RUNNER_TEMP/release.jks"
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "android-v$VERSION" "$RUNNER_TEMP/YourDramaList.apk" "$RUNNER_TEMP/android-latest.json" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "YourDramaList $VERSION for Android" \
+            --notes "Download YourDramaList.apk on your Android phone and open it to install. Signed with the permanent YourDramaList key, so later versions install over this one."

@@ -185,6 +185,11 @@ export const TEXT = {
   catalogLimitReached:
     "You’ve reached the {max}-catalog limit. Remove a catalog to add another.",
   communityNoWatchlists: "No public watchlists found.",
+  appUpdateTitle: "YourDramaList {version} is available",
+  appUpdateBody: "Download it and open the file to update. Your setup is kept.",
+  appUpdateReinstall: "This app needs a one-time reinstall: uninstall it, then install the new version. After that, updates install over the app.",
+  appUpdateDownload: "Download",
+  appUpdateLater: "Not now",
   communityNoTitles: "This watchlist has no titles yet. Check the spelling of the username.",
   communityNewLayout: "This watchlist uses MyDramaList's V2 beta, which we can't read yet. On MyDramaList, open the list page and choose Switch to V1, then try again.",
   communityNoCustomLists: "No public custom lists found.",

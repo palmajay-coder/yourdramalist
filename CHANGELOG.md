@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.25 (Android app)
+
+### What's new
+
+- The Android app is now signed with a permanent YourDramaList key and built on GitHub, so from this version on, updates install over the app and keep your setup.
+- Inside the app, a notice offers the newest version with a download button when one is available.
+
+### Known bugs
+
+- Apps from 1.1.24 and earlier were signed with a key that was lost, so they cannot update in place. Uninstall the old app once and install 1.1.25. The app shows a notice asking for this.
+
 ## 1.1.24
 
 - The Android launcher now displays **YourDramaList**.
