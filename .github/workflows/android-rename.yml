@@ -1,7 +1,7 @@
 name: Android release names (one time)
-# Gives the 1.1.25, 1.1.26 and 1.1.27 releases the same names as 1.1.23 and 1.1.24:
-# tag v1.1.27, title "YourDramaList 1.1.27", file YourDramaList-1.1.27-android.apk.
-# Nothing is deleted: the APK is renamed in place, and the old android-v tags stay on the same commits.
+# Gives the 1.1.25, 1.1.26 and 1.1.27 releases the same title and file names as 1.1.23 and 1.1.24:
+# title "YourDramaList 1.1.27", file YourDramaList-1.1.27-android.apk. Nothing is deleted.
+# Their tags stay android-v1.1.25 to android-v1.1.27; releases from 1.1.28 on are tagged v<version>.
 # Safe to run again: releases that already have the new names are skipped.
 on:
   push:
@@ -26,18 +26,13 @@ jobs:
           set -euxo pipefail
           for v in 1.1.25 1.1.26 1.1.27; do
             apk="YourDramaList-$v-android.apk"
-            if ! id=$(gh api "repos/$R/releases/tags/android-v$v" -q .id 2>/dev/null); then
-              echo "$v: already renamed"; continue
-            fi
-            sha=$(gh api "repos/$R/git/ref/tags/android-v$v" -q .object.sha)
+            tag="v$v"; gh api "repos/$R/releases/tags/$tag" > /dev/null 2>&1 || tag="android-v$v"
+            id=$(gh api "repos/$R/releases/tags/$tag" -q .id)
             asset=$(gh api "repos/$R/releases/$id" -q '.assets[] | select(.name == "YourDramaList.apk") | .id')
             [[ -z "$asset" ]] || gh api -X PATCH "repos/$R/releases/assets/$asset" -f name="$apk" > /dev/null
             gh api "repos/$R/releases/$id" -q .body | sed "s/YourDramaList\.apk/$apk/g" > "$RUNNER_TEMP/body.md"
-            # The new tag is created on the same commit when the release moves to it.
-            gh api -X PATCH "repos/$R/releases/$id" -f tag_name="v$v" -f target_commitish="$sha" \
-              -f name="YourDramaList $v" -F body=@"$RUNNER_TEMP/body.md" -f make_latest=false > /dev/null
-            echo "$v: tag v$v, title \"YourDramaList $v\", file $apk"
+            # GitHub does not let workflows add tags to older commits, so these three keep their android-v tags.
+            gh api -X PATCH "repos/$R/releases/$id" -f name="YourDramaList $v" -F body=@"$RUNNER_TEMP/body.md" > /dev/null
+            echo "$v: title \"YourDramaList $v\", file $apk, tag $tag"
           done
-          latest=$(gh api "repos/$R/releases/tags/v1.1.27" -q .id)
-          gh api -X PATCH "repos/$R/releases/$latest" -f make_latest=true > /dev/null
           gh api "repos/$R/releases/latest" -q '"Latest: \(.tag_name) \(.name) \(.assets | map(.name) | join(", "))"'
