@@ -59,7 +59,7 @@ await test("title Add buttons follow saved collections and only turn green after
  assert(summary.querySelector(".collectionPickerNewIcon")?.getAttribute("aria-hidden")==="true"&&summary.textContent==="+Create New Collection","Create New Collection has a separate + icon");
  assert(save.disabled&&save.textContent==="Save","Save starts disabled with no changes");
  box().checked=true;box().dispatchEvent(new window.Event("change"));
- assert(!save.disabled&&!save.textContent!.includes("✓"),"Save has text only, no checkmark: "+save.textContent);
+ assert(!save.disabled&&save.textContent==="Save","Save always reads Save, with no checkmark or count: "+save.textContent);
  (document.querySelector(".collectionPicker") as any).close();
  choose(true);[...document.querySelectorAll(".collectionPicker button")].find(b=>b.textContent==="Cancel")!.dispatchEvent(new window.Event("click"));
  assert(!added(),"canceling must not turn the button green");

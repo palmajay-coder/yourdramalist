@@ -106,8 +106,7 @@ export function installCollectionPicker() {
       const count = [...changes.values()].filter(Boolean).length + Number(Boolean(pendingName()));
       const hasRemovals = [...changes.values()].includes(false);
       save.disabled = !count && !hasRemovals;
-      save.textContent = hasRemovals ? "Save changes" :
-        count ? "Save to " + count + (count === 1 ? " Collection" : " Collections") : "Save";
+      // The button always reads "Save"; it is enabled only when there is something to save.
       status.textContent = "";
     };
     nameField.oninput = updateSave;
@@ -183,7 +182,6 @@ export function installCollectionPicker() {
         }
         if (added || removed) {
           save.disabled = true;
-          save.textContent = "Saving…";
           setSaving(true);
           try {
             localStorage.setItem(userCollectionsKey, JSON.stringify(collections));
