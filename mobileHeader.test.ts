@@ -157,6 +157,10 @@ Deno.test("The YDL opening plays once per fresh app open, only in the Android ap
     "The YDL to YourDramaList markup is missing");
   assert(html.includes("#ydlIntro{display:none}") && /prefers-reduced-motion:reduce\)\{\.ydlIntroWord\{animation:none/.test(html),
     "The intro must be hidden by default and calm with reduced motion");
+  assert(html.includes("html.ydlIntro #connect>h1{opacity:0}") && !/[^.]#connect>h1\{opacity:0\}/.test(html.replace("html.ydlIntro #connect>h1{opacity:0}","")),
+    "The Connect title must hide only while the intro plays");
+  assert(html.includes("document.querySelector('#connect > h1')") && html.includes("selectNodeContents(h)") && html.includes("setTimeout(done,3500)"),
+    "The intro must land on the Connect title and always clean itself up");
   const run = (userAgent: string, session: Map<string,string>, search = "") => {
     const classes = new Set<string>();
     new Function("navigator","sessionStorage","location","document", headScript)(
