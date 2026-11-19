@@ -1,62 +1,53 @@
 # YourDramaList Handoff
 
 ## Project
-- **What it does:** YourDramaList (YDL) works as a Nuvio add-on that turns MyDramaList catalogs into install links.
-- **Live site:** Val Town val `Niwa710/YourDramaList` (yourdramalist.val.run). Live files match GitHub as of release 1.1.3.
-- **GitHub mirror:** `palmajay-coder/yourdramalist`. The work branch, `ccr-de4d41e8-p7rg8s`, sits on `origin/main` (release 1.1.2, PR #5) plus unmerged handoff and skill commits. Keep those commits when new work starts.
-- **Release:** 1.1.3 (1.1.1 was the first stable release).
+- **What it does:** YourDramaList (YDL) turns MyDramaList catalogs, watchlists, filmographies and weekly picks into Nuvio/Stremio install links, with a Discover site and an Android app.
+- **Live site:** https://yourdramalist.net, served by the Cloudflare Worker `yourdramalist`.
+- **Work branch:** `migration/cloudflare` of `palmajay-coder/yourdramalist`. GitHub `main` is kept fast-forwarded to it.
+- **Test site:** https://yourdramalist-discover-preview.palmajay.workers.dev (Worker `yourdramalist-discover-preview`, branch `preview/connect-first`, its own R2 bucket `ydl-discover-preview-data`).
+- **Release:** 1.1.29 (Android versionCode 105).
 
-## Completed in 1.1.0
-- **Shelves:** Community and drama-related lists show as shelves.
-- **One filter bar:** A single bar at the top narrows every shelf. Dramas and Movies use two separate buttons, and only one works at a time. The full watchlist hides while a filter runs. Watchlists and custom lists keep separate filters.
-- **Catalog names:** Filtered names follow "List name: Korean Romance Dramas". Only filtered custom lists drop the word "list".
-- **TMDB facts:** Genres and posters match by release year first, then by country (VERSION 4 in `titleFacts.ts`).
-- **People count:** A daily scrambled code counted unique people who generated a manifest (replaced by a monthly code in 1.1.2).
-- **Admin analytics:** A simpler layout with four cards, a 7/30-day switch, Discover catalogs, feature tabs, a Search breakdown and people-per-day bars.
-- **Popular this month:** A card under Your Selection on the Discover tab only, with Catalogs and Actors & directors tabs. It stays hidden until at least three entries reach 3 adds each, and it caches for an hour.
-- **Weekly picks:** 25 themes rotate, two fresh themes each week starting Nov 16. Thin rows relax the rating floor, then top up with genre-18 dramas. A rotation view appears on the admin page.
-- **Changelog:** Every version uses What's new, Bug fixes and Improvements.
-
-## Completed in 1.1.1
-- **Nuvio cards:** Five-star score with rating count, an "In your watchlist" status line, a one-line verdict with an icon, and an Open on MyDramaList card. Reviews stay unchanged.
-- **Review dedupe:** `reviewDedupe.ts` lets only the first install on a device answer for a title within 10 seconds, so extra install links no longer duplicate review cards. It stores a hashed device-and-title code and deletes it after 10 seconds.
-- **Admin Errors:** One summary line, a guide showing only errors that happened, and the latest codes under each type.
-- **Cleanup:** The Nuvio example screenshot, its route and unused text are gone.
-
-## Completed in 1.1.3
-- **Filters cover long lists:** The setup page asks again for genres a batch could not finish, runs two batches at a time and shows "Loading genres" in the shelf status. A filtered shelf shows every match, not 60. Nuvio filtered catalogs read genres for up to 1,000 titles (was 600). Test: a 130-title list where each lookup returns only 15 titles. Watchlist categories and the combined watchlist now load up to `kt` (10) pages instead of 5, the same as custom lists; not yet tested live on a 400+ watchlist.
-- **Finding:** A live test on list `MLOPW2Z3` (916 titles) showed batches of 40 finish in about 3 seconds. Only 91 of its titles had saved genres before the test, which matches the "about 90" report. Nuvio filtered catalogs still look up only about 90 new titles per 12-second load, so a list nobody has filtered on the setup page fills in over several Nuvio loads.
-
-## Completed in 1.1.2
-- **Date added sort:** Watchlist shelves offer "Date added", using MDL's entry number (`ml12345`) as the add order. Sort and year never appear in catalog names.
-- **People-based analytics:** `popularity.ts` stores `(day, scope, visitor)` rows in `ydl_visits` with a monthly salted code, kept 35 days. The admin page shows unique people per range, mobile vs computer, and returning people. Click totals are no longer written. Popular this month and weekly picks still use daily totals in `ydl_daily_analytics` (`popular.*`, `weekly.people`).
-
-## Important decisions
-- **Minimal first:** The user wants explanations before code ("do not code yet") and minimal UI.
-- **No empty states:** The popular card hides entirely rather than showing a "not enough data" message.
-- **Weekly picks stay first:** Popularity rankings never push This week's picks down.
-- **Names only for people:** The card shows actor or director names with round photos, without labeling the role.
-- **Fresh themes:** Both weekly slots stay fresh each week until enough data exists for popular themes to return.
-- **Privacy:** A monthly scrambled code (salt rotates on the 1st) counts people, and the codes get deleted after 35 days. Daily totals stay 180 days. `personName` and `personPhoto` never go into the install link. The privacy page says plainly that we can't work backward from the code to an address or a person.
-- **GitHub-only tests:** `popularity.test.ts` and `weeklyThemes.test.ts` stay off Val Town because they would write fake rows into the real database.
+## Storage
+- **D1 database `ydl-db`** (binding `DB`): analytics and popularity tables.
+- **R2 bucket `ydl-data`** (binding `BLOBS`): caches, appearance settings and backdrops. Read with `npx wrangler r2 object get ydl-data/<key> --remote --pipe`.
+- **Secrets** are set with `wrangler secret put` and never live in files: `TMDB_API_KEY` and `YDL_MANIFEST_SECRET`. Changing `YDL_MANIFEST_SECRET` breaks every install link.
 
 ## Workflow
-- **Deploy:** Create a Val Town branch, make targeted edits, check bytes against local files with a temporary `_hashcheck.ts`, run tests, merge, delete the branch, then commit and push to GitHub.
-- **Local tests:** `deno run --no-check --allow-read --allow-env --allow-net --import-map=tests/import_map.json tests/run-tests.ts` (last run: 22 suites pass). Release scan: `node tests/audit-release.mjs`.
-- **Handoff skill:** `/handoff` (`.claude/skills/handoff/SKILL.md`) updates this file, commits it and pushes it to the work branch.
-- **Known quirks:** The container cannot reach `api.val.town` for uploads. `run_file` sometimes times out, so retry. Branch endpoints use a different origin.
+- **Tests:**
+  - `deno run --no-check --allow-read --allow-env --import-map=tests/import_map.json tests/run-tests.ts` runs 21 suites.
+  - `deno test --no-check --allow-read --allow-env --import-map=tests/import_map.json mobileHeader.test.ts myCollections.test.ts personalCatalogs.test.ts`
+  - `node tests/audit-release.mjs` runs the release scan.
+- **Deploy live:** `cd cloudflare && node build.mjs && npx wrangler deploy`. Then confirm with `npx wrangler deployments status`, which should show the new version at 100%.
+- **Deploy the test site:** build with `YDL_PUBLIC_ORIGIN=https://yourdramalist-discover-preview.palmajay.workers.dev node build.mjs`, then run `npx wrangler deploy --config wrangler.discover-preview.toml`. Rebuild with the live origin afterwards.
+- **Test site first** for new features unless the owner says otherwise.
+- **Android release:**
+  - **Trigger:** raise `mobile/android-version.txt` and push. The "Android app release" workflow builds, signs and publishes `YourDramaList-<version>-android.apk` plus `android-latest.json`.
+  - **What's new:** the notes come from `mobile/whats-new.md`.
+  - **Version files:** also update `text.ts` and `CHANGELOG.md`.
+  - **Signing key:** it lives only in GitHub secrets. Never commit it.
+- **Website changes reach the app** without a new APK, because the app loads the site.
+- **Before deploying,** fetch and merge any Codex work.
 
-## Current status
-- **No active problem:** 1.1.3 runs live (Val Town version 755). Old click totals stay in the database but the admin page no longer reads them. Analytics started fresh on release day.
-- **To verify live:** Build one install link, then confirm the admin page shows 1 person today with the right device. Confirm in Nuvio that two installs show one set of review cards.
-- **Release pages:** The user still needs to create the v1.1.1 (and optionally v1.1.2) GitHub release pages by hand, since tag pushes get blocked from this container.
-- **Cost:** The user asked for cheaper models on routine tasks and `/compact` after each logical step.
+## Quirks
+- GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
+- The container can't reach TMDB, yourdramalist.net or workers.dev. Check visual changes locally with `wrangler dev --local` and Playwright.
+- The app's update notice shows only when the browser signature has `YourDramaListApp/<code>`. Reddit and other in-app browsers must never see it.
 
-## Next up
-- **Mobile site:** Make the mobile layout match the desktop one (banner alignment, logo, header). Planning only so far; the user has not yet answered questions about decorations, banner text placement and header layout.
-- **Play Store app (on hold):** Discussed a Capacitor companion app with a phased plan and screen designs. The user put it on hold until analytics gather enough data. Revisit once the mobile vs computer split and returning visitors show real demand.
+## Recent (November 2026)
+- **1.1.29:**
+  - Connect-first start: no bottom bar until Connect is done
+  - a backdrop wall of new K-dramas
+  - the YDL opening animation
+  - Milky Nice titles
+- **Since 1.1.29 (website only):**
+  - the tint slider scales all darkening
+  - the app uses the landscape layout
+  - actor-page titles open full details
+  - no update popup in Reddit
+  - Nuvio filmography catalogs keep TMDB ids distinct and hide finished dramas
 
 ## Open ideas (not requested yet)
-- **EasyPosters:** Consider removing it after 30 days of analytics data.
-- **Returning themes:** Let popular weekly themes return once enough data exists.
-- **Roadmap:** RPDB poster layouts remain listed.
+- A Share button in the drama preview.
+- "Because you added…" recommendations from your Selection.
+- Search and Select-all pills for Community lists.
+- A light grey Android launch screen to match the opening (needs an APK).

@@ -12,5 +12,5 @@
 - Drama search reuses results for five minutes (up to 100 cached searches), coalesces identical requests, allows three simultaneous upstream lookups and 30 uncached lookups per minute per running server instance, and honours short MDL cooldowns. These are per-runtime safeguards, not a distributed or per-person traffic quota.
 
 - Weekly collections use TMDB keywords/genres and country filters, rather than personal recommendations. They rotate as two shared themes on Mondays at 00:00 UTC. Sparse metadata can produce shorter collections; mood classification is approximate. MDL country catalogs retain MDL order and sources.
-- Version badges are hidden on the website. Current source/manifest version: `1.1.3`.
+- Version badges are hidden on the website. Current source/manifest version: `1.1.29`.
 - Nuvio is built around IMDb ids. Announced titles that are not listed on IMDb or Cinemeta yet (many 2027 dramas) are added to Nuvio catalogs with a MyDramaList based id when a poster can be found (an experiment, added November 15). How Nuvio treats these titles (details page, watched marks, library) is untested. A title with no poster anywhere is left out.

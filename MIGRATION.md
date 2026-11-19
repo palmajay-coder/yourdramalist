@@ -88,7 +88,7 @@ These features are gone or different, and we agreed they are acceptable:
 - Replaced each Val Town platform piece with a Cloudflare equivalent, with the app code unchanged.
 - Confirmed Kuryana answers from Cloudflare.
 - Confirmed MyDramaList refuses both Cloudflare and Render.
-- Removed YDL-V2 from the setup. Its code remains in `vals/YDL-V2/` as a record.
+- Removed YDL-V2 from the setup. Its code was kept in `vals/YDL-V2/` until November 19, and is now in the git history only.
 - Removed the Render setup from the repository.
 
 ## Android app signing (November 18)
