@@ -178,13 +178,13 @@ Deno.test("The YDL opening plays once per fresh app open, only in the Android ap
 });
 
 Deno.test("The logo font is served and used for the Connect title and the opening", async () => {
-  const response = await handler(new Request("https://test/assets/hello-baby-v1.otf"));
+  const response = await handler(new Request("https://test/assets/milky-nice-v1.otf"));
   const bytes = new Uint8Array(await response.arrayBuffer());
   const original = await Deno.readFile(new URL("./logoFont.ts", import.meta.url)).then(b => new TextDecoder().decode(b).match(/encoded="([^"]+)"/)![1]);
   assert(response.headers.get("content-type")==="font/otf" && /immutable/.test(response.headers.get("cache-control")||""), "The font is not served as a cached OTF");
-  assert(bytes.length===atob(original).length && String.fromCharCode(...bytes.slice(0,4))==="OTTO", "The served font is not the Hello Baby file");
-  assert(html.includes('<link rel="preload" as="font" type="font/otf" href="/assets/hello-baby-v1.otf" crossorigin>') &&
-    html.includes('@font-face{font-family:"Hello Baby";src:url(/assets/hello-baby-v1.otf)'), "The font is not preloaded or declared");
-  assert(/#connect > h1 \{font-family:"Hello Baby"/.test(html) && /\.ydlIntroWord\{font:400 [^;]*"Hello Baby"/.test(html), "The Connect title or the opening does not use the logo font");
-  assert(html.includes("document.fonts.load('1em \"Hello Baby\"')"), "The opening does not wait for the logo font");
+  assert(bytes.length===atob(original).length && String.fromCharCode(...bytes.slice(0,4))==="OTTO", "The served font is not the Milky Nice file");
+  assert(html.includes('<link rel="preload" as="font" type="font/otf" href="/assets/milky-nice-v1.otf" crossorigin>') &&
+    html.includes('@font-face{font-family:"Milky Nice";src:url(/assets/milky-nice-v1.otf)'), "The font is not preloaded or declared");
+  assert(/#connect > h1 \{font-family:"Milky Nice"/.test(html) && /\.ydlIntroWord\{font:400 [^;]*"Milky Nice"/.test(html), "The Connect title or the opening does not use the logo font");
+  assert(html.includes("document.fonts.load('1em \"Milky Nice\"')"), "The opening does not wait for the logo font");
 });
