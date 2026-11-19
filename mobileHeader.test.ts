@@ -159,7 +159,7 @@ Deno.test("The YDL opening plays once per fresh app open, only in the Android ap
     "The intro must be hidden by default and calm with reduced motion");
   assert(html.includes("html.ydlIntro #connect>h1{opacity:0}") && !/[^.]#connect>h1\{opacity:0\}/.test(html.replace("html.ydlIntro #connect>h1{opacity:0}","")),
     "The Connect title must hide only while the intro plays");
-  assert(html.includes("document.querySelector('#connect > h1')") && html.includes("selectNodeContents(h)") && html.includes("setTimeout(done,3500)"),
+  assert(html.includes("document.querySelector('#connect > h1')") && html.includes("selectNodeContents(h)") && html.includes("setTimeout(done,4100)"),
     "The intro must land on the Connect title and always clean itself up");
   const run = (userAgent: string, session: Map<string,string>, search = "") => {
     const classes = new Set<string>();
@@ -175,4 +175,16 @@ Deno.test("The YDL opening plays once per fresh app open, only in the Android ap
   assert(!run("Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/120 Mobile Safari/537.36", new Map()), "A phone browser played the intro");
   assert(!run("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1.15", new Map()), "A computer played the intro");
   assert(run("Mozilla/5.0 (Macintosh) Safari/605.1.15", new Map([["ydl-intro-played","1"]]), "?intro=1"), "?intro=1 did not preview it");
+});
+
+Deno.test("The logo font is served and used for the Connect title and the opening", async () => {
+  const response = await handler(new Request("https://test/assets/green-matcha-v1.otf"));
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const original = await Deno.readFile(new URL("./logoFont.ts", import.meta.url)).then(b => new TextDecoder().decode(b).match(/encoded="([^"]+)"/)![1]);
+  assert(response.headers.get("content-type")==="font/otf" && /immutable/.test(response.headers.get("cache-control")||""), "The font is not served as a cached OTF");
+  assert(bytes.length===atob(original).length && String.fromCharCode(...bytes.slice(0,4))==="OTTO", "The served font is not the Green Matcha file");
+  assert(html.includes('<link rel="preload" as="font" type="font/otf" href="/assets/green-matcha-v1.otf" crossorigin>') &&
+    html.includes('@font-face{font-family:"Green Matcha";src:url(/assets/green-matcha-v1.otf)'), "The font is not preloaded or declared");
+  assert(/#connect > h1 \{font-family:"Green Matcha"/.test(html) && /\.ydlIntroWord\{font:400 [^;]*"Green Matcha"/.test(html), "The Connect title or the opening does not use the logo font");
+  assert(html.includes("document.fonts.load('1em \"Green Matcha\"')"), "The opening does not wait for the logo font");
 });
