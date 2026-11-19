@@ -150,12 +150,13 @@ Deno.test("Connect background shows straight rows of new backdrops, newest in th
     "Rows are tilted or not gliding left to right");
 });
 
-Deno.test("The YDL opening plays once per fresh app open, only in the Android app", () => {
+Deno.test("The typed YourDramaList opening plays once per fresh app open, only in the Android app", () => {
   const headScript = html.match(/<head>[\s\S]*?<script>([\s\S]*?)<\/script>/)![1];
   assert(headScript.includes("ydl-intro-played") && html.indexOf(headScript) < html.indexOf("<body>"), "The intro switch must run in <head>");
-  assert(/<body><div id="ydlIntro" aria-hidden="true"><div class="ydlIntroWord"><b>Y<\/b><i><span>our<\/span><\/i><b>D<\/b><i><span>rama<\/span><\/i><b>L<\/b><i><span>ist<\/span><\/i><\/div><\/div>/.test(html),
-    "The YDL to YourDramaList markup is missing");
-  assert(html.includes("#ydlIntro{display:none}") && /prefers-reduced-motion:reduce\)\{\.ydlIntroWord\{animation:none/.test(html),
+  const typed = html.match(/<body><div id="ydlIntro" aria-hidden="true"><div class="ydlIntroWord" aria-hidden="true">((?:<span style="--i:\d+">.<\/span>)+)<\/div><\/div>/);
+  assert(typed && typed[1].replace(/<[^>]+>/g, "") === "YourDramaList" &&
+    [...typed[1].matchAll(/--i:(\d+)/g)].every((m, i) => Number(m[1]) === i), "YourDramaList is not typed one letter at a time");
+  assert(html.includes("#ydlIntro{display:none}") && /prefers-reduced-motion:reduce\)\{\.ydlIntroWord span\{animation:none/.test(html),
     "The intro must be hidden by default and calm with reduced motion");
   const run = (userAgent: string, session: Map<string,string>, search = "") => {
     const classes = new Set<string>();
