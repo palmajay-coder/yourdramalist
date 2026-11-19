@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.29
+
+### What's new
+
+- A cleaner start: connect your MyDramaList account or continue without one, and the app remembers your choice next time.
+- New dramas on the welcome screen: the latest and trending K-dramas glide by in the background.
+- A new opening: YDL unfolds into YourDramaList when the app starts.
+- A fresh look for titles: a new rounded font for the logo and page titles.
+
+### Also
+
+- Connect has no bottom navigation, so new visitors finish it before the other pages open. Visitors who already have saved collections or a selection go straight in.
+- The welcome background uses TMDB backdrops (with title art when available) from this week's trending and newly aired Korean dramas, refreshed daily. The admin tint still applies.
+- The opening plays once per fresh app open, only in the Android app; tap to skip. Phones set to reduce motion get a short fade.
+
 ## 1.1.28
 
 ### What's new
