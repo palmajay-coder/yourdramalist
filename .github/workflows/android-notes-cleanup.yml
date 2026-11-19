@@ -1,0 +1,50 @@
+name: Android release notes cleanup (one time)
+# Removes the install instructions from every GitHub release's notes. New releases no longer add them
+# (mobile/release-notes.sh). Nothing else in the notes changes and nothing is deleted.
+# Safe to run again: releases without install instructions are skipped.
+on:
+  push:
+    branches: [migration/cloudflare]
+    paths: ['.github/workflows/android-notes-cleanup.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove install instructions from the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+        shell: python3 {0}
+        run: |
+          import json, os, re, subprocess
+          repo = os.environ["R"]
+          def api(*args, data=None):
+              out = subprocess.run(["gh", "api", *args] + (["--input", "-"] if data is not None else []),
+                                   input=json.dumps(data) if data is not None else None,
+                                   capture_output=True, text=True, check=True).stdout
+              return json.loads(out) if out.strip() else None
+          releases = api("--paginate", "--slurp", f"repos/{repo}/releases?per_page=100")
+          releases = [r for page in releases for r in page]
+          for r in releases:
+              body = r.get("body") or ""
+              new = body.replace("\r\n", "\n")
+              # 1.1.26 and later: a "## Install" section at the end.
+              new = re.split(r"\n+## Install\n", new)[0]
+              # 1.1.25: the notes were only an install line.
+              if new.startswith("Download YourDramaList-1.1.25-android.apk"):
+                  new = "Signed with the permanent YourDramaList key."
+              # 1.1.23 beta: an "Install on Android" section before "Add your catalogs to Nuvio".
+              new = re.sub(r"^Install on Android\n.*?(?=^Add your catalogs to Nuvio)", "", new, flags=re.S | re.M)
+              new = new.rstrip() + "\n"
+              if new.strip() == body.replace("\r\n", "\n").strip():
+                  print("unchanged:", r["tag_name"])
+                  continue
+              api("-X", "PATCH", f"repos/{repo}/releases/{r['id']}", data={"body": new})
+              print("cleaned:", r["tag_name"])
