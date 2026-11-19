@@ -140,10 +140,10 @@ Deno.test("Connect background shows straight rows of new backdrops, newest in th
   await done; await new Promise(r => setTimeout(r, 5));
   const rows = [...document.querySelectorAll(".motionTilt > .motionRow")];
   assert(fetched[0]==="/api/background/backdrops", "The wall did not ask for backdrops");
-  assert(rows.length===10 && rows.every(row => row.querySelectorAll(".motionTile").length===12), "Rows are missing or not doubled for a seamless loop");
+  assert(rows.length===6 && rows.every(row => row.querySelectorAll(".motionTile").length===8), "Rows are missing or not doubled for a seamless loop");
   const images = [...document.querySelectorAll(".motionTile img")].map(img => img.getAttribute("src"));
   assert(!images.some(src => src?.includes("evil.test")), "A non-TMDB image got through");
-  const middle = new Set([...rows[4].querySelectorAll("img"),...rows[5].querySelectorAll("img")].map(img => img.getAttribute("src")));
+  const middle = new Set([...rows[2].querySelectorAll("img"),...rows[3].querySelectorAll("img")].map(img => img.getAttribute("src")));
   const newest = backdrops.slice(0,8).map(item => item.image);
   assert(newest.every(src => middle.has(src)), "The newest shows are not in the middle rows");
   assert(!/rotate\(-12deg\)/.test(html) && /backdropGlide\{from\{transform:translateX\(-50%\)\}to\{transform:translateX\(0\)\}\}/.test(html),
