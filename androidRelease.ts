@@ -9,10 +9,14 @@ export const androidApkUrl = (version: string) =>
 export const ANDROID_RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 const VERSION_URL = `https://github.com/${REPO}/releases/latest/download/android-latest.json`;
 const CACHE_MS = 60 * 60 * 1000, RETRY_MS = 5 * 60 * 1000;
+// The in-app update notice only reminds apps older than this version code. A quiet release (a small,
+// cosmetic change) leaves this alone, so people on the previous version are not asked to update.
+// For an update everyone should get, raise it to that release's version code.
+export const ANDROID_REMIND_BELOW = 105; // 1.1.29
 
 type Latest = {versionCode: number; versionName: string; url: string};
 
-export function createAndroidRelease(fetcher: typeof fetch = fetch, now = Date.now) {
+export function createAndroidRelease(fetcher: typeof fetch = fetch, now = Date.now, remindBelow = ANDROID_REMIND_BELOW) {
   let cached: {value: Latest | null; expires: number} | undefined;
   let pending: Promise<Latest | null> | undefined;
   async function load(): Promise<Latest | null> {
@@ -42,7 +46,8 @@ export function createAndroidRelease(fetcher: typeof fetch = fetch, now = Date.n
     if (new URL(req.url).pathname === "/download/android") {
       return new Response(null, {status: 302, headers: {location: value?.url ?? ANDROID_RELEASES_URL, "cache-control": "public, max-age=300"}});
     }
-    return Response.json(value ?? {versionCode: 0, versionName: "", url: ANDROID_RELEASES_URL}, {headers: {"cache-control": "public, max-age=300"}});
+    const body = value ? {...value, remindBelow: Math.min(value.versionCode, remindBelow)} : {versionCode: 0, versionName: "", url: ANDROID_RELEASES_URL, remindBelow: 0};
+    return Response.json(body, {headers: {"cache-control": "public, max-age=300"}});
   };
 }
 

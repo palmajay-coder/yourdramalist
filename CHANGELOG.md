@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.30
+
+### What's new
+
+- Made built in background color match animation background color.
+
+### Also
+
+- A quiet release: the app shows no update notice for it to people on 1.1.29. Apps older than 1.1.29 are still offered the newest version. `ANDROID_REMIND_BELOW` in `androidRelease.ts` controls this.
+- Since 1.1.29 (website only): the tint slider scales all the Connect darkening, the app uses the landscape layout, actor and director titles open full details, Reddit and other in-app browsers no longer see the update popup, and Nuvio filmography catalogs keep TMDB ids distinct and hide finished dramas.
+
 ## 1.1.29
 
 ### What's new

@@ -25,7 +25,17 @@ if [[ "${ANDROID_UNSIGNED:-0}" == 1 && ( -n "${YDL_RELEASE:-}" || -n "$release_k
 fi
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT
-mkdir -p "$temporary"/{classes,dex,res/drawable}
+mkdir -p "$temporary"/{classes,dex,res/drawable,res/values}
+# The launch background matches the opening animation's light grey (#eceef1), so opening the app goes
+# straight into the YDL animation with no dark flash first. Android 12 and later use it for the splash too.
+cat > "$temporary/res/values/styles.xml" <<'XML'
+<resources>
+    <color name="ydl_launch">#ECEEF1</color>
+    <style name="YdlTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ydl_launch</item>
+    </style>
+</resources>
+XML
 
 python3 - "$source_dir/../../addonIcon.ts" "$temporary/res/drawable/ydl_icon.png" <<'PY'
 import base64

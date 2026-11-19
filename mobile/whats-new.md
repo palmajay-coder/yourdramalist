@@ -1,4 +1,1 @@
-- A cleaner start: connect your MyDramaList account or continue without one, and the app remembers your choice next time.
-- New dramas on the welcome screen: the latest and trending K-dramas glide by in the background.
-- A new opening: YDL unfolds into YourDramaList when the app starts.
-- A fresh look for titles: a new rounded font for the logo and page titles.
+- Made built in background color match animation background color.

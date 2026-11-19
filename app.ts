@@ -586,7 +586,8 @@ const quickSearch=(${installQuickSearch.toString()})();
  if(!own)return;
  const current=Number(own[1]);
  fetch('/api/app/android',{signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).then(latest=>{
-  if(!latest||!(latest.versionCode>current))return;
+  // Quiet releases: only apps older than remindBelow are reminded, even when a newer version exists.
+  if(!latest||!(latest.versionCode>current)||!(current<(latest.remindBelow??latest.versionCode)))return;
   const key='ydl-app-update-dismissed';
   try{if(localStorage.getItem(key)===String(latest.versionCode))return}catch{}
   const bar=document.createElement('aside');bar.className='appUpdateNotice';bar.setAttribute('role','status');

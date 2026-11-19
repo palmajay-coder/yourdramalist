@@ -61,4 +61,14 @@ await test("in-app browsers like Reddit see no notice",async()=>{
  assert(!await page(wv,latest),"a plain in-app web view should not see the notice");
  assert(!await page(wv+" Reddit/Version 2025.40.0/Build 2540000/Android 14",latest),"Reddit's in-app browser should not see the notice");
 });
+await test("a quiet release does not remind the previous version, but still reminds older ones",async()=>{
+ const quiet={versionCode:110,versionName:"1.1.30",url:androidApkUrl("1.1.30"),remindBelow:105};
+ assert(!await page(wv+" YourDramaListApp/105",quiet),"1.1.29 should not be asked to update for a quiet release");
+ const older=await page(wv+" YourDramaListApp/104",quiet);
+ assert(older&&older.textContent.includes(TEXT.appUpdateTitle.replace("{version}","1.1.30")),"older apps should still be offered the newest version");
+ const handle=createAndroidRelease((async()=>Response.json({versionCode:110,versionName:"1.1.30"})) as any,Date.now,105);
+ assert((await(await handle(new Request("https://test/api/app/android"))).json()).remindBelow===105,"the endpoint reports remindBelow");
+ const loud=createAndroidRelease((async()=>Response.json({versionCode:110,versionName:"1.1.30"})) as any,Date.now,110);
+ assert((await(await loud(new Request("https://test/api/app/android"))).json()).remindBelow===110,"raising it reminds everyone below the new version");
+});
 console.log(JSON.stringify({passed}));

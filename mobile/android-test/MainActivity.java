@@ -33,12 +33,15 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        int background = Color.rgb(24, 24, 24);
-        getWindow().setStatusBarColor(background);
-        getWindow().setNavigationBarColor(background);
+        // The system bars stay dark like the site; behind the page it is the opening animation's light grey,
+        // the same as the launch background, so there is no dark flash before the animation.
+        int bars = Color.rgb(24, 24, 24);
+        int launch = Color.rgb(236, 238, 241);
+        getWindow().setStatusBarColor(bars);
+        getWindow().setNavigationBarColor(bars);
 
         web = new WebView(this);
-        web.setBackgroundColor(background);
+        web.setBackgroundColor(launch);
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setAllowFileAccess(false);
@@ -51,7 +54,7 @@ public final class MainActivity extends Activity {
             long code = Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
             web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " YourDramaListApp/" + code);
         } catch (Exception ignored) {
-            // The site then treats this as an older app, which only means it may suggest an update.
+            // Without the version tag the site shows no update notice.
         }
 
         FrameLayout layout = new FrameLayout(this);
