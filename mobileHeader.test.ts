@@ -178,13 +178,18 @@ Deno.test("The YDL opening plays once per fresh app open, only in the Android ap
 });
 
 Deno.test("The logo font is served and used for the Connect title and the opening", async () => {
-  const response = await handler(new Request("https://test/assets/milky-nice-v1.otf"));
+  const response = await handler(new Request("https://test/assets/milky-nice-v2.woff2"));
   const bytes = new Uint8Array(await response.arrayBuffer());
   const original = await Deno.readFile(new URL("./logoFont.ts", import.meta.url)).then(b => new TextDecoder().decode(b).match(/encoded="([^"]+)"/)![1]);
-  assert(response.headers.get("content-type")==="font/otf" && /immutable/.test(response.headers.get("cache-control")||""), "The font is not served as a cached OTF");
-  assert(bytes.length===atob(original).length && String.fromCharCode(...bytes.slice(0,4))==="OTTO", "The served font is not the Milky Nice file");
-  assert(html.includes('<link rel="preload" as="font" type="font/otf" href="/assets/milky-nice-v1.otf" crossorigin>') &&
-    html.includes('@font-face{font-family:"Milky Nice";src:url(/assets/milky-nice-v1.otf)'), "The font is not preloaded or declared");
+  assert(response.headers.get("content-type")==="font/woff2" && /immutable/.test(response.headers.get("cache-control")||""), "The font is not served as cached WOFF2");
+  assert(bytes.length===atob(original).length && String.fromCharCode(...bytes.slice(0,4))==="wOF2", "The served font is not the Milky Nice file");
+  assert(html.includes('<link rel="preload" as="font" type="font/woff2" href="/assets/milky-nice-v2.woff2" crossorigin>') &&
+    html.includes('@font-face{font-family:"Milky Nice";src:url(/assets/milky-nice-v2.woff2)'), "The font is not preloaded or declared");
   assert(/#connect > h1 \{font-family:"Milky Nice"/.test(html) && /\.ydlIntroWord\{font:400 [^;]*"Milky Nice"/.test(html), "The Connect title or the opening does not use the logo font");
   assert(html.includes("document.fonts.load('1em \"Milky Nice\"')"), "The opening does not wait for the logo font");
+});
+
+Deno.test("Page titles use the Milky Nice heading font", () => {
+  assert(/header\.mobilePageHeader > h1 \{[^}]*font-family:"Milky Nice"/.test(html), "Phone page titles do not use the heading font");
+  assert(/\.androidDiscoverToolbar h1\{[^}]*font-family:"Milky Nice"/.test(html), "Computer page titles do not use the heading font");
 });
