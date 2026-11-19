@@ -1,5 +1,5 @@
 name: Android release notes cleanup (one time)
-# Removes the install instructions from every GitHub release's notes. New releases no longer add them
+# Removes the install instructions (and signing key notes) from every GitHub release's notes. New releases no longer add them
 # (mobile/release-notes.sh). Nothing else in the notes changes and nothing is deleted.
 # Safe to run again: releases without install instructions are skipped.
 on:
@@ -25,6 +25,13 @@ jobs:
         run: |
           import json, os, re, subprocess
           repo = os.environ["R"]
+          NOTES_1_1_25 = """## What's new in 1.1.25
+
+          - One search for everything: find dramas, movies, actors, and directors in one bar.
+          - Richer title previews: artwork, story, cast, MyDramaList rating, and reviews.
+          - My Collections: build your own catalogs from single titles and install them in Nuvio.
+          - Update notice: the app tells you when a newer version is out.
+          """.replace("\n          ", "\n")
           def api(*args, data=None):
               out = subprocess.run(["gh", "api", *args] + (["--input", "-"] if data is not None else []),
                                    input=json.dumps(data) if data is not None else None,
@@ -37,11 +44,13 @@ jobs:
               new = body.replace("\r\n", "\n")
               # 1.1.26 and later: a "## Install" section at the end.
               new = re.split(r"\n+## Install\n", new)[0]
-              # 1.1.25: the notes were only an install line.
-              if new.startswith("Download YourDramaList-1.1.25-android.apk"):
-                  new = "Signed with the permanent YourDramaList key."
+              # 1.1.25: the notes were only an install line, so they get its What's new from CHANGELOG.md.
+              if new.startswith(("Download YourDramaList-1.1.25-android.apk", "Signed with the permanent YourDramaList key")):
+                  new = NOTES_1_1_25
               # 1.1.23 beta: an "Install on Android" section before "Add your catalogs to Nuvio".
               new = re.sub(r"^Install on Android\n.*?(?=^Add your catalogs to Nuvio)", "", new, flags=re.S | re.M)
+              # 1.1.23 beta: the APK checksum at the end.
+              new = re.sub(r"\n+APK SHA-256\n.*$", "", new, flags=re.S)
               new = new.rstrip() + "\n"
               if new.strip() == body.replace("\r\n", "\n").strip():
                   print("unchanged:", r["tag_name"])
