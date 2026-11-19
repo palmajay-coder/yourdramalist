@@ -600,8 +600,8 @@ const quickSearch=(${installQuickSearch.toString()})();
   actions.append(get,later);bar.append(text,actions);document.body.append(bar);
  }).catch(()=>{});
 })();
-// Share the same controls and state when the browser rotates or resizes.
-if(!androidApp){
+// Share the same controls and state when the browser or the Android app rotates or resizes.
+{
  const mobileDevice=navigator.userAgentData?.mobile||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||
   (/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
  const width=matchMedia(mobileDevice?'(min-width: 440px)':'(min-width: 560px)');

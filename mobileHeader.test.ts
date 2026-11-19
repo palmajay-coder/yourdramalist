@@ -211,3 +211,9 @@ Deno.test("The admin tint controls all of the Connect darkening", async () => {
   assert(/linear-gradient\(180deg,rgba\(255,0,0,0\.00\) 45%,rgba\(255,0,0,0\.15\) 100%\)/.test(shadeFor("#ff0000", 0.2)), "The bottom fade ignores the tint color");
   assert(!/rgba\(5,6,8,\.55\)/.test(html), "A fixed shade that ignores the slider is still in the page");
 });
+
+Deno.test("The Android app uses the same landscape layout as a phone browser", () => {
+  const start = html.indexOf("// Share the same controls and state when the browser or the Android app rotates or resizes.");
+  assert(start > 0 && html.slice(start, start + 200).includes("\n{\n"), "The wide landscape layout is still skipped in the app");
+  assert(!/if\(!androidApp\)\{\s*const mobileDevice/.test(html), "The wide landscape layout is still skipped in the app");
+});
