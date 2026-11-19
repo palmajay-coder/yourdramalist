@@ -385,10 +385,13 @@ function Ft(t) {
 `);
 }
 
+export const hiddenTitleKey = (title, year) => "t:" + normalizeTitle(title) + "|" + (year || "");
 async function Te(t) {
   if (!t.flags.includes("h") || !t.user) return new Set();
   const e = await G(t.user).catch(() => ({}));
-  return new Set([...(e[2] || []), ...(e[5] || [])].map((n) => n.slug));
+  const done = [...(e[2] || []), ...(e[5] || [])];
+  // Slugs for MyDramaList titles, plus title and year keys for actor and director titles, which come from TMDB.
+  return new Set([...done.map((n) => n.slug), ...done.filter((n) => n.title).map((n) => hiddenTitleKey(n.title, n.year))]);
 }
 
 async function Pz(t, k) {

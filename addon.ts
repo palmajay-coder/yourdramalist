@@ -8,7 +8,7 @@ import {tmdbPersonLocalizedName} from './tmdbPeople.ts';
 import {handlePeople} from './peopleApi.ts';
 import {loadWatchlist,loadWatchlistCategory,loadMDLTitlePoster,WATCHLIST_CARDS} from './addonScrape.ts';
 import {kuryana,mdlImage,mdlLink} from './kuryana.ts';
-import {Ee,X,G,K,Je,Te} from './addonCore.ts';
+import {Ee,X,G,K,Je,Te,hiddenTitleKey} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
@@ -152,7 +152,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(!catalog?.items?.length)return{metas:[]};
   pool=catalog.items;
  }
- else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
+ else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:/^tmdb-(tv|movie)-\d+$/.test(x.id)?x.id:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
  else if(entry.watchlist&&entry.watchlistStatus)pool=await (deps.watchlistCategory??loadWatchlistCategory)(entry.watchlist,entry.watchlistStatus);
  else if(entry.watchlist){
   const sections=await (deps.watchlistSections??loadWatchlist)(entry.watchlist);
@@ -169,7 +169,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   pool=applyShelfFilter(pool,entry.filter,facts);
  }
  const hidden=['completed','dropped'].includes(entry.watchlistStatus||'')?new Set():await deps.hidden(runtime),year=new Date().getFullYear();
- pool=pool.filter(x=>!hidden.has(x.slug)&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
+ pool=pool.filter(x=>!hidden.has(x.slug)&&!(entry.person&&x.title&&(hidden.has(hiddenTitleKey(x.title,x.year))||hidden.has(hiddenTitleKey(x.title,''))))&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
  const selected=pool.slice(skip,skip+NUVIO_PAGE),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
  // Titles with no IMDb id (mostly announced, unreleased dramas) keep a MyDramaList based id. Nuvio asks this
