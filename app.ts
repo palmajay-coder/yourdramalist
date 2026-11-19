@@ -579,12 +579,12 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter
 const quickSearch=(${installQuickSearch.toString()})();
 (${installAndroidDiscover.toString()})();
 (${installMotion.toString()})();
-// Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Older apps
-// (1.1.24 and earlier) do not, and were signed with a key that is lost, so they need one reinstall.
+// Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Only that tag
+// shows the notice: Reddit, Instagram and other apps open links in their own web views, which are not ours.
 (()=>{
- const ua=navigator.userAgent,own=ua.match(/YourDramaListApp\\/(\\d+)/),oldApp=!own&&/Android/.test(ua)&&/; wv\\)/.test(ua);
- if(!own&&!oldApp)return;
- const current=own?Number(own[1]):0;
+ const own=navigator.userAgent.match(/YourDramaListApp\\/(\\d+)/);
+ if(!own)return;
+ const current=Number(own[1]);
  fetch('/api/app/android',{signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).then(latest=>{
   if(!latest||!(latest.versionCode>current))return;
   const key='ydl-app-update-dismissed';
@@ -592,7 +592,7 @@ const quickSearch=(${installQuickSearch.toString()})();
   const bar=document.createElement('aside');bar.className='appUpdateNotice';bar.setAttribute('role','status');
   const text=document.createElement('p');
   const title=document.createElement('strong');title.textContent=copy.appUpdateTitle.replace('{version}',latest.versionName);
-  text.append(title,document.createElement('br'),document.createTextNode(oldApp?copy.appUpdateReinstall:copy.appUpdateBody));
+  text.append(title,document.createElement('br'),document.createTextNode(copy.appUpdateBody));
   const actions=document.createElement('div');
   const get=document.createElement('a');get.className='primary';get.href=latest.url;get.textContent=copy.appUpdateDownload;
   const later=document.createElement('button');later.type='button';later.className='secondary';later.textContent=copy.appUpdateLater;

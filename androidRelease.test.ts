@@ -57,8 +57,8 @@ await test("the current app, phone browsers and computers see no notice",async()
  assert(!await page("Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/130.0 Mobile Safari/537.36",latest),"a phone browser should not see the notice");
  assert(!await page("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0",latest),"a computer should not see the notice");
 });
-await test("an app from before version reporting is asked to reinstall once",async()=>{
- const notice=await page(wv,latest);
- assert(notice&&notice.textContent.includes(TEXT.appUpdateReinstall),"old apps should be told to reinstall");
+await test("in-app browsers like Reddit see no notice",async()=>{
+ assert(!await page(wv,latest),"a plain in-app web view should not see the notice");
+ assert(!await page(wv+" Reddit/Version 2025.40.0/Build 2540000/Android 14",latest),"Reddit's in-app browser should not see the notice");
 });
 console.log(JSON.stringify({passed}));
