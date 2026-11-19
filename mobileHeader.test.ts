@@ -124,7 +124,7 @@ Deno.test("Connect comes first for new visitors and is skipped for returning one
     "An existing guest with a selection was sent to Connect");
 });
 
-Deno.test("Connect background shows tilted rows of new backdrops, newest in the middle", async () => {
+Deno.test("Connect background shows straight rows of new backdrops, newest in the middle", async () => {
   const {installPosterWall} = await import("./posterWallClient.ts");
   const {document, window} = parseHTML("<body></body>");
   const backdrops = Array.from({length:24},(_,i)=>({name:"Show "+i,image:"https://image.tmdb.org/t/p/w780/b"+i+".jpg"}));
@@ -146,6 +146,6 @@ Deno.test("Connect background shows tilted rows of new backdrops, newest in the 
   const middle = new Set([...rows[4].querySelectorAll("img"),...rows[5].querySelectorAll("img")].map(img => img.getAttribute("src")));
   const newest = backdrops.slice(0,8).map(item => item.image);
   assert(newest.every(src => middle.has(src)), "The newest shows are not in the middle rows");
-  assert(/rotate\(-12deg\)/.test(html) && /backdropGlide\{from\{transform:translateX\(-50%\)\}to\{transform:translateX\(0\)\}\}/.test(html),
-    "Rows are not tilted or not gliding left to right");
+  assert(!/rotate\(-12deg\)/.test(html) && /backdropGlide\{from\{transform:translateX\(-50%\)\}to\{transform:translateX\(0\)\}\}/.test(html),
+    "Rows are tilted or not gliding left to right");
 });
