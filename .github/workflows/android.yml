@@ -1,6 +1,7 @@
 name: Android app release
 # Builds the Android app, signs it with the permanent YourDramaList release key, and publishes it as a
-# GitHub release. Every release must use that same key, or phones refuse to install it as an update.
+# GitHub release, then deletes the older releases (their tags stay). Every release must use that same
+# key, or phones refuse to install it as an update.
 # It runs when mobile/android-version.txt changes (put the new version there, for example 1.1.25), or
 # from the Actions tab once this file is on the default branch.
 on:
@@ -37,7 +38,8 @@ jobs:
         run: |
           VERSION="${INPUT_VERSION:-$(tr -d '[:space:]' < mobile/android-version.txt)}"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Enter a version like 1.1.25"; exit 1; }
-          for tag in "v$VERSION" "android-v$VERSION"; do if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then echo "$VERSION is already released ($tag). Raise the version."; exit 1; fi; done
+          # Older releases are deleted but their tags stay, so check both.
+          for tag in "v$VERSION" "android-v$VERSION"; do if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" > /dev/null 2>&1; then echo "$VERSION is already released ($tag). Raise the version."; exit 1; fi; done
           echo "APK=YourDramaList-$VERSION-android.apk" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" ]] || { echo "Add the YDL_RELEASE_KEYSTORE_BASE64 and YDL_RELEASE_KEYSTORE_PASSWORD secrets first (see mobile/README.md)."; exit 1; }
@@ -72,3 +74,9 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
             --title "YourDramaList $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md"
+      - name: Remove older releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Only the newest release is kept: Android cannot install an older version over a newer one,
+        # and the download link and the update notice always use the newest. Version tags stay.
+        run: bash mobile/prune-releases.sh "$VERSION"

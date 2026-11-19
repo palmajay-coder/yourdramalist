@@ -25,6 +25,7 @@
   - **What's new:** the notes come from `mobile/whats-new.md`.
   - **Version files:** also update `text.ts` and `CHANGELOG.md`.
   - **Signing key:** it lives only in GitHub secrets. Never commit it.
+  - **One release only:** after publishing, the workflow deletes older releases (`mobile/prune-releases.sh`). Tags stay. Release notes have no install or signing text.
 - **Website changes reach the app** without a new APK, because the app loads the site.
 - **Before deploying,** fetch and merge any Codex work.
 

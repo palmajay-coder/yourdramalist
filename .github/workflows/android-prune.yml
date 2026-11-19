@@ -1,0 +1,24 @@
+name: Android old releases cleanup (one time)
+# Deletes every release except the current one (mobile/android-version.txt). From now on the release
+# workflow does this after each new release, so this file is removed again afterwards. Tags stay.
+on:
+  push:
+    branches: [migration/cloudflare]
+    paths: ['.github/workflows/android-prune.yml']
+permissions:
+  contents: write
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Remove older releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash mobile/prune-releases.sh "$(tr -d '[:space:]' < mobile/android-version.txt)"
