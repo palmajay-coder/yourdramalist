@@ -52,3 +52,21 @@
 - "Because you added…" recommendations from your Selection.
 - Search and Select-all pills for Community lists.
 - A light grey Android launch screen to match the opening (needs an APK).
+
+## If the MDL API opens
+- **Docs:** https://mydramalist.github.io/MDL-API/ (repo `mydramalist/MDL-API`, last updated January 2020). The base is `https://api.mydramalist.com/v1`, and every request needs an `mdl-api-key` header (client_id).
+  - **Sign-in:** OAuth authorization code (`/oauth/authorize`, `/oauth/token`, which also needs a client_secret).
+  - **Keys:** MDL must issue them. There is no public signup; the developer portal link is a placeholder.
+- **With user sign-in (most valuable first):**
+  - "Sign in with MyDramaList" on Connect, so we never see a password.
+  - Private watchlists in all six categories (`/sync/mylist/[type]`).
+  - Progress on Nuvio cards (`episode_seen`, the user's rating).
+  - An "Add to Plan to Watch on MyDramaList" button in title previews (`POST /sync/mylist`).
+  - Exact Hide Completed/Dropped by MDL id instead of title and year.
+  - `/sync/last_activities` to skip reloading watchlists that have not changed.
+- **With the app key only:**
+  - Replace Kuryana for titles, people, reviews and search.
+  - A rating breakdown chart (`/titles/[id]/ratings`).
+  - A Related titles row: remakes and sequels (`/titles/[id]/related`).
+  - MDL tags for Weekly Picks themes and filters.
+- **Skip:** writing reviews from YDL. Reviewers use MDL itself.
