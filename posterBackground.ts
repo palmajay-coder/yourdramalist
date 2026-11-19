@@ -41,3 +41,74 @@ export function createPosterService(storage:{load:()=>Promise<any>;save:(v:any)=
  })().finally(()=>pending=undefined);return pending;
  };
 }
+
+// Connect background v2: wide backdrops (with the show's title art when TMDB has it) from the newest and
+// trending Korean dramas. Refreshed daily; newest shows first so the landing page always feels current.
+export const BACKDROP_SEEDS:{id:number;name:string;image:string;firstAir:string}[]=[];
+const NOT_DRAMA=new Set([16,10763,10764,10767]);
+const DAY=86400000;
+const isoDay=(t:number)=>new Date(t).toISOString().slice(0,10);
+export function rankBackdropShows(shows:any[],now:number){
+ const seen=new Set<number>(),pool:any[]=[];
+ for(const show of shows){
+  if(!show||seen.has(show.id)||!show.origin_country?.includes("KR")||!show.backdrop_path)continue;
+  if((show.genre_ids||[]).some((g:number)=>NOT_DRAMA.has(g))||show.adult)continue;
+  const aired=Date.parse(show.first_air_date||"");if(!Number.isFinite(aired)||aired>now||now-aired>730*DAY)continue;
+  seen.add(show.id);pool.push({...show,age:(now-aired)/DAY});
+ }
+ // Newest first: shows from the last 60 days (minus the least watched quarter), then the last 6 months, then the rest.
+ const pops=pool.map(x=>x.popularity||0).sort((a,b)=>a-b),floor=pops[Math.floor(pops.length/4)]||0;
+ const tier=(x:any)=>x.age<=60&&(x.popularity||0)>=floor?0:x.age<=183?1:2;
+ return pool.sort((a,b)=>tier(a)-tier(b)||(b.popularity||0)-(a.popularity||0)).slice(0,36);
+}
+export function chooseBackdrop(images:any,fallback:string|null){
+ const ok=(x:any)=>x&&x.width>=1280&&x.aspect_ratio>=1.7&&x.aspect_ratio<=1.8&&/^\/[A-Za-z0-9]+\.(jpg|png|webp)$/.test(x.file_path);
+ const list=(images?.backdrops||[]).filter(ok).sort((a:any,b:any)=>(b.vote_average||0)-(a.vote_average||0)||(b.vote_count||0)-(a.vote_count||0));
+ const titled=list.find((x:any)=>x.iso_639_1==="en");
+ if(titled)return titled.file_path;
+ if(fallback&&/^\/[A-Za-z0-9]+\.(jpg|png|webp)$/.test(fallback))return fallback;
+ return list.find((x:any)=>!x.iso_639_1)?.file_path||null;
+}
+export function createBackdropService(storage:{load:()=>Promise<any>;save:(v:any)=>Promise<any>},keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now){
+ let entry:any,ready:Promise<void>|undefined,pending:Promise<any>|undefined;
+ const fallback=()=>({backdrops:BACKDROP_SEEDS,status:"fallback"});
+ async function bounded<T>(p:Promise<T>){let t;try{return await Promise.race([p,new Promise<undefined>(r=>{t=setTimeout(()=>r(undefined),1000)})])}finally{clearTimeout(t)}}
+ return async()=>{
+  ready??=(async()=>{try{entry=await bounded(storage.load())}catch{}})();await ready;
+  const usable=entry?.backdrops?.length&&now()-entry.at<30*DAY;
+  if(entry&&entry.expires>now())return usable?{backdrops:entry.backdrops,status:entry.error?"stale":"cached"}:fallback();
+  if(pending)return pending;
+  const failed=async()=>{entry={backdrops:usable?entry.backdrops:[],at:usable?entry.at:now(),expires:now()+300000,error:true};await bounded(storage.save(entry)).catch(()=>{});return usable?{backdrops:entry.backdrops,status:"stale"}:fallback()};
+  pending=(async()=>{
+   const key=keyFor();if(!key)return failed();
+   const deadline=now()+25000;
+   async function request(path:string,params:Record<string,string>={}){
+    if(now()>deadline)throw Error("Refresh timeout");
+    const url=new URL("https://api.themoviedb.org/3/"+path);url.searchParams.set("api_key",key!);
+    for(const [k,v] of Object.entries(params))url.searchParams.set(k,v);
+    const r=await fetcher(url,{signal:AbortSignal.timeout(8000),redirect:"error",headers:{Accept:"application/json"}});
+    if(!r.ok){await r.body?.cancel();throw Error("TMDB HTTP "+r.status)}
+    const text=await r.text();if(text.length>3000000)throw Error("TMDB response too large");return JSON.parse(text);
+   }
+   try{
+    const today=now(),discover={with_origin_country:"KR",with_genres:"18",without_genres:"16,10763,10764,10767",
+     "first_air_date.gte":isoDay(today-183*DAY),"first_air_date.lte":isoDay(today),sort_by:"popularity.desc","vote_count.gte":"3",include_adult:"false"};
+    const pages=await Promise.all([
+     ...[1,2,3].map(page=>request("trending/tv/week",{page:String(page)}).catch(()=>null)),
+     ...[1,2].map(page=>request("discover/tv",{...discover,page:String(page)}).catch(()=>null)),
+    ]);
+    const ranked=rankBackdropShows(pages.flatMap(p=>p?.results||[]),today);
+    const result:any[]=Array(ranked.length);let index=0;
+    async function worker(){while(index<ranked.length){const i=index++,show=ranked[i];try{
+     const images=await request("tv/"+show.id+"/images",{include_image_language:"en,null"});
+     const file=chooseBackdrop(images,show.backdrop_path);
+     result[i]=file?{id:show.id,name:show.name,image:"https://image.tmdb.org/t/p/w780"+file,firstAir:show.first_air_date}:null;
+    }catch{result[i]=show.backdrop_path?{id:show.id,name:show.name,image:"https://image.tmdb.org/t/p/w780"+show.backdrop_path,firstAir:show.first_air_date}:null}}}
+    await Promise.all([worker(),worker(),worker()]);
+    const backdrops=result.filter(Boolean);if(backdrops.length<10)throw Error("Not enough new shows");
+    entry={backdrops,at:now(),expires:now()+DAY};await bounded(storage.save(entry)).catch(()=>{});
+    return {backdrops,status:"live"};
+   }catch{return failed()}
+  })().finally(()=>pending=undefined);return pending;
+ };
+}

@@ -14,8 +14,8 @@ import {handleAddon} from "./addon.ts";
 import {immutableFileUrl,serveImmutableFile} from "https://esm.town/v/std/utils/index.ts";
 import {handlePosterPreview} from "./preferencesPreview.ts";
 import {pageForPath,MAX_CATALOGS} from "./preferences.ts";
-import {handlePosterBackground} from "./posterBackgroundApi.ts";
-import {POSTER_SEEDS} from "./posterBackground.ts";
+import {handlePosterBackground,handleBackdropBackground} from "./posterBackgroundApi.ts";
+import {BACKDROP_SEEDS} from "./posterBackground.ts";
 import {installPosterWall,POSTER_WALL_CSS} from "./posterWallClient.ts";
 import {oauthMiddleware} from "https://esm.town/v/std/oauth/middleware.ts";
 import {handleWallpaper} from "./wallpaperApi.ts";
@@ -159,6 +159,7 @@ body.androidSetup #discoverForm[hidden],body.androidSetup #discoverLabel[hidden]
 .quickSearchResults .discoverTitleIdentity strong{font-size:17px}
 :is(.quickSearchBack,.quickSearchClear,.quickSearchClearText,.quickSearchItem,.quickSearchRemove):focus-visible{outline:2px solid #75aaff;outline-offset:2px;border-radius:8px}
 body[data-page=connect] header{display:none}
+body.androidSetup[data-page=connect] .androidBottomNav{display:none!important}body.androidSetup[data-page=connect],body.androidSetup.wideWeb[data-page=connect]{padding-bottom:env(safe-area-inset-bottom,0px)}
 body[data-page=connect] #connect h1{text-align:center}
 body.androidSetup .androidFiltersDialog,body.androidSetup .mobileSelectionDialog{background:var(--panel);color:var(--text)}
 body.androidSetup .primary{background:#2674ec;color:#fff}
@@ -349,7 +350,7 @@ const state={tab:'discover',filter:'actor',source:null,selection:[],profile:''};
 document.body.classList.add('androidSetup');
 applyAppTheme();
 
-const posterWall = (${installPosterWall.toString()})(${JSON.stringify(POSTER_SEEDS)},['connect']);
+const posterWall = (${installPosterWall.toString()})(${JSON.stringify(BACKDROP_SEEDS)},['connect']);
 // The owner sets the poster wall tint on the admin page. The admin preview (?tint-preview=1) updates it live.
 let tintPreviewing=false;
 fetch('/api/appearance').then(r=>r.ok?r.json():null).then(v=>{if(v&&!tintPreviewing)posterWall.setTint(v.tint,v.opacity)}).catch(()=>{});
@@ -358,9 +359,14 @@ let currentPage='',preferencesUI,preferencesReady,discoverScroll=0;
 const androidFlow=['selection','preferences','confirm'];
 let connectedUser='';try{const saved=localStorage.getItem('ydl-v3-user')||'';if(/^[a-zA-Z0-9_-]{1,60}$/.test(saved))connectedUser=saved}catch{}
 function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}}
+// Connect comes first: until someone enters a username or continues without an account, the other pages stay closed.
+// Returning visitors (a saved username, the saved choice, or any saved selection or collection) go straight in.
+function markStarted(){try{localStorage.setItem('ydl-v3-started','1')}catch{}}
+function hasStarted(){if(connectedUser||state.selection?.length)return true;try{if(localStorage.getItem('ydl-v3-started')==='1')return true;const saved=JSON.parse(localStorage.getItem('ydl.userCollections.v1')||'[]');return Array.isArray(saved)&&saved.length>0}catch{return false}}
 const pageForPath=${pageForPath.toString()};
 function ensurePreferences(){return preferencesReady??=import(${JSON.stringify(immutableFileUrl('/preferencesClient.ts'))}).then(m=>{preferencesUI=m.installPreferencesUI({navigate,selection:()=>state.selection,removeCatalog,publishCollections:catalogs=>personalCatalogSync.publishSelection(catalogs),user:()=>connectedUser});if(androidAbout)$('preferences').append(androidAbout);return preferencesUI}).catch(()=>{preferencesReady=undefined;const root=$(currentPage==='confirm'?'confirm':'preferences');root.textContent=copy.preferencesUnavailable;return null})}
 function navigate(page,push=true){
+if(page!=='connect'&&!hasStarted()){page='connect';if(!push&&location.pathname!=='/setup')history.replaceState({ydlPage:'connect',ydlFlowStep:-1},'','/setup')}
 if(['preferences','confirm'].includes(page)&&!state.selection.length&&page!=='preferences')page='selection';
 if(page!=='selection'&&$('selectionDialog').open)$('selectionDialog').close();
 if(page!==currentPage){
@@ -534,8 +540,8 @@ function openCommunity(username){
   if(username)loadProfile(username);
   else switchTab('profiles');
 }
-$('skip').onclick=()=>{setConnectedUser('');openSelection('discover')};
-$('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;openCommunity(p.value)};
+$('skip').onclick=()=>{markStarted();setConnectedUser('');openSelection('discover')};
+$('connectForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('source').value);if(p?.type!=='profile'){$('error').textContent=copy.invalidUsername;return}$('error').textContent='';state.source=p;markStarted();openCommunity(p.value)};
 $('profileForm').onsubmit=e=>{e.preventDefault();const p=parseSource($('profileInput').value);if(!p){$('results').textContent=copy.invalidProfile;return}state.source=p;if(p.type==='profile')loadProfile(p.value);else loadDirectList(p.value)};
 const synopsisPreview = ${synopsisPreview.toString()};
 function renderScore(root,score){
@@ -678,5 +684,5 @@ async function handler(req: Request): Promise<Response> {
 const url=new URL(req.url);
 if(url.pathname==='/api/app/android'||url.pathname==='/download/android')return handleAndroidRelease(req);
 if(url.pathname==='/site.webmanifest')return Response.json(webAppManifest,{headers:{'content-type':'application/manifest+json'}});
-if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/personal-catalog')return handlePersonalCatalog(req);if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly','/api/appearance','/api/admin/appearance'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://github.com/palmajay-coder/yourdramalist'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
+if(url.pathname==='/privacy')return new Response(privacyPage(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/credits')return new Response(null,{status:302,headers:{'location':'/#tmdb-attribution'}});if(url.pathname==='/assets/ydl-classic-blue-v1.png')return addonIcon();if(url.pathname==='/api/analytics/catalog-add')return recordCatalogAdditionRequest(req,source=>popularity.recordVisit(req,['catalog.added:'+source]));if(url.pathname==='/api/personal-catalog')return handlePersonalCatalog(req);if(url.pathname==='/api/addon/configure'||url.pathname.startsWith('/addon/'))return handleAddon(req);if(/^\/__immutable\/\d+\/(preferencesClient\.ts|preferences\.ts|text\.ts|preferences\.css|catalogShelves\.css)$/.test(url.pathname))return serveImmutableFile(url.pathname);if(url.pathname==='/api/preferences/poster-preview')return handlePosterPreview(req);if(url.pathname==='/api/background/posters')return handlePosterBackground(req);if(url.pathname==='/api/background/backdrops')return handleBackdropBackground(req);if(['/admin','/api/admin/analytics','/api/admin/errors','/api/admin/weekly','/api/appearance','/api/admin/appearance'].includes(url.pathname))return handleWallpaper(req);if(['/api/catalogs/weekly','/api/catalogs/shelf'].includes(url.pathname))return handleCollections(req);if(url.pathname==='/api/mdl/explore')return handleExplore(req);if(url.pathname==='/source')return new Response(null,{status:302,headers:{Location:'https://github.com/palmajay-coder/yourdramalist'}});if(['/api/mdl/people-search','/api/mdl/person','/api/mdl/filmography'].includes(url.pathname))return handlePeople(req);if(url.pathname==='/api/mdl/list')return handleDirectList(req);if(url.pathname==='/api/mdl/list-owner')return handleListOwner(req);if(url.pathname==='/api/mdl/drama-details')return handleDramaDetails(req);if(url.pathname==='/api/mdl/shelf'||url.pathname==='/api/mdl/title-facts')return handleShelf(req);if(url.pathname==='/'||url.pathname==='/setup'||url.pathname==='/setup/lists'||url.pathname==='/setup/preferences'||url.pathname==='/setup/confirm')return new Response(page,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});if(url.pathname==='/api/mdl/avatar'){const username=url.searchParams.get('username')||'';if(!/^[a-zA-Z0-9_-]{1,60}$/.test(username))return Response.json({error:'Invalid username'},{status:400});return Response.json({avatar:null},{headers:{'cache-control':'public, max-age=3600'}})}if(url.pathname==='/api/mdl/profile')return handleProfile(url);return new Response('Not found',{status:404})}
 export default oauthMiddleware(handler);

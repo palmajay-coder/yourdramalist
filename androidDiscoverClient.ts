@@ -156,7 +156,7 @@ export function installAndroidDiscover() {
   state.filter = "catalogs";
   $("exploreSearch").classList.remove("hidden");
   switchTab("discover");
-  let startPage = connectedUser ? "selection" : "connect";
+  let startPage = hasStarted() ? "selection" : "connect";
   if (!androidApp && location.pathname !== "/") startPage = pageForPath(location.pathname);
   if (startPage === "confirm" && !state.selection.length) startPage = "selection";
   const path = {connect:"/setup", selection:"/setup/lists", preferences:"/setup/preferences", confirm:"/setup/confirm"}[startPage];
