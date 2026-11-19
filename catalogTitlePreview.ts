@@ -95,7 +95,9 @@ export function installCatalogTitlePreview() {
     try {
       // Saved weekly picks have a TMDB ID and media kind, but no URL.
       const isTmdbTitle = (item.kind === "tv" || item.kind === "movie") && /^[1-9]\d{0,9}$/.test(String(item.id));
-      const url = mdlUrl || (isTmdbTitle ? "https://www.themoviedb.org/" + item.kind + "/" + item.id : "");
+      // Actor and director credits come from TMDB and carry a TMDB title address as their link.
+      const tmdbUrl = /^https:\/\/www\.themoviedb\.org\/(tv|movie)\/[1-9]\d{0,9}$/.test(item.url || "") ? item.url : "";
+      const url = mdlUrl || tmdbUrl || (isTmdbTitle ?"https://www.themoviedb.org/" + item.kind + "/" + item.id : "");
       if (!url) throw Error("Title source unavailable");
       const endpoint = "/api/mdl/drama-details?url=" + encodeURIComponent(url) + (discover ? "&" + new URLSearchParams({
         view: "discover", title: name, year: String(year || ""), type: type || "",

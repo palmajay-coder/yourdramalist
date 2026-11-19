@@ -149,7 +149,7 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  const proto=Object.getPrototypeOf(document.createElement("dialog"));
  if(!proto.showModal){proto.showModal=function(){this.open=true};proto.close=function(){if(!this.open)return;this.open=false;this.dispatchEvent(new window.Event("close"))};}
  const person={id:"440",name:"Gong Yoo",url:"https://mydramalist.com/people/440-gong-yoo"};
- const credits=[{id:"1",name:"Goblin",url:"https://mydramalist.com/18452-goblin",year:2016,type:"Drama",poster:"https://i.mydramalist.com/g.jpg"},{id:"2",name:"Coffee Prince",url:"https://mydramalist.com/2-coffee-prince",year:2007,type:"Drama",poster:null}];
+ const credits=[{id:"tmdb-tv-67915",name:"Goblin",url:"https://www.themoviedb.org/tv/67915",year:2016,type:"Drama",poster:"https://i.mydramalist.com/g.jpg"},{id:"2",name:"Coffee Prince",url:"https://mydramalist.com/2-coffee-prince",year:2007,type:"Drama",poster:null}];
  const asked:string[]=[];
  const fetcher=async(url:string)=>{
   asked.push(String(url));const u=String(url);
@@ -179,6 +179,7 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  assert(asked.filter(u=>u.startsWith("/api/mdl/filmography")).length===1,"adding reuses the loaded filmography");
  cards[0].click();await tick();
  const preview=document.querySelector(".catalogTitleDialog") as any;
+ assert(asked.some(u=>u.startsWith("/api/mdl/drama-details?url="+encodeURIComponent("https://www.themoviedb.org/tv/67915")+"&view=discover")),"a TMDB credit asks the server for its details");
  assert(preview.open&&preview.classList.contains("discoverTitlePreview")&&preview.textContent.includes("A goblin story.")&&preview.querySelector(".discoverCollectionAction"),"a title opens the full preview with Add to Collection");
  preview.close();
  assert(view.open,"closing the preview returns to the titles");
