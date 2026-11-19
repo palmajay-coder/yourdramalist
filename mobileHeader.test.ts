@@ -193,3 +193,21 @@ Deno.test("Page titles use the Milky Nice heading font", () => {
   assert(/header\.mobilePageHeader > h1 \{[^}]*font-family:"Milky Nice"/.test(html), "Phone page titles do not use the heading font");
   assert(/\.androidDiscoverToolbar h1\{[^}]*font-family:"Milky Nice"/.test(html), "Computer page titles do not use the heading font");
 });
+
+Deno.test("The admin tint controls all of the Connect darkening", async () => {
+  const {installPosterWall} = await import("./posterWallClient.ts");
+  const shadeFor = (color: string, opacity: number) => {
+    const {document, window} = parseHTML("<body></body>");
+    const wall = new Function("document","window","fetch","AbortSignal",`return (${installPosterWall.toString()})([],['connect']);`)(
+      document, window, async () => Response.json({}), {timeout: () => undefined});
+    wall.setTint(color, opacity);
+    return (document.querySelector(".motionShade") as HTMLElement).style.getPropertyValue("--poster-shade");
+  };
+  const alphas = (value: string) => [...value.matchAll(/rgba\([^)]*,([\d.]+)\)/g)].map(m => Number(m[1]));
+  const off = shadeFor("#000000", 0);
+  assert(alphas(off).length===5 && alphas(off).every(a => a===0), "0% still darkens Connect: "+off);
+  const standard = shadeFor("#0a0c10", 0.74);
+  assert(alphas(standard).join()==="0,0.55,0.74,0.81,0.93", "The default look changed: "+standard);
+  assert(/linear-gradient\(180deg,rgba\(255,0,0,0\.00\) 45%,rgba\(255,0,0,0\.15\) 100%\)/.test(shadeFor("#ff0000", 0.2)), "The bottom fade ignores the tint color");
+  assert(!/rgba\(5,6,8,\.55\)/.test(html), "A fixed shade that ignores the slider is still in the page");
+});

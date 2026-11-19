@@ -287,7 +287,7 @@ await test("the Connect poster wall uses the saved tint, and the admin preview o
  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:()=>null,setItem(){},removeItem(){}},location,{state:null,pushState(){},replaceState(){},back(){}},async(url:string)=>String(url)==="/api/appearance"?Response.json({tint:"#123456",opacity:0.6}):Response.json({collections:[],items:[],posters:[]}),()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
  await new Promise(r=>setTimeout(r,30));
  const shade=()=>(document.querySelector(".motionShade") as any).style.getPropertyValue("--poster-shade");
- assert(shade().includes("rgba(18,52,86,0.60) 0%")&&shade().includes("rgba(18,52,86,0.79) 100%"),"the saved tint is applied: "+shade());
+ assert(shade().includes("rgba(18,52,86,0.60) 0%")&&shade().includes("rgba(18,52,86,0.75) 100%"),"the saved tint is applied: "+shade());
  const message=(origin:string,data:any)=>{const e=new window.Event("message") as any;e.origin=origin;e.source=window.parent;e.data=data;window.dispatchEvent(e)};
  message("https://evil.example",{type:"ydl-tint-preview",tint:"#ff0000",opacity:0.2});
  assert(!shade().includes("255,0,0"),"preview messages from other sites are ignored");
