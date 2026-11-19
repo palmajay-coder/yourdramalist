@@ -149,3 +149,26 @@ Deno.test("Connect background shows straight rows of new backdrops, newest in th
   assert(!/rotate\(-12deg\)/.test(html) && /backdropGlide\{from\{transform:translateX\(-50%\)\}to\{transform:translateX\(0\)\}\}/.test(html),
     "Rows are tilted or not gliding left to right");
 });
+
+Deno.test("The YDL opening plays once per fresh app open, only in the Android app", () => {
+  const headScript = html.match(/<head>[\s\S]*?<script>([\s\S]*?)<\/script>/)![1];
+  assert(headScript.includes("ydl-intro-played") && html.indexOf(headScript) < html.indexOf("<body>"), "The intro switch must run in <head>");
+  assert(/<body><div id="ydlIntro" aria-hidden="true"><div class="ydlIntroWord"><b>Y<\/b><i><span>our<\/span><\/i><b>D<\/b><i><span>rama<\/span><\/i><b>L<\/b><i><span>ist<\/span><\/i><\/div><\/div>/.test(html),
+    "The YDL to YourDramaList markup is missing");
+  assert(html.includes("#ydlIntro{display:none}") && /prefers-reduced-motion:reduce\)\{\.ydlIntroWord\{animation:none/.test(html),
+    "The intro must be hidden by default and calm with reduced motion");
+  const run = (userAgent: string, session: Map<string,string>, search = "") => {
+    const classes = new Set<string>();
+    new Function("navigator","sessionStorage","location","document", headScript)(
+      {userAgent}, {getItem:(k:string)=>session.get(k)??null,setItem:(k:string,v:string)=>session.set(k,v)}, {search},
+      {documentElement:{classList:{add:(c:string)=>classes.add(c)}}});
+    return classes.has("ydlIntro");
+  };
+  const app = "Mozilla/5.0 (Linux; Android 14; Pixel 8; wv) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 YourDramaListApp/104";
+  const session = new Map<string,string>();
+  assert(run(app, session), "A fresh app open did not play the intro");
+  assert(!run(app, session), "The intro replayed in the same app session");
+  assert(!run("Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/120 Mobile Safari/537.36", new Map()), "A phone browser played the intro");
+  assert(!run("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1.15", new Map()), "A computer played the intro");
+  assert(run("Mozilla/5.0 (Macintosh) Safari/605.1.15", new Map([["ydl-intro-played","1"]]), "?intro=1"), "?intro=1 did not preview it");
+});
