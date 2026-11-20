@@ -313,7 +313,7 @@ await test("the loading bear shows while searching and gives way to results, no 
  const bear=()=>results.querySelector(".ydlLoadingBear");
  await enter("Wong Kar Wai");
  assert(bear()&&bear().querySelector("p").textContent==="Searching for Wong Kar Wai"&&bear().getAttribute("role")==="status","the bear shows the search right away: "+results.textContent);
- assert(bear().querySelector("img.ydlBearArt")&&bear().querySelector("img.ydlBearArt").getAttribute("src").includes("ydl-loading-bear.webp")&&bear().querySelectorAll(".ydlBearDots i").length===3&&status.textContent==="","the bear has its drawing and three dots, and no other text");
+ assert(bear().querySelector(".ydlLoadingSpinner")&&status.textContent==="","the compact loader has its spinner, and no duplicate status text");
  reply(Response.json({query:"Wong Kar Wai",page:1,titles:[{name:"In the Mood for Love",year:2000,url:"https://mydramalist.com/1-in-the-mood"}],people:[],hasNextPage:false}));await tick();
  assert(!bear()&&results.textContent.includes("In the Mood for Love"),"results replace the bear");
  await enter("zzzz");
