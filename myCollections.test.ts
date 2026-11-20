@@ -73,6 +73,7 @@ Deno.test("deleting a collection updates selection and picker without changing o
   openDelete();
   saved = "[]";
   find<HTMLButtonElement>(".myCollectionDeleteConfirm").click();
-  assert(find(".myCollectionsMessage").textContent === "Build your own custom catalog", "Missing last collection empty state");
+  // The page description above My Collections now explains it, so the empty list shows no extra hint.
+  assert(!document.querySelector(".myCollectionsMessage"), "The empty state should not repeat the page description");
   assert(state.selection.length === 1 && state.selection[0].kind === "watchlist", "Stale collection selection was not cleared");
 });

@@ -36,12 +36,12 @@ Deno.test("Connect keeps its landing title while other tabs share the mobile hea
   const nav = document.querySelector(".androidBottomNav")!;
   const navLabels = () => [...nav.querySelectorAll("button")].map(button=>button.getAttribute("aria-label")).join("|");
   const iconMarkup = [...header.querySelectorAll(".androidHeaderActions button")].map(node=>node.innerHTML).join("|");
-  assert(navLabels()==="Connect|Community|Search titles to add|Discover|My Collections","Navigation order changed");
+  assert(navLabels()==="Connect|Lists|Search titles to add|Discover|My Collections","Navigation order changed");
 
   click("connect");
   assert(!header.classList.contains("mobilePageHeader") && !header.querySelector("h1"),"Connect has a navigation heading");
   assert(!connectHeading.hidden && connectHeading.textContent==="YourDramaList","Connect branding is missing");
-  for (const [destination,title] of [["community","Community"],["discover","Discover"],["collections","My Collections"]]) {
+  for (const [destination,title] of [["community","Lists"],["discover","Discover"],["collections","My Collections"]]) {
     click(destination);
     assert(header.classList.contains("mobilePageHeader"),title+" has no mobile header");
     assert(heading()?.textContent===title,title+" heading is wrong");
@@ -68,11 +68,11 @@ Deno.test("Connect keeps its landing title while other tabs share the mobile hea
   source.value = "Sample";
   (document.getElementById("connectForm") as HTMLFormElement).onsubmit!({preventDefault(){}} as SubmitEvent);
   await new Promise(resolve=>setTimeout(resolve,20));
-  assert(heading()?.textContent==="Community" && fetches.some(url=>url.includes("username=Sample")),"Connect flow changed");
+  assert(heading()?.textContent==="Lists" && fetches.some(url=>url.includes("username=Sample")),"Connect flow changed");
   click("connect");
   (document.getElementById("skip") as HTMLButtonElement).click();
   assert(heading()?.textContent==="Discover","Skip account flow changed");
-  assert(navLabels()==="Connect|Community|Search titles to add|Discover|My Collections","Bottom navigation changed during resize");
+  assert(navLabels()==="Connect|Lists|Search titles to add|Discover|My Collections","Bottom navigation changed during resize");
 });
 
 function boot(saved: Map<string,string>, path = "/setup/lists") {

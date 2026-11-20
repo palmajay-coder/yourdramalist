@@ -229,7 +229,7 @@ await test("the green + opens a full-screen search that shows results on the sam
  const hist={state:null as any,pushState(s:any){this.state=s},replaceState(s:any){this.state=s},back(){this.state=null;window.dispatchEvent(new window.Event("popstate"))}};
  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,location,hist,async(url:string)=>{asked.push(String(url));return Response.json({query:"x",page:1,titles:[{name:"Bullet Ballet",year:1998,url:"https://mydramalist.com/1-bullet-ballet"}],people:[{id:"9",name:"Shinya Tsukamoto"}],hasNextPage:false,collections:[],items:[]})},()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
  const nav=[...document.querySelectorAll(".androidBottomNav button")] as any[];
- assert(nav.map(b=>b.getAttribute("aria-label")).join("|")==="Connect|Community|Search titles to add|Discover|My Collections","the + belongs in the middle");
+ assert(nav.map(b=>b.getAttribute("aria-label")).join("|")==="Connect|Lists|Search titles to add|Discover|My Collections","the + belongs in the middle");
  const plus=nav[2],sheet=()=>document.querySelector(".quickSearch") as any,box=()=>document.getElementById("quickSearchInput") as HTMLInputElement;
  const tick=(ms=30)=>new Promise(r=>setTimeout(r,ms));
  const searches=()=>asked.filter(u=>u.startsWith("/api/mdl/people-search")).length;
