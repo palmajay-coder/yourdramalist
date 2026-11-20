@@ -335,30 +335,44 @@ export function installExploreUI() {
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (specialSection !== section) return;
-        const until = Date.parse(data?.catalog?.until);
-        if (!data?.catalog || !Number.isFinite(until) || until <= Date.now() || !Array.isArray(data.items) || !data.items.length) {
+        // Every running list (GTA 6 first, then the month's list) sits under one Spotlight heading.
+        const lists = (Array.isArray(data?.lists) ? data.lists : []).filter(list => list?.catalog && Number.isFinite(Date.parse(list.catalog.until)) && Date.parse(list.catalog.until) > Date.now() && Array.isArray(list.items) && list.items.length);
+        if (!lists.length) {
           // Ended or empty: nothing shows. A failed request is tried again the next time Discover opens.
           if (!data) specialSection = null;
           section.remove();
           return;
         }
+        // One timer: to the end of the month, when the month's list changes (or the last list's end).
+        const monthly = lists.find(list => list.catalog.id === "monthly");
+        const until = Date.parse((monthly || lists[lists.length - 1]).catalog.until);
         const heading = document.createElement("h2");
         heading.className = "catalogSectionTitle";
         heading.textContent = "Spotlight";
         const clock = document.createElement("span");
         clock.className = "collectionClock";
-        clock.title = "Until January 1, midnight Pacific time";
+        clock.title = "Changes at the end of the month, midnight Pacific time";
         const header = document.createElement("div");
         header.className = "androidWeeklyHeading";
         header.append(heading, clock);
         const rows = document.createElement("div");
         section.append(header, rows);
-        shelf(data.catalog, rows).fill(data.items);
+        const shelves = lists.map(list => ({ until: Date.parse(list.catalog.until), card: shelf(list.catalog, rows) }));
+        lists.forEach((list, index) => shelves[index].card.fill(list.items));
         const tick = () => {
-          const remaining = until - Date.now();
-          if (remaining <= 0) return end();
+          // A list whose own end has passed goes; the section goes with the last one.
+          for (const item of shelves) if (item.card.card.isConnected && item.until <= Date.now()) item.card.card.remove();
+          if (!shelves.some(item => item.card.card.isConnected)) {
+            end();
+            // The month changed while Discover was open: fetch the new month's list a moment later.
+            if (specialSection === section) specialSection = null;
+            setTimeout(() => { if (!specialSection && parent2.isConnected) mountSpecial(parent2); }, 5000);
+            return;
+          }
+          const remaining = Math.max(0, until - Date.now());
           const hours = Math.floor(remaining / 36e5);
           clock.textContent = "\u25F7 " + Math.floor(hours / 24) + "d " + hours % 24 + "h";
+          pruneButtons();
         };
         tick();
         specialClock = setInterval(tick, 6e4);

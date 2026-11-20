@@ -142,7 +142,7 @@ await test("\"Because you watched\" shelves sit under Weekly Picks for a connect
   assert(!anonymous.asked.some(u=>u.startsWith("/api/recommendations"))&&!anonymous.document.querySelector(".recsSection"),"without a username there are no recommendation rows");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
-await test("the limited-time GTA 6 shelf is the first list on Discover, with a countdown to January 1",async()=>{
+await test("Spotlight is the first section on Discover: GTA 6 and the month's list under one heading, with one timer",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text();
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
  const weekly={id:"weekly-kr-1",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0};
@@ -163,16 +163,19 @@ await test("the limited-time GTA 6 shelf is the first list on Discover, with a c
  const until=new Date(Date.now()+(41*24+3)*36e5+60000).toISOString();
  const catalog={kind:"special",id:"gta6",url:"ydl-special:gta6",name:"Watch this while they play GTA 6",type:"series",until};
  try{
-  const {document,saved}=await mount({catalog,items:[{kind:"tv",id:5,name:"Business Proposal",date:"2022-02-28",poster:"https://image.tmdb.org/t/p/w780/b.jpg"}]});
+  const monthEnd=new Date(Date.now()+(10*24+3)*36e5+60000).toISOString();
+  const monthly={kind:"special",id:"monthly",url:"ydl-special:monthly",name:"Thankful for Family",type:"series",until:monthEnd};
+  const {document,saved}=await mount({lists:[{catalog,items:[{kind:"tv",id:5,name:"Business Proposal",date:"2022-02-28",poster:"https://image.tmdb.org/t/p/w780/b.jpg"}]},{catalog:monthly,items:[{kind:"tv",id:6,name:"Reply 1988",date:"2015-11-06",poster:"https://image.tmdb.org/t/p/w780/r.jpg"}]}]});
   const sections=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
   assert(sections[0]?.classList.contains("specialSection")&&sections[1]?.textContent.includes("This Week: Romance"),"the GTA 6 shelf comes first, then Weekly Picks: "+sections.map((s:any)=>s.className).join(","));
   assert(sections[0].querySelector("h2").textContent==="Spotlight","the section is headed Spotlight");
-  assert(sections[0].querySelector(".catalogShelf h3").textContent==="Watch this while they play GTA 6"&&sections[0].textContent.includes("Business Proposal"),"the shelf shows its name and picks");
-  assert(sections[0].querySelector(".collectionClock").textContent==="◷ 41d 3h","the countdown shows the time left to January 1: "+sections[0].querySelector(".collectionClock").textContent);
+  assert(sections[0].querySelectorAll("h2").length===1,"one heading for both lists");
+  assert([...sections[0].querySelectorAll(".catalogShelf h3")].map((h:any)=>h.textContent).join(" | ")==="Watch this while they play GTA 6 | Thankful for Family"&&sections[0].textContent.includes("Reply 1988"),"GTA 6 first, the month's list under it");
+  assert(sections[0].querySelectorAll(".collectionClock").length===1&&sections[0].querySelector(".collectionClock").textContent==="◷ 10d 3h","one timer, counting to the end of the month: "+sections[0].querySelector(".collectionClock").textContent);
   sections[0].querySelector(".catalogAdd").click();
   const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
   assert(selection.some((x:any)=>x.kind==="special"&&x.id==="gta6"&&x.name==="Watch this while they play GTA 6"),"Add puts it in Your Selection: "+JSON.stringify(selection));
-  const ended=await mount({catalog:null,items:[]});
+  const ended=await mount({lists:[]});
   assert(!ended.document.querySelector(".specialSection"),"after the end date there is no shelf");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });

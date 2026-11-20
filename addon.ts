@@ -13,7 +13,7 @@ import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
 import {recommendationsFor} from './recommendations.ts';
-import {specialCatalog,SPECIAL} from './specialCatalog.ts';
+import {specialCatalog,GTA6,monthlySpotlight} from './specialCatalog.ts';
 import {top10,TOP10_CATALOGS} from './top10.ts';
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
@@ -52,7 +52,7 @@ export function normalizeAddon(body:any){
   if(item.kind==='top10'){const id=item.id||String(item.url||'').replace(/^ydl-top10:/,'');const c=(TOP10_CATALOGS as any)[id];if(!c||!['tv','movie'].includes(id))throw new InvalidConfig('catalog-entry');return{id:c.url,name:c.name,type:c.type,top10:{id}};}
   // A limited-time, hand-picked catalog ("Watch this while they play GTA 6").
   // The setup page sends the catalog's address (ydl-special:<id>); its id is accepted too.
-  if(item.kind==='special'){if((item.id||String(item.url||'').replace(/^ydl-special:/,''))!==SPECIAL.id)throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+SPECIAL.id,name:SPECIAL.name,type:'series',special:{id:SPECIAL.id}};}
+  if(item.kind==='special'){const special=item.id||String(item.url||'').replace(/^ydl-special:/,'');if(!['gta6','monthly'].includes(special))throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+special,name:special==='gta6'?GTA6.name:'Spotlight of the month',type:'series',special:{id:special}};}
   // "Because you watched …": one of up to three personal rows, built from the install's MyDramaList username.
   if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return{id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}};}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
@@ -121,7 +121,7 @@ async function recsNamesFor(config:AddonConfig):Promise<Record<number,string>>{
  try{const data:any=await Promise.race([recommendationsFor(config.user),new Promise(r=>{timer=setTimeout(()=>r(null),5000)})]);return Object.fromEntries((data?.rows||[]).map((row:any,i:number)=>[i,row.seed.title]))}
  catch{return {}}finally{clearTimeout(timer)}
 }
-export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={},recsNames:Record<number,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:(e.recs?(recsNames[e.recs.slot]?'Because you watched '+recsNames[e.recs.slot]:'Because you watched…'):localizedCatalogName(e,language,personNames))+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={},recsNames:Record<number,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:(e.recs?(recsNames[e.recs.slot]?'Because you watched '+recsNames[e.recs.slot]:'Because you watched…'):e.special?.id==='monthly'?monthlySpotlight(Date.now()).name:localizedCatalogName(e,language,personNames))+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
@@ -151,9 +151,10 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.special){
-  // Once the catalog has ended it has no titles; its name stays until the add-on is rebuilt.
+  // GTA 6, or the month's list (which changes by itself on the 1st). An ended list has no titles.
   const data=await ((deps as any).special||specialCatalog)();
-  const metas=await ((deps as any).weeklyMetas||collections.metas)(data?.items||[],base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
+  const items=data?.lists?.find((list:any)=>list.catalog?.id===entry.special!.id)?.items||[];
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.recs){

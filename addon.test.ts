@@ -99,16 +99,19 @@ await test('"Because you watched" catalogs: need a username, take this week\'s s
  const empty=await loadCatalog(c,1,0,'https://test/addon/token',{source:()=>{throw Error('legacy')},hidden:async()=>new Set(),recs:async()=>({rows:[]}),weeklyMetas:async()=>[]} as any);
  assert(Array.isArray(empty.metas)&&!empty.metas.length,'a week with fewer rows gives an empty catalog, not an error');
 });
-await test('the limited-time GTA 6 catalog installs in Nuvio and empties once it ends',async()=>{
- const c=normalizeAddon({...body,catalogs:[{name:'Watch this while they play GTA 6',kind:'special',id:'gta6'}]});
- assert((c.entries as any[])[0].id==='ydl-special:gta6'&&makeManifest(c as any).catalogs[0].name==='Watch this while they play GTA 6','the catalog keeps its name');
- assert((normalizeAddon({...body,catalogs:[{name:'Watch this while they play GTA 6',kind:'special',url:'ydl-special:gta6'}]}).entries as any[])[0].special?.id==='gta6','the setup page sends the catalog address, which is accepted');
+await test('Spotlight installs in Nuvio: GTA 6, and a monthly catalog named after the current month\'s list',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Watch this while they play GTA 6',kind:'special',url:'ydl-special:gta6'},{name:'Thankful for Family',kind:'special',url:'ydl-special:monthly'}]});
+ assert((c.entries as any[]).map(e=>e.id).join(',')==='ydl-special:gta6,ydl-special:monthly','both Spotlight catalogs are accepted from their addresses');
+ const names=makeManifest(c as any).catalogs.map((x:any)=>x.name);
+ const {monthlySpotlight}=await import('./specialCatalog.ts');
+ assert(names[0]==='Watch this while they play GTA 6'&&names[1]===monthlySpotlight(Date.now()).name,'the monthly catalog takes this month\'s name: '+names.join(' | '));
  let refused=false;try{normalizeAddon({...body,catalogs:[{name:'Other',kind:'special',id:'other'}]})}catch{refused=true}
- assert(refused,'only the current special catalog is accepted');
- const page=await loadCatalog(c,0,0,'https://test/addon/token',{source:()=>{throw Error('legacy')},hidden:async()=>new Set(),special:async()=>({catalog:{},items:[{kind:'tv',id:5,name:'Business Proposal',poster:'https://image.tmdb.org/t/p/w780/b.jpg'}]}),weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any);
- assert(page.metas.length===1&&page.metas[0].id==='tt5','the catalog lists the picks');
- const ended=await loadCatalog(c,0,0,'https://test/addon/token',{source:()=>{throw Error('legacy')},hidden:async()=>new Set(),special:async()=>null,weeklyMetas:async(items:any[])=>items} as any);
- assert(Array.isArray(ended.metas)&&!ended.metas.length,'after the end date the catalog is empty');
+ assert(refused,'only Spotlight catalogs are accepted');
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),special:async()=>({lists:[{catalog:{id:'gta6'},items:[{kind:'tv',id:5,name:'Business Proposal'}]},{catalog:{id:'monthly'},items:[{kind:'tv',id:6,name:'Reply 1988'}]}]}),weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any;
+ const gta=await loadCatalog(c,0,0,'https://test/addon/token',deps),month=await loadCatalog(c,1,0,'https://test/addon/token',deps);
+ assert(gta.metas[0].id==='tt5'&&month.metas[0].id==='tt6','each catalog lists its own list');
+ const ended=await loadCatalog(c,0,0,'https://test/addon/token',{...deps,special:async()=>({lists:[{catalog:{id:'monthly'},items:[{kind:'tv',id:6,name:'Reply 1988'}]}]})});
+ assert(Array.isArray(ended.metas)&&!ended.metas.length,'after GTA 6 ends its catalog is empty');
 });
 await test('Top 10 K-dramas and K-movies install in Nuvio and list today\'s ranking',async()=>{
  const c=normalizeAddon({...body,catalogs:[{name:'Top 10 K-Dramas Today',kind:'top10',url:'ydl-top10:tv'},{name:'Top 10 K-Movies Today',kind:'top10',url:'ydl-top10:movie'}]});
