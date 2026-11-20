@@ -6,6 +6,9 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = false
 
+[observability]
+enabled = true
+
 [[d1_databases]]
 binding = "DB"
 database_name = "ydl-discover-preview-db"

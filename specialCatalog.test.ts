@@ -111,6 +111,23 @@ await test("a country sees its own picks first, topped up to 15 on the list's th
   ok(calls.length > 0, "matching still runs");
 });
 
+await test("a sparse country digs deeper: lower floors, most popular tagged titles, then the genre", async () => {
+  const asked: Record<string, string>[] = [];
+  const tmdb = async (path: string, params: Record<string, string> = {}) => {
+    if (path === "search/keyword") return {results: [{id: 7, name: params.query}]};
+    if (!path.startsWith("discover/")) return {results: []};
+    asked.push(params);
+    const kind = path.slice(9), base = params.with_genres ? 900 : params.sort_by === "popularity.desc" ? 800 : 0;
+    const n = params.with_genres && params["vote_count.gte"] === "20" ? 12 : base ? 3 : 0;
+    return {results: Array.from({length: n}, (_, i) => ({id: base + (kind === "tv" ? i : 50 + i), name: "CN " + i, title: "CN " + i, origin_country: ["CN"], poster_path: "/c.jpg", vote_average: 7}))};
+  };
+  const spotlight = createSpecialCatalog({tmdb, now: () => NOW, lists: () => [one("monthly", "Singles Day", "2026-12-01T08:00:00.000Z", [])].map(l => ({...l, theme: {keywords: ["single"], genre: "35|10749"}}))});
+  const data = await spotlight.current("CN");
+  ok(data.lists.length === 1 && data.lists[0].items.length === 15, "filled to 15: " + data.lists[0]?.items.length);
+  ok(asked.some(p => p.sort_by === "popularity.desc" && p.with_keywords) && asked.some(p => p.with_genres === "35|10749"), "tried popular tagged titles, then the genre");
+  ok(data.lists[0].items.slice(0, 6).every(i => i.id >= 800 && i.id < 900), "tagged titles come before genre titles");
+});
+
 await test("a country with fewer than five titles after the top-up does not get that list", async () => {
   const tmdb = async (path: string) => path.startsWith("discover/") ? {results: [{id: 1, name: "Only one", origin_country: ["TW"], poster_path: "/a.jpg", vote_average: 8}]} : path === "search/keyword" ? {results: []} : {results: []};
   const spotlight = createSpecialCatalog({tmdb, now: () => NOW, lists: () => lists().map(list => ({...list, theme: {genre: "35"}}))});

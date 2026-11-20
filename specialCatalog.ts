@@ -13,7 +13,7 @@ export type Country = "KR" | "JP" | "CN" | "TW" | "TH";
 type Pick = {title: string; year: number; country: Country; kind: "tv" | "movie"; alt?: string[]};
 export type SpecialItem = {kind: "tv" | "movie"; id: number; name: string; poster: string; overview: string; date: string; score: number};
 type Spotlight = {id: string; name: string; plainName?: string; until: string; titles: Pick[]; theme?: Theme};
-/** What a list is about, for topping it up: TMDB keywords (any of them) or a TMDB genre. */
+/** What a list is about, for topping it up: TMDB keywords (any of them), then a TMDB genre (any of "a|b") if still short. */
 type Theme = {keywords?: string[]; genre?: string};
 export const SPOTLIGHT_COUNTRIES: Record<string, Country> = {"3": "KR", "2": "CN", "1": "JP", "5": "TW", "6": "TH"};
 /** A filtered list is topped up to this many titles; one with fewer than MIN_LIST is left out for that country. */
@@ -56,17 +56,17 @@ export const SPECIAL = GTA6;
 export const THEMES: Record<string, Theme> = {
   gta6: {genre: "35"},
   1: {genre: "18"},
-  2: {keywords: ["romance", "first love"]},
-  3: {keywords: ["romantic comedy", "romance"]},
-  4: {keywords: ["romance", "cherry blossom"]},
+  2: {keywords: ["romance", "first love"], genre: "10749|35"},
+  3: {keywords: ["romantic comedy", "romance"], genre: "10749|35"},
+  4: {keywords: ["romance", "cherry blossom"], genre: "10749|35"},
   5: {genre: "10751"},
-  6: {keywords: ["first love", "summer", "youth"]},
-  7: {keywords: ["beach", "island", "summer vacation"]},
-  8: {keywords: ["coming of age", "summer"]},
-  9: {keywords: ["historical", "period drama", "joseon dynasty"]},
-  10: {keywords: ["horror", "ghost", "zombie"]},
+  6: {keywords: ["first love", "summer", "youth"], genre: "10749|35"},
+  7: {keywords: ["beach", "island", "summer vacation"], genre: "35"},
+  8: {keywords: ["coming of age", "summer"], genre: "18"},
+  9: {keywords: ["historical", "period drama", "joseon dynasty"], genre: "36|10768"},
+  10: {keywords: ["horror", "ghost", "zombie"], genre: "27|9648"},
   11: {genre: "10751"},
-  12: {keywords: ["christmas", "winter", "snow"]},
+  12: {keywords: ["christmas", "winter", "snow"], genre: "10749|10751"},
 };
 /** One list per month (1 = January), chosen for that month's holiday or season. */
 /**
@@ -137,25 +137,25 @@ export const MONTHLY: Record<number, {name: string; plainName?: string; titles: 
  */
 export const HOLIDAYS: Partial<Record<Country, Record<number, {name: string; theme: Theme}>>> = {
   JP: {
-    7: {name: "Tanabata Wishes", theme: {keywords: ["romance", "long-distance relationship", "first love"]}},
-    8: {name: "Obon Nights", theme: {keywords: ["summer", "festival", "ghost"]}},
+    7: {name: "Tanabata Wishes", theme: {keywords: ["romance", "long-distance relationship", "first love"], genre: "10749|35"}},
+    8: {name: "Obon Nights", theme: {keywords: ["summer", "festival", "ghost"], genre: "18|9648"}},
     9: {name: "Moon Viewing Night", theme: {keywords: ["family", "slice of life"], genre: "10751"}},
-    12: {name: "Christmas Eve Date Night", theme: {keywords: ["christmas", "romance"]}},
+    12: {name: "Christmas Eve Date Night", theme: {keywords: ["christmas", "romance"], genre: "10749|35"}},
   },
   CN: {
     2: {name: "Spring Festival Reunion", theme: {keywords: ["chinese new year", "family"], genre: "10751"}},
-    8: {name: "Qixi Sweethearts", theme: {keywords: ["romance", "first love"]}},
+    8: {name: "Qixi Sweethearts", theme: {keywords: ["romance", "first love"], genre: "10749|35"}},
     9: {name: "Mid-Autumn Reunion", theme: {keywords: ["family", "historical"], genre: "10751"}},
-    11: {name: "Singles Day", theme: {keywords: ["single", "romantic comedy"]}},
+    11: {name: "Singles Day", theme: {keywords: ["single", "romantic comedy", "dating"], genre: "35|10749"}},
   },
   TW: {
     2: {name: "Spring Festival Reunion", theme: {keywords: ["chinese new year", "family"], genre: "10751"}},
-    8: {name: "Ghost Month Chills", theme: {keywords: ["ghost", "horror", "supernatural"]}},
+    8: {name: "Ghost Month Chills", theme: {keywords: ["ghost", "horror", "supernatural"], genre: "27|9648"}},
     9: {name: "Mid-Autumn Reunion", theme: {keywords: ["family"], genre: "10751"}},
   },
   TH: {
     4: {name: "Songkran Splash", theme: {keywords: ["summer", "beach", "friendship"], genre: "35"}},
-    11: {name: "Loy Krathong Lovers", theme: {keywords: ["romance", "first love"]}},
+    11: {name: "Loy Krathong Lovers", theme: {keywords: ["romance", "first love"], genre: "10749|35"}},
   },
 };
 export const COUNTRY_NAMES: Record<Country, string> = {KR: "South Korea", JP: "Japan", CN: "China", TW: "Taiwan", TH: "Thailand"};
@@ -254,9 +254,9 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
     const keywords = (await Promise.all((theme.keywords || []).map(name => keywordId(name).catch(() => null)))).filter(Boolean).join("|");
     if (!keywords && !theme.genre) return [];
     const today = new Date(now()).toISOString().slice(0, 10), seen = new Set(have.map(item => item.kind + ":" + item.id));
-    const find = async (kind: "tv" | "movie", votes: number, average: number) => {
-      const params: Record<string, string> = {with_origin_country: country, include_adult: "false", language: "en-US", sort_by: "vote_average.desc", "vote_count.gte": String(votes), "vote_average.gte": String(average), without_genres: "16,99,10763,10764,10767", [kind === "tv" ? "first_air_date.lte" : "primary_release_date.lte"]: today, page: "1"};
-      if (keywords) params.with_keywords = keywords; else params.with_genres = theme.genre!;
+    const find = async (kind: "tv" | "movie", votes: number, average: number, by: "keywords" | "genre", sort = "vote_average.desc") => {
+      const params: Record<string, string> = {with_origin_country: country, include_adult: "false", language: "en-US", sort_by: sort, "vote_count.gte": String(votes), "vote_average.gte": String(average), without_genres: "16,99,10763,10764,10767", [kind === "tv" ? "first_air_date.lte" : "primary_release_date.lte"]: today, page: "1"};
+      if (by === "keywords") params.with_keywords = keywords; else params.with_genres = theme.genre!;
       const data = await deps.tmdb("discover/" + kind, params);
       return (Array.isArray(data?.results) ? data.results : [])
         .filter((r: any) => !r.adult && posterUrl(r.poster_path) && (kind !== "tv" || (Array.isArray(r.origin_country) && r.origin_country.includes(country))))
@@ -265,9 +265,15 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
     };
     const found: SpecialItem[] = [];
     const add = (more: SpecialItem[]) => { for (const item of more.sort((a, b) => b.score - a.score || a.id - b.id)) if (!seen.has(item.kind + ":" + item.id)) { seen.add(item.kind + ":" + item.id); found.push(item); } };
-    // Well-known titles first; small markets (Taiwan, Thailand) then relax the rating floor.
-    add((await Promise.all((["tv", "movie"] as const).map(kind => find(kind, 20, 6.5)))).flat());
-    if (found.length < count) add((await Promise.all((["tv", "movie"] as const).map(kind => find(kind, 5, 6)))).flat());
+    // Well-known titles first. TMDB has few votes and tags for Chinese, Taiwanese and Thai titles, so a short
+    // list then relaxes the rating floor, then takes the most popular tagged titles, then falls back to the genre.
+    const tiers: [number, number, "keywords" | "genre", string?][] = [];
+    if (keywords) tiers.push([20, 6.5, "keywords"], [5, 6, "keywords"], [1, 0, "keywords", "popularity.desc"]);
+    if (theme.genre) tiers.push([20, 6.5, "genre"], [5, 6, "genre"], [1, 0, "genre", "popularity.desc"]);
+    for (const [votes, average, by, sort] of tiers) {
+      if (found.length >= count) break;
+      add((await Promise.all((["tv", "movie"] as const).map(kind => find(kind, votes, average, by, sort)))).flat());
+    }
     return found.slice(0, count);
   }
 
@@ -285,10 +291,15 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
       changed ||= result.changed;
       let items = result.items;
       if (country && list.theme && items.length < FULL_LIST) {
-        const key = list.id + ":" + list.name + ":" + country, hit = fills.get(key);
+        const key = "v2:" + list.id + ":" + list.name + ":" + country, hit = fills.get(key);
         let extra = hit && hit.expires > now() ? hit.items : null;
         if (!extra) {
-          try { extra = await topUp(list.theme, country, items, FULL_LIST - items.length); fills.set(key, {items: extra, expires: now() + 7 * DAY}); changed = true; }
+          try {
+            extra = await topUp(list.theme, country, items, FULL_LIST - items.length);
+            // A full list is kept a week; a short one is tried again the next day.
+            fills.set(key, {items: extra, expires: now() + (items.length + extra.length >= FULL_LIST ? 7 : 1) * DAY}); changed = true;
+            console.log(JSON.stringify({specialFill: list.name, country, picks: items.length, added: extra.length}));
+          }
           catch { extra = hit?.items || []; }
         }
         const seen = new Set(items.map(item => item.kind + ":" + item.id));
