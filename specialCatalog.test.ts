@@ -23,6 +23,8 @@ await test("the calendar: GTA 6 and the month's list until Dec 1, then one list 
   ok(names(Date.UTC(2027, 0, 1, 8)) === "New Year, New Obsession until 2027-02-01T08:00:00.000Z", "Jan 1: " + names(Date.UTC(2027, 0, 1, 8)));
   ok(monthlySpotlight(Date.UTC(2027, 2, 15)).until === "2027-04-01T07:00:00.000Z" && monthlySpotlight(Date.UTC(2027, 2, 15)).name === "White Day Sweethearts", "March ends at midnight Pacific, in daylight saving time");
   ok(monthlySpotlight(Date.UTC(2027, 9, 31, 12)).name === "K-Horror Night", "Halloween is in October");
+  ok(monthlySpotlight(Date.UTC(2027, 9, 31, 12), "JP").name === "J-Horror Night" && monthlySpotlight(Date.UTC(2027, 9, 31, 12), "TH").name === "Thai Horror Night" && monthlySpotlight(Date.UTC(2027, 9, 31, 12), "KR").name === "K-Horror Night", "the horror list is named for the country");
+  ok(monthlySpotlight(Date.UTC(2026, 10, 20), "JP").name === "Thankful for Family", "lists without a country name keep theirs");
 });
 
 const NOW = Date.UTC(2026, 10, 20, 20);

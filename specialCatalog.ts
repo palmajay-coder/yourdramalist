@@ -12,7 +12,7 @@ type Storage = {load: () => Promise<any>; save: (value: any) => Promise<any>};
 export type Country = "KR" | "JP" | "CN" | "TW" | "TH";
 type Pick = {title: string; year: number; country: Country; kind: "tv" | "movie"; alt?: string[]};
 export type SpecialItem = {kind: "tv" | "movie"; id: number; name: string; poster: string; overview: string; date: string; score: number};
-type Spotlight = {id: string; name: string; until: string; titles: Pick[]; theme?: Theme};
+type Spotlight = {id: string; name: string; names?: Partial<Record<Country, string>>; until: string; titles: Pick[]; theme?: Theme};
 /** What a list is about, for topping it up: TMDB keywords (any of them) or a TMDB genre. */
 type Theme = {keywords?: string[]; genre?: string};
 export const SPOTLIGHT_COUNTRIES: Record<string, Country> = {"3": "KR", "2": "CN", "1": "JP", "5": "TW", "6": "TH"};
@@ -69,7 +69,8 @@ export const THEMES: Record<string, Theme> = {
   12: {keywords: ["christmas", "winter", "snow"]},
 };
 /** One list per month (1 = January), chosen for that month's holiday or season. */
-export const MONTHLY: Record<number, {name: string; titles: Pick[]}> = {
+/** A list can have its own name for a country (names), used when Discover is filtered to that country. */
+export const MONTHLY: Record<number, {name: string; names?: Partial<Record<Country, string>>; titles: Pick[]}> = {
   1: {name: "New Year, New Obsession", titles: [
     tv("Squid Game", 2021), tv("Queen of Tears", 2024), tv("Moving", 2023), tv("The Glory", 2022), tv("Itaewon Class", 2020),
     tv("Vincenzo", 2021), tv("Alchemy of Souls", 2022), tv("Weak Hero Class 1", 2022), tv("Signal", 2016), tv("Mr. Sunshine", 2018),
@@ -112,7 +113,7 @@ export const MONTHLY: Record<number, {name: string; titles: Pick[]}> = {
     tv("The Crowned Clown", 2019), tv("Jewel in the Palace", 2003, "KR", ["Dae Jang Geum"]), tv("Joseon Attorney: A Morality", 2023, "KR", ["Joseon Attorney"]),
     tv("Poong, the Joseon Psychiatrist", 2022), tv("Captivating the King", 2024), film("The Throne", 2015), film("Masquerade", 2012),
     film("Detective K: Secret of the Virtuous Widow", 2011)]},
-  10: {name: "K-Horror Night", titles: [
+  10: {name: "K-Horror Night", names: {JP: "J-Horror Night", CN: "C-Horror Night", TW: "Taiwanese Horror Night", TH: "Thai Horror Night"}, titles: [
     tv("Kingdom", 2019), tv("All of Us Are Dead", 2022), tv("Sweet Home", 2020), tv("Hellbound", 2021), tv("Gyeongseong Creature", 2023),
     tv("The Guest", 2018), tv("Strangers from Hell", 2019), tv("The Uncanny Counter", 2020), film("Train to Busan", 2016), film("The Wailing", 2016),
     film("#Alive", 2020), film("Ju-on: The Grudge", 2002, "JP"), film("Ring", 1998, "JP", ["Ringu"]), film("Shutter", 2004, "TH"), film("The Medium", 2021, "TH")]},
@@ -128,11 +129,11 @@ export const MONTHLY: Record<number, {name: string; titles: Pick[]}> = {
 };
 
 /** The current month's list: its name, titles and end (midnight Pacific on the 1st of next month). */
-export function monthlySpotlight(time: number): Spotlight {
+export function monthlySpotlight(time: number, country?: Country): Spotlight {
   const {date} = pacificDate(time);
   const month = date.getUTCMonth() + 1;
   const until = new Date(pacificMidnight(new Date(Date.UTC(date.getUTCFullYear(), month, 1)))).toISOString();
-  return {id: "monthly", name: MONTHLY[month].name, until, titles: MONTHLY[month].titles, theme: THEMES[month]};
+  return {id: "monthly", names: MONTHLY[month].names, name: (country && MONTHLY[month].names?.[country]) || MONTHLY[month].name, until, titles: MONTHLY[month].titles, theme: THEMES[month]};
 }
 /** The Spotlight lists running at a given moment, GTA 6 first. */
 export function activeSpotlights(time: number, gta: Spotlight = GTA6): Spotlight[] {
@@ -256,7 +257,7 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
       }
       if (country ? items.length < MIN_LIST : !items.length) continue;
       const url = "ydl-special:" + list.id + (country ? ":" + country : "");
-      lists.push({catalog: {kind: "special", id: list.id, url, name: list.name, type: "series", until: list.until, ...(country ? {country} : {})}, items});
+      lists.push({catalog: {kind: "special", id: list.id, url, name: (country && list.names?.[country]) || list.name, type: "series", until: list.until, ...(country ? {country} : {})}, items});
     }
     if (changed && deps.storage) {
       for (const [k, v] of fills) if (v.expires <= now()) fills.delete(k);
