@@ -53,7 +53,7 @@
   - **Refresh:** rebuilt daily at Pacific midnight and saved in `top10:v1`. The last list is kept for up to 3 days if TMDB fails.
   - **Nuvio:** kind `top10`, ids `tv` and `movie`.
   - **Country filter:** `/api/catalogs/top10?country=<filter value>` (Korea by default). Names read "Top 10 Dramas Today (Japan)". Korea keeps `ydl-top10:tv`; others add the country (`ydl-top10:tv:JP`). `top10:v1` holds a list per country.
-- **Discover order** (`arrange()` in `exploreClient.ts`): Spotlight, This Week's Picks, Top 10, Recommended for you, Catalogs by Country.
+- **Discover order** (`arrange()` in `exploreClient.ts`): Spotlight, This Week's Picks, Top 10, Recommended for you, Browse All.
 
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).

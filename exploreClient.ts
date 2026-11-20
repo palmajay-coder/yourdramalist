@@ -175,7 +175,7 @@ export function installExploreUI() {
     }
   }
   // The top of Discover always reads: Spotlight, This Week's Picks, Top 10, Recommended for you, then
-  // Catalogs by Country. Each section calls this when it appears, whichever loads first.
+  // Browse All (once "Catalogs by Country"). Each section calls this when it appears, whichever loads first.
   function arrange(parent2) {
     let anchor = null;
     for (const section of [specialSection, weeklySection, top10Section, recsSection]) {

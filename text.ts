@@ -10,7 +10,7 @@ export const TEXT = {
   weeklySaved:
     "Showing saved collections. Live refresh is temporarily unavailable.",
   weeklyUnavailable: "Weekly collections are temporarily unavailable.",
-  catalogMore: "Catalogs by Country",
+  catalogMore: "Browse All",
   catalogMediaType: "Catalog type",
   catalogShows: "Shows",
   catalogMovies: "Movies",

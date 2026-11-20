@@ -1,6 +1,7 @@
 # Changelog
 
 ## Website updates since 1.1.30
+- "Catalogs by Country" on Discover is now "Browse All", since the country filter applies to every section.
 - Discover's country filter now applies to Spotlight and Top 10. Spotlight shows that country's hand-picked titles first, then fills up to 15 with the country's best-rated titles on the same theme (comedies for GTA 6, family stories for Thankful for Family, and so on); a list that still has fewer than 5 titles hides for that country. Top 10 shows that country's rows. Adding either to Nuvio keeps the country.
 - Spotlight and Top 10 are named like Weekly Picks, with the country in brackets: "Thankful for Family (Japan)", "Horror Night (Thailand)", "Top 10 Dramas Today (China)".
 - Each country gets its own holidays in Spotlight, filled with its best-rated titles on the theme. Japan: Tanabata Wishes (July), Obon Nights (August), Moon Viewing Night (September), Christmas Eve Date Night (December). China: Spring Festival Reunion (February), Qixi Sweethearts (August), Mid-Autumn Reunion (September), Singles Day (November). Taiwan: Spring Festival Reunion (February), Ghost Month Chills (August), Mid-Autumn Reunion (September). Thailand: Songkran Splash (April), Loy Krathong Lovers (November).
