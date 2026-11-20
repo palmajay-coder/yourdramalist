@@ -37,6 +37,7 @@ export function installExploreUI() {
   let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
   let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "";
   let specialSection, specialClock;
+  let top10Section;
   const buttons = new Map();
   let workers = 0;
   const jobs = [];
@@ -90,13 +91,21 @@ export function installExploreUI() {
     track.setAttribute("aria-label", c.name);
     card.append(head, track);
     parent2.append(card);
-    function fill(items) {
+    // ranked: Netflix-style Top 10 tiles, with a big outlined number tucked behind each poster.
+    function fill(items, options = {}) {
       track.replaceChildren();
-      for (const item of items) {
+      for (const [index, item] of items.entries()) {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "catalogPoster";
-        button.setAttribute("aria-label", copy.catalogTitlePreview + ": " + item.name);
+        button.className = "catalogPoster" + (options.ranked ? " ranked" : "");
+        button.setAttribute("aria-label", (options.ranked ? "Number " + (index + 1) + ": " : "") + copy.catalogTitlePreview + ": " + item.name);
+        if (options.ranked) {
+          const rank = document.createElement("span");
+          rank.className = "rankNumber" + (index >= 9 ? " twoDigits" : "");
+          rank.setAttribute("aria-hidden", "true");
+          rank.textContent = String(index + 1);
+          button.append(rank);
+        }
         if (item.poster) {
           const img = document.createElement("img");
           img.src = item.poster;
@@ -350,6 +359,37 @@ export function installExploreUI() {
         if (specialSection === section) { specialSection = null; section.remove(); }
       });
   }
+  // Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today": the very last section on Discover,
+  // ranked by TMDB popularity and refreshed daily. Nothing shows if there is no list.
+  function mountTop10(parent2) {
+    if (top10Section) {
+      if (top10Section.isConnected && parent2.lastElementChild !== top10Section) parent2.append(top10Section);
+      return;
+    }
+    const section = document.createElement("section");
+    section.className = "top10Section";
+    section.hidden = true;
+    top10Section = section;
+    parent2.append(section);
+    fetch("/api/catalogs/top10", { signal: AbortSignal.timeout(45e3) })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (top10Section !== section) return;
+        const rows = Array.isArray(data?.rows) ? data.rows.filter(row => row?.catalog && Array.isArray(row.items) && row.items.length) : [];
+        if (!rows.length) {
+          if (!data) top10Section = null;
+          section.remove();
+          return;
+        }
+        for (const row of rows) shelf(row.catalog, section).fill(row.items.slice(0, 10), { ranked: true });
+        section.hidden = false;
+        if (section.parentNode && section.parentNode.lastElementChild !== section) section.parentNode.append(section);
+        sync();
+      })
+      .catch(() => {
+        if (top10Section === section) { top10Section = null; section.remove(); }
+      });
+  }
   function render3() {
     const parent2 = $("androidCatalogs");
     const id = ++renderId;
@@ -452,6 +492,7 @@ export function installExploreUI() {
     credit2.className = "catalogArtworkCredit";
     credit2.textContent = copy.catalogArtworkCredit;
     more.append(credit2);
+    mountTop10(parent2);
     sync();
   }
   let openFilters;

@@ -14,13 +14,14 @@ import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
 import {recommendationsFor} from './recommendations.ts';
 import {specialCatalog,SPECIAL} from './specialCatalog.ts';
+import {top10,TOP10_CATALOGS} from './top10.ts';
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
 import {loadPersonalCatalog,personalCatalogId} from './personalCatalogs.ts';
-type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string};top10?:{id:'tv'|'movie'};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -47,6 +48,8 @@ export function normalizeAddon(body:any){
    if(!personalCatalogId.test(ref))throw new InvalidConfig('catalog-entry');
    return{id:ref,name,type:'series',personal:true};
   }
+  // Netflix-style Top 10 (K-dramas or K-movies today); the setup page sends the address ydl-top10:<id>.
+  if(item.kind==='top10'){const id=item.id||String(item.url||'').replace(/^ydl-top10:/,'');const c=(TOP10_CATALOGS as any)[id];if(!c||!['tv','movie'].includes(id))throw new InvalidConfig('catalog-entry');return{id:c.url,name:c.name,type:c.type,top10:{id}};}
   // A limited-time, hand-picked catalog ("Watch this while they play GTA 6").
   // The setup page sends the catalog's address (ydl-special:<id>); its id is accepted too.
   if(item.kind==='special'){if((item.id||String(item.url||'').replace(/^ydl-special:/,''))!==SPECIAL.id)throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+SPECIAL.id,name:SPECIAL.name,type:'series',special:{id:SPECIAL.id}};}
@@ -140,6 +143,12 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(plusPattern)return {...meta,poster:posterPlusImageUrl(plusPattern,meta)};
   if(rpdbKey)return {...meta,poster:rpdbPosterUrl(rpdbKey,meta.id)};
   return meta;
+ }
+ if(entry.top10){
+  const data=await ((deps as any).top10||top10)();
+  const items=data?.rows?.find((row:any)=>row.catalog?.id===entry.top10!.id)?.items||[];
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
+  return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.special){
   // Once the catalog has ended it has no titles; its name stays until the add-on is rebuilt.

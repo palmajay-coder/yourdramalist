@@ -230,6 +230,41 @@ await test("connecting a username after the app has started shows Recommended fo
   assert(weekly>=0&&sections[weekly+1]===section,"they sit directly under Weekly Picks");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
+await test("Top 10 K-Dramas and K-Movies sit at the very bottom of Discover with rank numbers 1 to 10",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text();
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ assert(pageHtml.includes(".catalogPoster.ranked .rankNumber{"),"the rank number styles are on the page");
+ const realInterval=globalThis.setInterval,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const ten=(kind:string)=>Array.from({length:10},(_,i)=>({kind,id:i+1,name:kind+" "+(i+1),date:"2026-10-01",poster:"https://image.tmdb.org/t/p/w780/"+kind+i+".jpg"}));
+ const mount=async(top10:any)=>{
+  const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>();
+  const fetcher=async(url:string)=>{const u=String(url);
+   if(u.startsWith("/api/catalogs/top10"))return Response.json(top10);
+   if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog:{id:"w",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0},items:ten("w")}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
+   return Response.json({collections:[],items:[]});
+  };
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,10));if(document.querySelector(".top10Section:not([hidden]) .catalogShelf"))break;}
+  await new Promise(r=>setTimeout(r,30));
+  return {document,saved};
+ };
+ try{
+  const {document,saved}=await mount({date:"2026-11-20",rows:[{catalog:{kind:"top10",id:"tv",url:"ydl-top10:tv",name:"Top 10 K-Dramas Today",type:"series"},items:ten("tv")},{catalog:{kind:"top10",id:"movie",url:"ydl-top10:movie",name:"Top 10 K-Movies Today",type:"movie"},items:ten("movie")}]});
+  const sections=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
+  assert(sections[sections.length-1]?.classList.contains("top10Section"),"Top 10 is the last section on Discover: "+sections.map((s:any)=>s.className).join(","));
+  const top=sections[sections.length-1];
+  assert([...top.querySelectorAll(".catalogShelf h3")].map((h:any)=>h.textContent).join(" | ")==="Top 10 K-Dramas Today | Top 10 K-Movies Today","both rows, dramas first");
+  const numbers=[...top.querySelectorAll(".catalogShelf")[0].querySelectorAll(".catalogPoster.ranked .rankNumber")].map((n:any)=>n.textContent);
+  assert(numbers.join(",")==="1,2,3,4,5,6,7,8,9,10","rank numbers 1 to 10 in order: "+numbers.join(","));
+  assert(top.querySelector(".catalogPoster.ranked").getAttribute("aria-label").startsWith("Number 1:"),"screen readers hear the rank");
+  top.querySelector(".catalogAdd").click();
+  const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
+  assert(selection.some((x:any)=>x.kind==="top10"&&x.url==="ydl-top10:tv"&&x.name==="Top 10 K-Dramas Today"),"Add puts it in Your Selection");
+  const empty=await mount({date:"2026-11-20",rows:[]});
+  assert(!empty.document.querySelector(".top10Section"),"no list means no section");
+ }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
+});
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
