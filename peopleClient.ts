@@ -84,7 +84,10 @@ export function installPeopleUI() {
   function withPersonFilter(list, filter) {
     const base = String(list.url).replace(/\?.*$/, ""), f = filter ? normalizeShelfFilter(filter) : null;
     const { filter: _old, filterLabel: _label, ...rest } = list;
-    return f ? { ...rest, url: base + "?ydlf=" + shelfFilterKey(f), filter: f, filterLabel: "" } : { ...rest, url: base };
+    // The name follows the choice, Netflix style ("Son Ye Jin’s Top 10 All Time"); no filter keeps "…’s Filmography".
+    const person = list.personDisplayName || list.personName;
+    const name = person && typeof filmographyName === "function" ? filmographyName(person, f) : rest.name;
+    return f ? { ...rest, name, url: base + "?ydlf=" + shelfFilterKey(f), filter: f, filterLabel: "" } : { ...rest, name, url: base };
   }
   // Tapping an actor or director opens their titles; tapping a title opens the full drama preview.
   let titlesView;
@@ -209,10 +212,10 @@ export function installPeopleUI() {
     });
     return view;
   }
-  function titleCard(credit) {
+  function titleCard(credit, rank = 0) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "androidWatchlistTitle";
+    button.className = "androidWatchlistTitle" + (rank ? " ranked" : "");
     const tile = document.createElement("span");
     tile.className = "androidWatchlistPoster";
     tile.textContent = credit.name;
@@ -225,6 +228,14 @@ export function installPeopleUI() {
       img.src = credit.poster;
       tile.append(img);
     }
+    if (rank) {
+      const number = document.createElement("span");
+      number.className = "rankNumber" + (rank >= 10 ? " twoDigits" : "");
+      number.setAttribute("aria-hidden", "true");
+      number.textContent = String(rank);
+      tile.append(number);
+      button.setAttribute("aria-label", "Number " + rank + ": " + credit.name);
+    }
     const title = document.createElement("strong");
     title.textContent = credit.name;
     const facts = document.createElement("small");
@@ -235,10 +246,13 @@ export function installPeopleUI() {
   }
   function paintTitles(view) {
     const credits = view.credits || [];
-    const shown = view.filter ? applyShelfFilter(credits, view.filter) : credits;
+    const sorted = view.filter ? applyShelfFilter(credits, view.filter) : credits;
+    // Top Rated is a Netflix-style Top 10: the ten highest rated titles, with big rank numbers.
+    const ranked = view.filter?.sort === "rating";
+    const shown = ranked ? filmographyTop(sorted) : sorted;
     const total = credits.length + (credits.length === 1 ? " title" : " titles");
-    view.subtitle.textContent = credits.length ? (shown.length === credits.length ? total : shown.length + " of " + total) : "";
-    if (credits.length) view.grid.replaceChildren(...shown.map(titleCard));
+    view.subtitle.textContent = credits.length ? (ranked ? "Top " + shown.length + " of " + total : shown.length === credits.length ? total : shown.length + " of " + total) : "";
+    if (credits.length) view.grid.replaceChildren(...shown.map((credit, index) => titleCard(credit, ranked ? index + 1 : 0)));
   }
   async function openPersonTitles(person, opener) {
     titlesView ??= buildTitlesView();

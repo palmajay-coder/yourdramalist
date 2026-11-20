@@ -237,6 +237,8 @@ await test('a sorted or Movies-only filmography keeps that in Nuvio and after Co
  const c=normalizeAddon({...body,catalogs:[{name:'Ann Hui’s Filmography',kind:'filmography',mode:'director',personUrl:'https://mydramalist.com/people/2185-ann-hui',filter:{type:'movie',sort:'oldest'}}]});
  const entry=c.entries[0] as any;
  assert(entry.person==='https://mydramalist.com/people/2185-ann-hui'&&entry.filter.type==='movie'&&entry.filter.sort==='oldest','the filter is kept');
+ const named=makeManifest(c).catalogs[0].name;
+ assert(entry.name==='Ann Hui’s Classic Movies'&&named==='Ann Hui’s Classic Movies','Netflix-style name with no colon label: '+named);
  const credits=[{id:'1',name:'Elegies',url:'https://mydramalist.com/1-elegies',year:2023,type:'Movie'},{id:'2',name:'A Show',url:'https://mydramalist.com/2-a-show',year:2019,type:'Drama'},{id:'3',name:'A Simple Life',url:'https://mydramalist.com/3-a-simple-life',year:2012,type:'Movie'}];
  const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),people:async()=>Response.json({items:credits}),map:async(items:any[])=>items.map((x:any)=>({id:'tt'+x.slug.split('-')[0],type:'movie',name:x.title,poster:'https://image.tmdb.org/t/p/w500/p.jpg'})),weeklyMetas:async()=>[]} as any;
  const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas.map((m:any)=>m.name).join(',');
@@ -244,5 +246,18 @@ await test('a sorted or Movies-only filmography keeps that in Nuvio and after Co
  const back=selectionFromConfig(c)[0] as any;
  assert(back.url.startsWith('ydl-filmography:director:2185?ydlf=')&&back.personId==='2185'&&back.filter.sort==='oldest','Configure gives the page its own address back: '+back.url);
  assert(JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure round trip');
+});
+await test('Top Rated filmographies are a Top 10 with Netflix-style names',async()=>{
+ const {filmographyName}=await import('./shelfFilters.ts');
+ const names=[[{sort:'rating'},'Son Ye Jin’s Top 10 All Time'],[{sort:'rating',type:'movie'},'Son Ye Jin’s Top 10 Movies'],[{sort:'rating',type:'drama'},'Son Ye Jin’s Top 10 Dramas'],[{sort:'newest'},'Son Ye Jin’s Latest'],[{sort:'oldest'},'Son Ye Jin’s Classics'],[{sort:'az'},'Son Ye Jin A to Z'],[{type:'movie'},'Son Ye Jin’s Movies'],[{type:'drama'},'Son Ye Jin’s Dramas'],[null,'Son Ye Jin’s Filmography'],[{sort:'newest',type:'drama'},'Son Ye Jin’s Latest Dramas'],[{sort:'az',type:'movie'},'Son Ye Jin’s Movies A to Z']] as const;
+ for(const [filter,name] of names)assert(filmographyName('Son Ye Jin',filter)===name,JSON.stringify(filter)+' → '+filmographyName('Son Ye Jin',filter));
+ const c=normalizeAddon({...body,catalogs:[{name:'Son Ye Jin’s Filmography',kind:'filmography',mode:'actor',personUrl:'https://mydramalist.com/people/1-son-ye-jin',personName:'Son Ye Jin',filter:{sort:'rating'}}]});
+ assert(makeManifest(c).catalogs[0].name==='Son Ye Jin’s Top 10 All Time','Nuvio name');
+ const credits=Array.from({length:14},(_,i)=>({id:String(i+1),name:'T'+(i+1),url:'https://mydramalist.com/'+(i+1)+'-t',year:2000+i,type:'Drama',...(i<12?{score:5+i/4}:{})}));
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),people:async()=>Response.json({items:credits}),map:async(items:any[])=>items.map((x:any)=>({id:'tt'+x.slug.split('-')[0],type:'series',name:x.title,poster:'https://image.tmdb.org/t/p/w500/p.jpg'}))} as any;
+ const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas.map((m:any)=>m.name);
+ assert(metas.length===10&&metas[0]==='T12'&&metas[9]==='T3'&&!metas.includes('T13'),'only the ten highest rated, best first: '+metas.join(','));
+ const back=selectionFromConfig(c)[0] as any;
+ assert(back.name==='Son Ye Jin’s Top 10 All Time'&&back.personName==='Son Ye Jin'&&JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure keeps the name');
 });
 console.log(JSON.stringify({passed}));

@@ -1,3 +1,4 @@
+import {filmographyName} from "./shelfFilters.ts";
 import {weeklyCatalog} from "./collections.ts";
 import {exploreCatalog} from "./explore.ts";
 const LABELS:Record<string,{watchlists:string[];filmography:string;all:string}>={
@@ -70,7 +71,10 @@ export function localizedCatalogName(entry:any,language="en-US",personNames:Reco
  if(entry.explore){const c=entry.explore,index=CATEGORY_INDEX[c.category],base=exploreCatalog(c.category,c.country);if(!copy||index===undefined)return base.name;const country=c.country?new Intl.DisplayNames([language],{type:"region"}).of(COUNTRIES[c.country])||"":"";return CATEGORY_LABELS[language][index]+(country?" ("+country+")":"");}
  if(entry.watchlistStatus){const status=WATCHLIST_CARDS_LABEL[entry.watchlistStatus];const translated=copy?.watchlists[STATUS_INDEX[entry.watchlistStatus]]||status;return ownedLabel(username(),translated,language);}
  if(entry.watchlist&&entry.watchlistAll)return ownedLabel(username(),copy?.all||"All Dramas & Films",language);
- if(entry.person&&entry.mode){const personName=String(entry.name||"").replace(/[’']s Filmography$/i,"");return ownedLabel(personNames[entry.person]||personName,copy?.filmography||"Filmography",language);}
+ if(entry.person&&entry.mode){
+  // A sorted or Movies/Shows filmography has a Netflix-style name ("Son Ye Jin’s Top 10 All Time").
+  if(entry.filter)return filmographyName(personNames[entry.person]||entry.personName||String(entry.name||""),entry.filter);
+  const personName=String(entry.name||"").replace(/[’']s Filmography$/i,"");return ownedLabel(personNames[entry.person]||personName,copy?.filmography||"Filmography",language);}
  return entry.name;
 }
 const WATCHLIST_CARDS_LABEL:Record<string,string>={watching:"Currently Watching",completed:"Completed",on_hold:"On Hold",dropped:"Dropped",plan_to_watch:"Plan to Watch",undecided:"Undecided",not_interested:"Not Interested"};

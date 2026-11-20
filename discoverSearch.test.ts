@@ -445,17 +445,26 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  const names=()=>[...view.querySelectorAll(".androidWatchlistTitle strong")].map((x:any)=>x.textContent).join(",");
  assert(names()==="Coffee Prince,Goblin","oldest first: "+names());
  let stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
- assert(stored?.filter?.sort==="oldest"&&stored.url.startsWith("ydl-filmography:actor:440?ydlf=")&&headerAdd.textContent==="✓Added"&&rowAdd.textContent==="✓Added","an added filmography keeps the new sort and stays Added: "+JSON.stringify(stored));
+ assert(stored?.filter?.sort==="oldest"&&stored.url.startsWith("ydl-filmography:actor:440?ydlf=")&&stored.name==="Gong Yoo’s Classics"&&headerAdd.textContent==="✓Added"&&rowAdd.textContent==="✓Added","an added filmography keeps the new sort, is renamed and stays Added: "+JSON.stringify(stored));
  assert(!filterIcon.querySelector(".personTitlesFilterDot").hidden,"the icon shows a dot while a filter is on");
  const movies=sheet.querySelector('input[name="personMediaType"][value="movie"]') as any;movies.checked=true;movies.onchange();
  assert(view.querySelectorAll(".androidWatchlistTitle").length===0&&view.textContent.includes("0 of 2 titles"),"Movies leaves out the dramas and the count says so");
  stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
- assert(stored.filter.type==="movie"&&stored.filter.sort==="oldest","both choices are saved");
+ assert(stored.filter.type==="movie"&&stored.filter.sort==="oldest"&&stored.name==="Gong Yoo’s Classic Movies","both choices are saved: "+stored.name);
  const all=sheet.querySelector('input[name="personMediaType"][value=""]') as any;all.checked=true;all.onchange();
  sortMenu.querySelector('option[value="oldest"]').removeAttribute("selected");sortMenu.querySelector('option[value=""]').setAttribute("selected","");try{sortMenu.value=""}catch{}
  sortMenu.onchange();
  stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
- assert(stored.url==="ydl-filmography:actor:440"&&!stored.filter&&names()==="Goblin,Coffee Prince"&&filterIcon.querySelector(".personTitlesFilterDot").hidden,"clearing both goes back to MyDramaList order and the plain address");
+ assert(stored.url==="ydl-filmography:actor:440"&&!stored.filter&&stored.name==="Gong Yoo’s Filmography"&&names()==="Goblin,Coffee Prince"&&filterIcon.querySelector(".personTitlesFilterDot").hidden,"clearing both goes back to MyDramaList order, the plain address and name");
+ for(const o of sortMenu.querySelectorAll("option"))o.removeAttribute("selected");
+ sortMenu.querySelector('option[value="rating"]').setAttribute("selected","");try{sortMenu.value="rating"}catch{}
+ sortMenu.onchange();
+ stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
+ const ranks=[...view.querySelectorAll(".androidWatchlistTitle.ranked .rankNumber")].map((x:any)=>x.textContent).join(",");
+ assert(stored.name==="Gong Yoo’s Top 10 All Time"&&ranks==="1,2"&&view.textContent.includes("Top 2 of 2 titles"),"Top Rated is a ranked Top 10: "+stored.name+" "+ranks);
+ for(const o of sortMenu.querySelectorAll("option"))o.removeAttribute("selected");
+ sortMenu.querySelector('option[value=""]').setAttribute("selected","");try{sortMenu.value=""}catch{}
+ sortMenu.onchange();
  sheet.close();
  (view.querySelector(".androidWatchlistHeader button") as any).click();
  assert(!view.open,"Back closes the titles");

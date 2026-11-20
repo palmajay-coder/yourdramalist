@@ -99,6 +99,24 @@ export function shelfFilterLabel(filter: any): string {
   return parts.join(", ");
 }
 
+/** Netflix-style names for a sorted or Movies/Shows filmography ("Son Ye Jin’s Top 10 All Time"). */
+export function filmographyName(person: string, filter: any): string {
+  const name = String(person || "").trim() || "This person";
+  const kind = filter?.type === "movie" ? "Movies" : filter?.type === "drama" ? "Dramas" : "";
+  if (filter?.sort === "rating") return name + "’s Top 10 " + (kind || "All Time");
+  if (filter?.sort === "newest") return name + "’s Latest" + (kind ? " " + kind : "");
+  if (filter?.sort === "oldest") return name + "’s Classic" + (kind ? " " + kind : "s");
+  if (filter?.sort === "az") return kind ? name + "’s " + kind + " A to Z" : name + " A to Z";
+  if (kind) return name + "’s " + kind;
+  return name + "’s Filmography";
+}
+
+/** A filmography sorted by rating keeps only its 10 highest rated titles (rated ones; all if none are rated). */
+export function filmographyTop(items: any[]): any[] {
+  const rated = items.filter((item) => Number(item?.score) > 0);
+  return (rated.length ? rated : items).slice(0, 10);
+}
+
 /** Stable short key for a filter, used to tell filtered versions of the same list apart. */
 export function shelfFilterKey(filter: any): string {
   if (!filter) return "";

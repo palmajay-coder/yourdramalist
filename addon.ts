@@ -17,12 +17,12 @@ import {specialCatalog,GTA6,monthlySpotlight,spotlightName} from './specialCatal
 import {top10,top10Catalog} from './top10.ts';
 const SPOTLIGHT_CODES=['KR','JP','CN','TW','TH'];
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
-import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,tmdbShelfItems,type ShelfFilter} from './shelfFilters.ts';
+import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,tmdbShelfItems,filmographyName,filmographyTop,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
 import {loadPersonalCatalog,personalCatalogId} from './personalCatalogs.ts';
-type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string;country?:string};top10?:{id:'tv'|'movie';country?:string};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+type Entry={id:string;name:string;type:'series'|'movie';personName?:string;personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string;country?:string};top10?:{id:'tv'|'movie';country?:string};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -60,7 +60,9 @@ export function normalizeAddon(body:any){
   if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}},item.filter);}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return withFilter({id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}},item.filter);}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return withFilter({id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}},item.filter);}
-  if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return withFilter({id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'},item.filter);}
+  if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');const entry=withFilter({id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'},item.filter);if(!entry.filter)return entry;
+   // A filtered filmography is named for its choice ("Son Ye Jin’s Top 10 All Time"), so no ": Movies" label is added.
+   const personName=String(item.personName||name.replace(/[’']s Filmography$/i,'')).replace(/\s+/g,' ').trim().slice(0,120);return{...entry,name:filmographyName(personName,entry.filter),filterLabel:'',personName};}
   const source=String(item.url||'');let id='';
   if(/^d\.[1-5]\.[a-zA-Z0-9_-]{1,60}$/.test(source))id=source;
   else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const watchlist=u.pathname.match(/^\/dramalist\/([a-zA-Z0-9_-]{1,60})(?:\/([a-z_]+))?\/?$/);if(watchlist){const username=watchlist[1].toLowerCase();const status=watchlist[2];if(status&&!WATCHLIST_CARDS.some(([key])=>key===status))throw new InvalidConfig('catalog-entry');return withFilter({id:'watchlist:'+username+(status?':'+status:''),name,type:'series',watchlist:username,...(status?{watchlistStatus:status}:{watchlistAll:true})},item.filter);}const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
@@ -83,7 +85,7 @@ export function selectionFromConfig(config:AddonConfig){
   if(e.recs)return{kind:'recs',slot:e.recs.slot,url:'ydl-recs:'+e.recs.slot,name:e.name,type:'series',...filtered};
   if(e.weekly)return{...weeklyCatalog(e.weekly.country,e.weekly.slot),kind:'weekly',country:e.weekly.country,slot:e.weekly.slot,...filtered};
   if(e.explore)return{...exploreCatalog(e.explore.category,e.explore.country),name:e.name,...filtered};
-  if(e.person){const id=e.person.match(/\/people\/(\d+)-/)?.[1]||e.person.split('/').pop(),url='ydl-filmography:'+e.mode+':'+id;return{kind:'filmography',mode:e.mode,personUrl:e.person,personId:id,url:e.filter?url+'?ydlf='+shelfFilterKey(e.filter):url,name:e.name,...filtered};}
+  if(e.person){const id=e.person.match(/\/people\/(\d+)-/)?.[1]||e.person.split('/').pop(),url='ydl-filmography:'+e.mode+':'+id;return{kind:'filmography',mode:e.mode,personUrl:e.person,personId:id,url:e.filter?url+'?ydlf='+shelfFilterKey(e.filter):url,name:e.name,...filtered,...(e.personName?{personName:e.personName,personDisplayName:e.personName}:{})};}
   if(e.watchlist)return{kind:'watchlist',url:'https://mydramalist.com/dramalist/'+e.watchlist+(e.watchlistStatus?'/'+e.watchlistStatus:''),name:e.name,...filtered};
   const base=e.filter?e.id.replace(/:f[^:]*$/,''):e.id;
   return{url:/^d\.[1-5]\./.test(base)?base:'https://mydramalist.com/list/'+base,name:e.name,...filtered};
@@ -258,6 +260,8 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  }
  const hidden=['completed','dropped'].includes(entry.watchlistStatus||'')?new Set():await deps.hidden(runtime),year=new Date().getFullYear();
  pool=pool.filter(x=>!hidden.has(x.slug)&&!(entry.person&&x.title&&(hidden.has(hiddenTitleKey(x.title,x.year))||hidden.has(hiddenTitleKey(x.title,''))))&&(!config.preferences.hideUnreleased||!x.year||Number(x.year)<=year));
+ // Top Rated filmographies are a Top 10: the ten highest rated titles still showing.
+ if(entry.person&&entry.filter?.sort==='rating')pool=filmographyTop(pool);
  const selected=pool.slice(skip,skip+NUVIO_PAGE),metas:any[]=Array(selected.length);
  await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
  // Titles with no IMDb id (mostly announced, unreleased dramas) keep a MyDramaList based id. Nuvio asks this
