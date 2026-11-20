@@ -27,7 +27,7 @@ await test("asks TMDB for Korean dramas airing now and recent Korean films, by p
   ok(tv.with_origin_country === "KR" && tv.sort_by === "popularity.desc" && tv["air_date.gte"] === "2026-10-21" && tv["air_date.lte"] === "2026-11-20", "dramas with an episode in the last 30 days: " + JSON.stringify(tv));
   ok(tv.without_genres === "16,99,10763,10764,10767", "no animation, documentaries, news, reality or talk shows");
   ok(movie.with_origin_country === "KR" && movie["primary_release_date.gte"] === "2026-05-24" && movie["primary_release_date.lte"] === "2026-11-20" && movie.without_genres === "16,99", "films released in the last 180 days: " + JSON.stringify(movie));
-  ok(data.rows.length === 2 && data.rows[0].catalog.name === "Top 10 K-Dramas Today" && data.rows[1].catalog.name === "Top 10 K-Movies Today", "two rows, dramas first");
+  ok(data.rows.length === 2 && data.rows[0].catalog.name === "Top 10 Dramas Today (South Korea)" && data.rows[1].catalog.name === "Top 10 Movies Today (South Korea)", "two rows, dramas first");
   ok(data.rows.every(r => r.items.length === 10), "ten titles each");
   ok(data.rows[0].items.map(i => i.id).join(",") === "1,2,3,4,5,6,7,8,9,10", "TMDB's popularity order, skipping titles without a poster");
   ok(data.rows[1].items[0].name === "Film 100" && data.rows[1].items[0].kind === "movie" && data.rows[1].catalog.type === "movie", "films are movies");
@@ -66,12 +66,12 @@ await test("follows the country filter, with each country's own rows and names",
   const top = createTop10({tmdb, now: () => NOON});
   const jp = await top.current("JP");
   ok(calls.every(c => c.params.with_origin_country === "JP"), "asks for Japanese titles");
-  ok(jp.rows.map(r => r.catalog.name).join(" / ") === "Top 10 J-Dramas Today / Top 10 J-Movies Today", "Japanese names: " + jp.rows.map(r => r.catalog.name));
+  ok(jp.rows.map(r => r.catalog.name).join(" / ") === "Top 10 Dramas Today (Japan) / Top 10 Movies Today (Japan)", "named like Weekly Picks: " + jp.rows.map(r => r.catalog.name));
   ok(jp.rows[0].catalog.url === "ydl-top10:tv:JP" && jp.rows[1].catalog.url === "ydl-top10:movie:JP", "the country is in the address");
   const th = await top.current("TH");
-  ok(th.rows[0].catalog.name === "Top 10 Thai Dramas Today" && calls.some(c => c.params.with_origin_country === "TH" && c.params["vote_count.gte"] === "1"), "small markets use a lower vote floor");
+  ok(th.rows[0].catalog.name === "Top 10 Dramas Today (Thailand)" && calls.some(c => c.params.with_origin_country === "TH" && c.params["vote_count.gte"] === "1"), "small markets use a lower vote floor");
   const kr = await top.current();
-  ok(kr.rows[0].catalog.url === "ydl-top10:tv" && kr.rows[0].catalog.name === "Top 10 K-Dramas Today", "Korea keeps its original address and name");
+  ok(kr.rows[0].catalog.url === "ydl-top10:tv" && kr.rows[0].catalog.name === "Top 10 Dramas Today (South Korea)", "Korea keeps its original address");
 });
 
 await test("a saved list from before countries still counts as Korea's", async () => {

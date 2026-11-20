@@ -1,5 +1,5 @@
 // Spotlight: GTA 6 until the winter list, a holiday or seasonal list for every month, matching and caching.
-import {createSpecialCatalog, activeSpotlights, monthlySpotlight, GTA6, MONTHLY} from "./specialCatalog.ts";
+import {createSpecialCatalog, activeSpotlights, monthlySpotlight, spotlightName, GTA6, MONTHLY, HOLIDAYS} from "./specialCatalog.ts";
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
 async function test(name: string, fn: () => unknown) { await fn(); passed++; console.log("PASS " + name); }
@@ -23,8 +23,9 @@ await test("the calendar: GTA 6 and the month's list until Dec 1, then one list 
   ok(names(Date.UTC(2027, 0, 1, 8)) === "New Year, New Obsession until 2027-02-01T08:00:00.000Z", "Jan 1: " + names(Date.UTC(2027, 0, 1, 8)));
   ok(monthlySpotlight(Date.UTC(2027, 2, 15)).until === "2027-04-01T07:00:00.000Z" && monthlySpotlight(Date.UTC(2027, 2, 15)).name === "White Day Sweethearts", "March ends at midnight Pacific, in daylight saving time");
   ok(monthlySpotlight(Date.UTC(2027, 9, 31, 12)).name === "K-Horror Night", "Halloween is in October");
-  ok(monthlySpotlight(Date.UTC(2027, 9, 31, 12), "JP").name === "J-Horror Night" && monthlySpotlight(Date.UTC(2027, 9, 31, 12), "TH").name === "Thai Horror Night" && monthlySpotlight(Date.UTC(2027, 9, 31, 12), "KR").name === "K-Horror Night", "the horror list is named for the country");
-  ok(monthlySpotlight(Date.UTC(2026, 10, 20), "JP").name === "Thankful for Family", "lists without a country name keep theirs");
+  const oct = monthlySpotlight(Date.UTC(2027, 9, 31, 12));
+  ok(spotlightName(oct) === "K-Horror Night" && spotlightName(oct, "JP") === "Horror Night (Japan)" && spotlightName(oct, "KR") === "Horror Night (South Korea)", "one country: named like Weekly Picks, without the K-");
+  ok(spotlightName(GTA6, "CN") === "Watch this while they play GTA 6 (China)" && spotlightName(monthlySpotlight(Date.UTC(2026, 10, 20), "JP"), "JP") === "Thankful for Family (Japan)", "every list gets the country in brackets");
 });
 
 const NOW = Date.UTC(2026, 10, 20, 20);
@@ -116,9 +117,21 @@ await test("a country with fewer than five titles after the top-up does not get 
   ok((await spotlight.current("TW")).lists.length === 0, "too short to show");
 });
 
+await test("a country's own holidays replace the usual list that month, with no colons in names", () => {
+  const name = (month: number, country?: any) => spotlightName(monthlySpotlight(Date.UTC(2027, month - 1, 15, 20), country), country);
+  ok(name(7, "JP") === "Tanabata Wishes (Japan)" && name(8, "JP") === "Obon Nights (Japan)" && name(9, "JP") === "Moon Viewing Night (Japan)" && name(12, "JP") === "Christmas Eve Date Night (Japan)", "Japan");
+  ok(name(2, "CN") === "Spring Festival Reunion (China)" && name(8, "CN") === "Qixi Sweethearts (China)" && name(9, "CN") === "Mid-Autumn Reunion (China)" && name(11, "CN") === "Singles Day (China)", "China");
+  ok(name(2, "TW") === "Spring Festival Reunion (Taiwan)" && name(8, "TW") === "Ghost Month Chills (Taiwan)" && name(9, "TW") === "Mid-Autumn Reunion (Taiwan)", "Taiwan");
+  ok(name(4, "TH") === "Songkran Splash (Thailand)" && name(11, "TH") === "Loy Krathong Lovers (Thailand)", "Thailand");
+  ok(name(9, "KR") === "Chuseok at Home (South Korea)" && name(9) === "Chuseok at Home" && name(7, "CN") === "Beach Brain (China)", "everyone else keeps the usual list");
+  ok(monthlySpotlight(Date.UTC(2027, 6, 15, 20), "JP").titles.length === 0, "holiday lists fill by theme only");
+  const all = [...Object.values(MONTHLY).map(m => m.name), ...Object.values(HOLIDAYS).flatMap(h => Object.values(h!).map(x => x.name))];
+  ok(all.every(n => !n.includes(":")), "no colons: " + all.filter(n => n.includes(":")));
+});
+
 await test("every running list has a theme for topping up", () => {
   for (const time of [Date.UTC(2026, 10, 20), ...Array.from({length: 12}, (_, m) => Date.UTC(2027, m, 15))]) {
-    for (const list of activeSpotlights(time)) ok(list.theme && (list.theme.genre || list.theme.keywords?.length), list.name + " has a theme");
+    for (const country of [undefined, "KR", "JP", "CN", "TW", "TH"] as any[]) for (const list of activeSpotlights(time, GTA6, country)) ok(list.theme && (list.theme.genre || list.theme.keywords?.length), list.name + " has a theme");
   }
 });
 console.log(JSON.stringify({passed}));

@@ -12,7 +12,7 @@ type Storage = {load: () => Promise<any>; save: (value: any) => Promise<any>};
 export type Country = "KR" | "JP" | "CN" | "TW" | "TH";
 type Pick = {title: string; year: number; country: Country; kind: "tv" | "movie"; alt?: string[]};
 export type SpecialItem = {kind: "tv" | "movie"; id: number; name: string; poster: string; overview: string; date: string; score: number};
-type Spotlight = {id: string; name: string; names?: Partial<Record<Country, string>>; until: string; titles: Pick[]; theme?: Theme};
+type Spotlight = {id: string; name: string; plainName?: string; until: string; titles: Pick[]; theme?: Theme};
 /** What a list is about, for topping it up: TMDB keywords (any of them) or a TMDB genre. */
 type Theme = {keywords?: string[]; genre?: string};
 export const SPOTLIGHT_COUNTRIES: Record<string, Country> = {"3": "KR", "2": "CN", "1": "JP", "5": "TW", "6": "TH"};
@@ -69,8 +69,11 @@ export const THEMES: Record<string, Theme> = {
   12: {keywords: ["christmas", "winter", "snow"]},
 };
 /** One list per month (1 = January), chosen for that month's holiday or season. */
-/** A list can have its own name for a country (names), used when Discover is filtered to that country. */
-export const MONTHLY: Record<number, {name: string; names?: Partial<Record<Country, string>>; titles: Pick[]}> = {
+/**
+ * One list per month (1 = January). plainName replaces a Korea-only name when the list is shown for one country,
+ * since the country is then added in brackets ("Horror Night (Japan)").
+ */
+export const MONTHLY: Record<number, {name: string; plainName?: string; titles: Pick[]}> = {
   1: {name: "New Year, New Obsession", titles: [
     tv("Squid Game", 2021), tv("Queen of Tears", 2024), tv("Moving", 2023), tv("The Glory", 2022), tv("Itaewon Class", 2020),
     tv("Vincenzo", 2021), tv("Alchemy of Souls", 2022), tv("Weak Hero Class 1", 2022), tv("Signal", 2016), tv("Mr. Sunshine", 2018),
@@ -113,7 +116,7 @@ export const MONTHLY: Record<number, {name: string; names?: Partial<Record<Count
     tv("The Crowned Clown", 2019), tv("Jewel in the Palace", 2003, "KR", ["Dae Jang Geum"]), tv("Joseon Attorney: A Morality", 2023, "KR", ["Joseon Attorney"]),
     tv("Poong, the Joseon Psychiatrist", 2022), tv("Captivating the King", 2024), film("The Throne", 2015), film("Masquerade", 2012),
     film("Detective K: Secret of the Virtuous Widow", 2011)]},
-  10: {name: "K-Horror Night", names: {JP: "J-Horror Night", CN: "C-Horror Night", TW: "Taiwanese Horror Night", TH: "Thai Horror Night"}, titles: [
+  10: {name: "K-Horror Night", plainName: "Horror Night", titles: [
     tv("Kingdom", 2019), tv("All of Us Are Dead", 2022), tv("Sweet Home", 2020), tv("Hellbound", 2021), tv("Gyeongseong Creature", 2023),
     tv("The Guest", 2018), tv("Strangers from Hell", 2019), tv("The Uncanny Counter", 2020), film("Train to Busan", 2016), film("The Wailing", 2016),
     film("#Alive", 2020), film("Ju-on: The Grudge", 2002, "JP"), film("Ring", 1998, "JP", ["Ringu"]), film("Shutter", 2004, "TH"), film("The Medium", 2021, "TH")]},
@@ -128,22 +131,58 @@ export const MONTHLY: Record<number, {name: string; names?: Partial<Record<Count
     film("Moonlit Winter", 2019), tv("First Love", 2022, "JP"), film("Love Letter", 1995, "JP")]},
 };
 
+/**
+ * A country's own holiday list for a month, in place of the usual one when Discover is filtered to that country.
+ * These have no hand-picks: each fills with the country's best-rated titles on its theme.
+ */
+export const HOLIDAYS: Partial<Record<Country, Record<number, {name: string; theme: Theme}>>> = {
+  JP: {
+    7: {name: "Tanabata Wishes", theme: {keywords: ["romance", "long-distance relationship", "first love"]}},
+    8: {name: "Obon Nights", theme: {keywords: ["summer", "festival", "ghost"]}},
+    9: {name: "Moon Viewing Night", theme: {keywords: ["family", "slice of life"], genre: "10751"}},
+    12: {name: "Christmas Eve Date Night", theme: {keywords: ["christmas", "romance"]}},
+  },
+  CN: {
+    2: {name: "Spring Festival Reunion", theme: {keywords: ["chinese new year", "family"], genre: "10751"}},
+    8: {name: "Qixi Sweethearts", theme: {keywords: ["romance", "first love"]}},
+    9: {name: "Mid-Autumn Reunion", theme: {keywords: ["family", "historical"], genre: "10751"}},
+    11: {name: "Singles Day", theme: {keywords: ["single", "romantic comedy"]}},
+  },
+  TW: {
+    2: {name: "Spring Festival Reunion", theme: {keywords: ["chinese new year", "family"], genre: "10751"}},
+    8: {name: "Ghost Month Chills", theme: {keywords: ["ghost", "horror", "supernatural"]}},
+    9: {name: "Mid-Autumn Reunion", theme: {keywords: ["family"], genre: "10751"}},
+  },
+  TH: {
+    4: {name: "Songkran Splash", theme: {keywords: ["summer", "beach", "friendship"], genre: "35"}},
+    11: {name: "Loy Krathong Lovers", theme: {keywords: ["romance", "first love"]}},
+  },
+};
+export const COUNTRY_NAMES: Record<Country, string> = {KR: "South Korea", JP: "Japan", CN: "China", TW: "Taiwan", TH: "Thailand"};
+/** A list's name: as is for every country together, or "Name (Country)" for one country, as in Weekly Picks. */
+export function spotlightName(list: {name: string; plainName?: string}, country?: Country) {
+  return country ? (list.plainName || list.name) + " (" + COUNTRY_NAMES[country] + ")" : list.name;
+}
+
 /** The current month's list: its name, titles and end (midnight Pacific on the 1st of next month). */
+/** With a country that has its own holiday that month, its holiday list (no hand-picks, filled by theme). */
 export function monthlySpotlight(time: number, country?: Country): Spotlight {
   const {date} = pacificDate(time);
   const month = date.getUTCMonth() + 1;
   const until = new Date(pacificMidnight(new Date(Date.UTC(date.getUTCFullYear(), month, 1)))).toISOString();
-  return {id: "monthly", names: MONTHLY[month].names, name: (country && MONTHLY[month].names?.[country]) || MONTHLY[month].name, until, titles: MONTHLY[month].titles, theme: THEMES[month]};
+  const holiday = country && HOLIDAYS[country]?.[month];
+  if (holiday) return {id: "monthly", name: holiday.name, until, titles: [], theme: holiday.theme};
+  return {id: "monthly", name: MONTHLY[month].name, plainName: MONTHLY[month].plainName, until, titles: MONTHLY[month].titles, theme: THEMES[month]};
 }
 /** The Spotlight lists running at a given moment, GTA 6 first. */
-export function activeSpotlights(time: number, gta: Spotlight = GTA6): Spotlight[] {
-  return [...(time < Date.parse(gta.until) ? [{theme: THEMES.gta6, ...gta}] : []), monthlySpotlight(time)];
+export function activeSpotlights(time: number, gta: Spotlight = GTA6, country?: Country): Spotlight[] {
+  return [...(time < Date.parse(gta.until) ? [{theme: THEMES.gta6, ...gta}] : []), monthlySpotlight(time, country)];
 }
 const LANGUAGE: Record<string, string> = {KR: "ko", JP: "ja", CN: "zh", TW: "zh", TH: "th"};
 const DAY = 86400000;
 
-export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record<string, string>) => Promise<any>; now?: () => number; storage?: Storage; lists?: (time: number) => Spotlight[]}) {
-  const now = deps.now || Date.now, listsAt = deps.lists || ((time: number) => activeSpotlights(time));
+export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record<string, string>) => Promise<any>; now?: () => number; storage?: Storage; lists?: (time: number, country?: Country) => Spotlight[]}) {
+  const now = deps.now || Date.now, listsAt = deps.lists || ((time: number, country?: Country) => activeSpotlights(time, GTA6, country));
   const cache = new Map<string, {item: SpecialItem | null; expires: number}>();
   // Top-ups per list, month and country, kept a week so a country's list stays the same from day to day.
   const fills = new Map<string, {items: SpecialItem[]; expires: number}>();
@@ -240,7 +279,7 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
     await init();
     const lists = [];
     let changed = false;
-    for (const list of listsAt(now())) {
+    for (const list of listsAt(now(), country)) {
       const picks = country ? {...list, titles: list.titles.filter(pick => pick.country === country)} : list;
       const result = await resolve(picks);
       changed ||= result.changed;
@@ -257,7 +296,7 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
       }
       if (country ? items.length < MIN_LIST : !items.length) continue;
       const url = "ydl-special:" + list.id + (country ? ":" + country : "");
-      lists.push({catalog: {kind: "special", id: list.id, url, name: (country && list.names?.[country]) || list.name, type: "series", until: list.until, ...(country ? {country} : {})}, items});
+      lists.push({catalog: {kind: "special", id: list.id, url, name: spotlightName(list, country), type: "series", until: list.until, ...(country ? {country} : {})}, items});
     }
     if (changed && deps.storage) {
       for (const [k, v] of fills) if (v.expires <= now()) fills.delete(k);

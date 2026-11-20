@@ -392,7 +392,7 @@ export function installExploreUI() {
   }
   // Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today", right under This Week's Picks,
   // ranked by TMDB popularity and refreshed daily. Nothing shows if there is no list.
-  // The rows follow the country filter (Top 10 J-Dramas Today for Japan, and so on).
+  // The rows follow the country filter ("Top 10 Dramas Today (Japan)", and so on).
   function mountTop10(parent2) {
     if (top10Section && top10Country !== selectedCountry) {
       top10Section.remove();

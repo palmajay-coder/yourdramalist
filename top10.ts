@@ -1,4 +1,4 @@
-// Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today", ranked by TMDB popularity.
+// Netflix-style "Top 10 Dramas Today (South Korea)" and "Top 10 Movies Today (South Korea)", ranked by TMDB popularity.
 // Dramas: shows with an episode aired in the last 30 days (airing now). Movies: films released in the last
 // 180 days. Discover's country filter picks the country (Korea by default, and always Korea for older Nuvio
 // installs). Rebuilt once per Pacific day per country, so everyone sees the same list that day.
@@ -12,12 +12,12 @@ export type Top10Country = "KR" | "JP" | "CN" | "TW" | "TH";
 export type Top10Row = {catalog: {kind: "top10"; id: "tv" | "movie"; url: string; name: string; type: "series" | "movie"; country: Top10Country}; items: Top10Item[]};
 export type Top10 = {date: string; rows: Top10Row[]};
 
-/** Discover's filter values ("3" = South Korea) and each country's row names. */
+/** Discover's filter values ("3" = South Korea). Rows are named like Weekly Picks: "Top 10 Dramas Today (Japan)". */
 export const TOP10_COUNTRIES: Record<string, Top10Country> = {"3": "KR", "2": "CN", "1": "JP", "5": "TW", "6": "TH"};
-const PREFIX: Record<Top10Country, string> = {KR: "K-", JP: "J-", CN: "C-", TW: "Taiwanese ", TH: "Thai "};
+const COUNTRY: Record<Top10Country, string> = {KR: "South Korea", JP: "Japan", CN: "China", TW: "Taiwan", TH: "Thailand"};
 /** A row's catalog. Korea keeps the original addresses (ydl-top10:tv), other countries add theirs (ydl-top10:tv:JP). */
 export function top10Catalog(id: "tv" | "movie", country: Top10Country = "KR") {
-  return {kind: "top10" as const, id, url: "ydl-top10:" + id + (country === "KR" ? "" : ":" + country), name: "Top 10 " + PREFIX[country] + (id === "tv" ? "Dramas" : "Movies") + " Today", type: id === "tv" ? "series" as const : "movie" as const, country};
+  return {kind: "top10" as const, id, url: "ydl-top10:" + id + (country === "KR" ? "" : ":" + country), name: "Top 10 " + (id === "tv" ? "Dramas" : "Movies") + " Today (" + COUNTRY[country] + ")", type: id === "tv" ? "series" as const : "movie" as const, country};
 }
 export const TOP10_CATALOGS = {tv: top10Catalog("tv"), movie: top10Catalog("movie")};
 const DAY = 86400000, KEEP_STALE = 3 * DAY, MIN_ROW = 5;
