@@ -1,5 +1,9 @@
 # Changelog
 
+## Website updates since 1.1.30
+
+- Search shows the YourDramaList bear while results load: "Searching for" your search, with three blue dots. It fades in only if a search takes a moment, gives way to results, "No matches" or an error, and stays still for people who prefer reduced motion. It is reusable for other loading states (`loadingBear.ts`).
+
 ## 1.1.30
 
 ### What's new

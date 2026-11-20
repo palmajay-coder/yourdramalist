@@ -1,5 +1,6 @@
 import {parseHTML} from 'npm:linkedom@0.18.12';
 import {installPeopleUI} from './peopleClient.ts';
+import {createLoadingBear} from './loadingBear.ts';
 import {handlePeople} from './peopleApi.ts';
 import {TEXT} from './text.ts';
 import {matchArtwork} from './collections.ts';
@@ -17,7 +18,7 @@ const fetcher=async(url:string)=>{asked.push(url);const mode=url.includes('mode=
  if(url.includes('filmography?'))return Response.json({sectionFound:true,items,list:{kind:'filmography',url:'ydl-filmography:'+mode+':'+person.id,personUrl:person.url,name:'Example Person’s Filmography',mode}});
  return Response.json({person})};
 const renderSelection=()=>{},toggleList=(list:any)=>{const i=state.selection.findIndex(x=>x.url===list.url);if(i<0)state.selection.push(list);else state.selection.splice(i,1);api.sync()};
-api=new Function('$','document','state','getRequest','setRequest','copy','fetch','localStorage','selectionKey','renderSelection','toggleList','renderSynopsis','renderScore','requestAnimationFrame','alignSelection','matchMedia','compactAndroid',`let listRequest=0;return (${installPeopleUI.toString()})();`)(
+api=new Function('$','document','state','getRequest','setRequest','copy','fetch','localStorage','selectionKey','renderSelection','toggleList','renderSynopsis','renderScore','requestAnimationFrame','alignSelection','matchMedia','compactAndroid',`let listRequest=0;const createLoadingBear=${createLoadingBear.toString()};return (${installPeopleUI.toString()})();`)(
  (id:string)=>document.getElementById(id),document,state,()=>listRequest,(v:number)=>listRequest=v,TEXT,fetcher,{setItem:(k:string,v:string)=>saved.set(k,v)},'selection',renderSelection,toggleList,(el:any,text:string)=>el.textContent=text||'',()=>{},()=>0,()=>{},()=>({matches:true}),true
 );
 const flush=()=>new Promise(r=>setTimeout(r,0));

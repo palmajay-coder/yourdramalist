@@ -295,4 +295,37 @@ await test("the Connect poster wall uses the saved tint, and the admin preview o
  message("https://test",{type:"ydl-tint-preview",tint:"#ff0000",opacity:0.2});
  assert(shade().includes("rgba(255,0,0,0.20) 0%"),"the admin preview updates the tint live: "+shade());
 });
+await test("the loading bear shows while searching and gives way to results, no matches or an error",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ assert(pageHtml.includes(".ydlLoadingBear{")&&pageHtml.includes("prefers-reduced-motion:reduce"),"the bear's styles, with reduced motion, are on the page");
+ const storage={getItem:()=>null,setItem(){},removeItem(){}};
+ const location={href:"https://test/setup",origin:"https://test",pathname:"/setup",search:"",hostname:"test"};
+ const proto=Object.getPrototypeOf(document.createElement("dialog"));
+ if(!proto.showModal){proto.showModal=function(){this.open=true};proto.close=function(){if(!this.open)return;this.open=false;this.dispatchEvent(new window.Event("close"))};}
+ let reply:(r:Response)=>void=()=>{},fail:(e:Error)=>void=()=>{};
+ const fetcher=(url:string)=>String(url).startsWith("/api/mdl/people-search")?new Promise<Response>((ok,no)=>{reply=ok;fail=no}):Promise.resolve(Response.json({collections:[],items:[]}));
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,location,{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ const tick=(ms=20)=>new Promise(r=>setTimeout(r,ms));
+ (document.querySelector(".androidNavAdd") as any).click();
+ const sheet=document.querySelector(".quickSearch") as any,results=sheet.querySelector(".quickSearchResults"),status=sheet.querySelector(".quickSearchStatus");
+ const enter=async(text:string)=>{(document.getElementById("quickSearchInput") as HTMLInputElement).value=text;sheet.querySelector("form").dispatchEvent(new window.Event("submit",{cancelable:true}));await tick();};
+ const bear=()=>results.querySelector(".ydlLoadingBear");
+ await enter("Wong Kar Wai");
+ assert(bear()&&bear().querySelector("p").textContent==="Searching for Wong Kar Wai"&&bear().getAttribute("role")==="status","the bear shows the search right away: "+results.textContent);
+ assert(bear().querySelector("svg")&&bear().querySelectorAll(".ydlBearDots i").length===3&&status.textContent==="","the bear has its drawing and three dots, and no other text");
+ reply(Response.json({query:"Wong Kar Wai",page:1,titles:[{name:"In the Mood for Love",year:2000,url:"https://mydramalist.com/1-in-the-mood"}],people:[],hasNextPage:false}));await tick();
+ assert(!bear()&&results.textContent.includes("In the Mood for Love"),"results replace the bear");
+ await enter("zzzz");
+ assert(bear()&&bear().textContent.includes("Searching for zzzz"),"a new search shows the bear again");
+ reply(Response.json({query:"zzzz",page:1,titles:[],people:[],hasNextPage:false}));await tick();
+ assert(!bear()&&status.textContent.includes("No matches found"),"no matches replaces the bear: "+status.textContent);
+ await enter("Broken search");
+ fail(Object.assign(Error("MyDramaList lookup failed."),{name:"Error"}));await tick();
+ assert(!bear()&&status.textContent.includes("Unable to search")&&!results.childElementCount,"an error replaces the bear: "+status.textContent);
+ await enter("Old search");const stale=reply;
+ await enter("New search");
+ stale(Response.json({query:"Old search",page:1,titles:[{name:"Stale",year:2000,url:"https://mydramalist.com/2-stale"}],people:[],hasNextPage:false}));await tick();
+ assert(bear()&&bear().textContent.includes("Searching for New search")&&!results.textContent.includes("Stale"),"a late answer to an older search leaves the newer search's bear");
+});
 console.log(JSON.stringify({passed}));

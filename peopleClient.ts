@@ -323,21 +323,24 @@ export function installPeopleUI() {
     target = where;
     cleanup();
     const requestId = ++listRequest;
-    target.list().replaceChildren();
+    // The loading bear holds the results area until results, "no matches" or an error replace it.
+    target.list().replaceChildren(createLoadingBear("Searching for " + query2));
     target.status().textContent = "";
     try {
       const data2 = await json("/api/mdl/people-search?mode=" + mode + "&q=" + encodeURIComponent(query2) + "&page=" + page3);
       if (requestId !== listRequest) return;
       renderMatches(data2);
     } catch (e) {
-      if (requestId === listRequest) target.status().textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId !== listRequest) return;
+      target.list().replaceChildren();
+      target.status().textContent = "Unable to search Discover: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
   async function fromUrl(raw, mode = state.filter, where = discoverTarget) {
     target = where;
     cleanup();
     const requestId = ++listRequest;
-    target.list().replaceChildren();
+    target.list().replaceChildren(createLoadingBear("Searching for " + raw));
     target.status().textContent = "";
     try {
       const data2 = await json(personApi(raw, mode));
@@ -345,7 +348,9 @@ export function installPeopleUI() {
       renderMatches({ mode, people: [{ ...data2.person, enriched: true }], page: 1, hasNextPage: false });
       if (data2.warning) target.status().append(document.createTextNode(" \xB7 " + data2.warning));
     } catch (e) {
-      if (requestId === listRequest) target.status().textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
+      if (requestId !== listRequest) return;
+      target.list().replaceChildren();
+      target.status().textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
   return { search, fromUrl, cleanup, sync, reset: cleanup };

@@ -151,7 +151,8 @@ export function installQuickSearch() {
     }
     shown = text;
     recentView.hidden = true;
-    status.textContent = "Searching…";
+    // Discover's search shows the loading bear in the results area right away.
+    status.textContent = "";
     if (/^https?:/i.test(text)) peopleUI.fromUrl(text, "actor", where);
     else peopleUI.search(text, 1, "actor", where);
   }
