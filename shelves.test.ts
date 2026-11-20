@@ -129,6 +129,30 @@ const profileFetcher=async(input:string)=>{
  if(url.startsWith("/api/mdl/title-facts"))return Response.json({facts});
  return Response.json({});
 };
+await test("Community shows the loading spinner while lists load, then the lists or an error",async()=>{
+ let reply:(r:Response)=>void=()=>{};
+ const pending=(input:string)=>String(input).startsWith("/api/mdl/profile")||String(input).startsWith("/api/mdl/list")?new Promise<Response>(ok=>{reply=ok}):profileFetcher(input);
+ const document=mountApp(pending as any,new Map());
+ const results=document.getElementById("results")!;
+ const spinner=()=>results.querySelector(".ydlLoadingBear");
+ (document.getElementById("profileInput") as any).value="Jaesan";
+ (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});await settle();
+ assert(spinner()&&spinner()!.textContent==="Loading lists…"&&spinner()!.querySelector(".ydlLoadingSpinner"),"the spinner shows with Loading lists: "+results.innerHTML);
+ reply(await profileFetcher("/api/mdl/profile?username=Sample"));
+ await waitFor(()=>document.querySelectorAll("#listItems article").length===3,"the lists replace the spinner");
+ assert(!spinner(),"the spinner is gone once the lists show");
+ (document.getElementById("profileInput") as any).value="Missing";
+ (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});await settle();
+ assert(spinner(),"a new lookup shows the spinner again");
+ reply(Response.json({error:"Profile not found."},{status:404}));
+ await waitFor(()=>!spinner(),"an error replaces the spinner");
+ assert(results.textContent.includes("Profile not found."),"the error shows: "+results.textContent);
+ (document.getElementById("profileInput") as any).value="https://mydramalist.com/list/q1XvK6w3";
+ (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});await settle();
+ assert(spinner()&&spinner()!.textContent==="Loading lists…","a pasted list link shows the spinner too");
+ reply(Response.json({error:"List not found."},{status:404}));
+ await waitFor(()=>!spinner(),"a failed list link clears the spinner");
+});
 await test("Community cards list every profile list and the filter sheet adds a filtered catalog",async()=>{
  const saved=new Map<string,string>();const document=mountApp(profileFetcher,saved);
  (document.getElementById("profileInput") as any).value="Sample";

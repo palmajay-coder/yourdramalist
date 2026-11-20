@@ -307,6 +307,8 @@ body.androidSetup.wideWeb[data-page=connect] #connect > h1 {font-size:60px}
 </main><footer><span id="footerText">${TEXT.footer}</span><span id="buildFooter"><a href="https://github.com/palmajay-coder/yourdramalist" target="_blank" rel="noopener noreferrer">Valtown public build</a> · v${APP_VERSION} · <a href="/privacy">Privacy</a></span><section class="tmdbAttribution" id="tmdb-attribution" aria-label="TMDB Attribution Notice"><strong>TMDB Attribution Notice</strong><div class="tmdbAttributionContent"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p></div></section></footer>
 <script>
 const copy = ${JSON.stringify({ ...TEXT, androidVersion: APP_VERSION })};
+// The shared loading spinner (loadingBear.ts), defined first so every screen can use it.
+const createLoadingBear=${createLoadingBear.toString()};
 // Every visitor gets the app layout (phones, tablets and computers). The Android app runs the site in a
 // WebView, which needs slightly different back-button history.
 const androidApp=navigator.userAgent.includes('Android')&&navigator.userAgent.includes('; wv');
@@ -477,7 +479,7 @@ function addWatchlistPlaceholder(posters,empty){const placeholder=document.creat
 function renderLists(lists){communityUI.render(lists)}
 async function loadDirectList(value){
 $('communityViews').classList.add('hidden');profileLists=null;
-const requestId=++listRequest;$('listItems').replaceChildren();$('results').textContent=copy.loadingLists;
+const requestId=++listRequest;$('listItems').replaceChildren();$('results').replaceChildren(createLoadingBear(copy.loadingLists));
 try{const response=await fetch('/api/mdl/list?url='+encodeURIComponent('https://mydramalist.com/list/'+value),{signal:AbortSignal.timeout(15000)});const data=await response.json();if(requestId!==listRequest)return;if(!response.ok)throw Error(data.error||'Unable to load this list.');
 const list={...data.list,analyticsSource:'community-direct-list'};
 state.selection=state.selection.map(l=>l.url===list.url?{...l,...list}:l);
@@ -520,7 +522,8 @@ $('communitySelectAll').onclick=()=>{
 
 async function loadProfile(username){
  switchTab('profiles');const requestId=listRequest;
- $('results').textContent=copy.loadingLists;
+ // The spinner sits in the status line; the lists, a message or an error replace it.
+ $('results').replaceChildren(createLoadingBear(copy.loadingLists));
  try{
   const response=await fetch('/api/mdl/profile?username='+encodeURIComponent(username),{signal:AbortSignal.timeout(20000)});
   const data=await response.json();if(requestId!==listRequest)return;
@@ -573,7 +576,6 @@ const showMyCollections=(${installMyCollections.toString()})();
 const openCollectionPicker=(${installCollectionPicker.toString()})();
 const showCatalogTitle=(${installCatalogTitlePreview.toString()})();
 const exploreUI=(${installExploreUI.toString()})();
-const createLoadingBear=${createLoadingBear.toString()};
 const peopleUI = (${installPeopleUI.toString()})();
 const FILTER_COUNTRIES=${JSON.stringify(FILTER_COUNTRIES)},FILTER_GENRES=${JSON.stringify(FILTER_GENRES)};
 const shelfCountry=${shelfCountry.toString()},normalizeShelfFilter=${normalizeShelfFilter.toString()},applyShelfFilter=${applyShelfFilter.toString()},shelfFilterLabel=${shelfFilterLabel.toString()},shelfFilterKey=${shelfFilterKey.toString()},shelfNeedsFacts=${shelfNeedsFacts.toString()};
