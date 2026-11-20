@@ -231,7 +231,6 @@ export function installExploreUI() {
         clock2.hidden = false;
         for (const collection of data2.collections || []) {
           const row = shelf(collection.catalog, weeklyRows);
-          // The server picks each title's poster for the current 12 hours (Weekly Picks rotate posters).
           row.fill(collection.items);
         }
         if (data2.warning) {

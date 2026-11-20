@@ -3,15 +3,12 @@ import {COLLECTION_COUNTRIES,weekWindow,weeklyCatalog,posterUrl,matchArtwork,nor
 import {createExploreService} from "./exploreApi.ts";
 import {tmdbExploreItems,sortExploreItems} from "./tmdbExplore.ts";
 import {normalizeShelfFilter} from "./shelfFilters.ts";
-import {pacificDate} from "./pacificTime.ts";
 
 type Storage={load:()=>Promise<any>;save:(value:any)=>Promise<any>};
-export function createCollectionService(storage:Storage|undefined,keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now,posterStorage?:Storage,idStorage?:Storage){
+export function createCollectionService(storage:Storage|undefined,keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now,idStorage?:Storage){
  const cache=new Map<string,any>(),pending=new Map<string,Promise<any>>();
  // Weekly Picks posters: each title's English and textless TMDB posters, kept in their own small store so
  // they never push the weekly shelves out of the main cache. The page picks one at random on every load.
- const posterCache=new Map<string,{posters:string[];expires:number}>();
- let posterReady:Promise<void>|undefined,posterSaving=Promise.resolve();
  // TMDB to IMDb id lookups for Nuvio catalogs (Weekly Picks and personal recommendations), in their own
  // store so many users' recommendation rows never push the weekly shelves out of the main cache.
  const idCache=new Map<string,{imdb:string;expires:number}>();
@@ -132,59 +129,18 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   if(changed&&idStorage){const rows=[...idCache];idSaving=idSaving.catch(()=>{}).then(()=>idStorage.save(rows));await bounded(idSaving).catch(()=>{})}
   return result.filter(Boolean).filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i);
  }
- async function posterInit(){posterReady??=(async()=>{try{const data=posterStorage?await bounded(posterStorage.load()):null;if(Array.isArray(data))for(const [k,v]of data.slice(-600))if(Array.isArray(v?.posters))posterCache.set(k,v)}catch{}})();await posterReady;}
- /** Up to six English or textless portrait posters for a TMDB title, best voted first, cached for 30 days. */
- async function posterChoices(kind:string,id:string|number){
-  if(!["tv","movie"].includes(kind)||!/^[1-9]\d{0,9}$/.test(String(id)))return [];
-  await posterInit();
-  const key=kind+":"+id,hit=posterCache.get(key);if(hit&&hit.expires>now())return hit.posters;
-  const data=await request(kind+"/"+id+"/images",{include_image_language:"en,null"});
-  const posters=[...new Set((Array.isArray(data?.posters)?data.posters:[])
-   .filter((p:any)=>(p?.iso_639_1==="en"||p?.iso_639_1==null)&&Number(p?.width)>=500&&Number(p?.aspect_ratio)>=0.6&&Number(p?.aspect_ratio)<=0.72)
-   .sort((a:any,b:any)=>(Number(b.vote_count)||0)-(Number(a.vote_count)||0)||(Number(b.vote_average)||0)-(Number(a.vote_average)||0))
-   .map((p:any)=>posterUrl(p.file_path)).filter(Boolean))].slice(0,6) as string[];
-  posterCache.delete(key);posterCache.set(key,{posters,expires:now()+30*86400000});
-  while(posterCache.size>600)posterCache.delete(posterCache.keys().next().value!);
-  return posters;
- }
- /** Gives each Weekly Picks item one of its posters (the usual one and TMDB's alternatives), changing every
-  * 12 hours. Titles not looked up within the time budget keep their usual poster and fill in on a later load. */
- async function withPosterChoices(data:any,budgetMs=3000){
-  if(!keyFor()||!Array.isArray(data?.collections))return data;
-  await posterInit();
-  const found=new Map<string,string[]>(),todo:any[]=[];
-  for(const item of data.collections.flatMap((c:any)=>c.items||[])){
-   const key=item?.kind+":"+item?.id,hit=posterCache.get(key);
-   if(hit&&hit.expires>now())found.set(key,hit.posters);else if(!todo.some(x=>x.kind+":"+x.id===key))todo.push(item);
-  }
-  let cursor=0,expired=false,changed=false,timer:ReturnType<typeof setTimeout>|undefined;
-  async function worker(){while(!expired&&cursor<todo.length){const item=todo[cursor++];try{found.set(item.kind+":"+item.id,await posterChoices(item.kind,item.id));changed=true}catch{/* Keep the usual poster; try again on a later load. */}}}
-  try{await Promise.race([Promise.all([worker(),worker(),worker()]),new Promise<void>(resolve=>{timer=setTimeout(()=>{expired=true;resolve()},budgetMs)})])}finally{clearTimeout(timer)}
-  if(changed&&posterStorage){const rows=[...posterCache];posterSaving=posterSaving.catch(()=>{}).then(()=>posterStorage.save(rows));await bounded(posterSaving).catch(()=>{})}
-  // Every title moves to its next poster at midnight and noon Pacific time; everyone sees the same one meanwhile.
-  const {date,hour}=pacificDate(now()),slot=Math.round(date.getTime()/43200000)+(hour>=12?1:0);
-  return {...data,collections:data.collections.map((c:any)=>({...c,items:(c.items||[]).map((item:any)=>{
-   const extra=found.get(item?.kind+":"+item?.id)||[];
-   const posters=[...new Set([item.poster,...extra].filter(Boolean))] as string[];
-   if(posters.length<2)return item;
-   // A fixed per-title offset keeps titles on different posters from one another.
-   let offset=0;for(const ch of item.kind+":"+item.id)offset=(offset*31+ch.charCodeAt(0))>>>0;
-   return {...item,poster:posters[(offset+slot)%posters.length]};
-  })}))};
- }
  /** A TMDB request through the shared limits (key, three at a time, 120 a minute, timeouts, size cap). */
  async function tmdb(path:string,params:Record<string,string>={}){return request(path,params)}
- return{weekly,artwork,metas,standardArtwork,posterChoices,withPosterChoices,tmdb};
+ return{weekly,artwork,metas,standardArtwork,tmdb};
 }
-export const collections=createCollectionService({load:()=>blob.getJSON("catalog-collections:v1"),save:v=>blob.setJSON("catalog-collections:v1",v)},()=>Deno.env.get("TMDB_API_KEY"),fetch,Date.now,{load:()=>blob.getJSON("poster-choices:v1"),save:v=>blob.setJSON("poster-choices:v1",v)},{load:()=>blob.getJSON("tmdb-imdb:v1"),save:v=>blob.setJSON("tmdb-imdb:v1",v)});
+export const collections=createCollectionService({load:()=>blob.getJSON("catalog-collections:v1"),save:v=>blob.setJSON("catalog-collections:v1",v)},()=>Deno.env.get("TMDB_API_KEY"),fetch,Date.now,{load:()=>blob.getJSON("tmdb-imdb:v1"),save:v=>blob.setJSON("tmdb-imdb:v1",v)});
 const explore=createExploreService({load:()=>blob.getJSON("explore:v1"),save:v=>blob.setJSON("explore:v1",v)});
 export async function handleCollections(req:Request){
  if(req.method!=="GET")return new Response("Method not allowed",{status:405,headers:{Allow:"GET"}});
  const u=new URL(req.url),country=u.searchParams.get("country")||"3";
  if(!COLLECTION_COUNTRIES[country])return Response.json({error:"Choose a country."},{status:400});
  try{
-  // The page shows a different one of each title's posters on every load (posters are website only, not Nuvio).
-  if(u.pathname==="/api/catalogs/weekly")return Response.json(await collections.withPosterChoices(await collections.weekly(country)),{headers:{"cache-control":"no-store"}});
+  if(u.pathname==="/api/catalogs/weekly")return Response.json(await collections.weekly(country),{headers:{"cache-control":"no-store"}});
   const category=u.searchParams.get("category")||"";
   // Validate before upstream work. No user-supplied URL or title reaches TMDB.
   const {exploreCatalog}=await import("./explore.ts");try{exploreCatalog(category,country)}catch{return Response.json({error:"Choose a catalog."},{status:400})}

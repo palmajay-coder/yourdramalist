@@ -190,15 +190,12 @@ export async function specialCatalog() {
   return shared.current();
 }
 
-/** GET /api/catalogs/special for the Discover Spotlight: posters rotate every 12 hours, as in Weekly Picks. */
+/** GET /api/catalogs/special for the Discover Spotlight, with each title's usual TMDB poster. */
 export async function handleSpecialCatalog(req: Request) {
   if (req.method !== "GET") return new Response("Method not allowed", {status: 405, headers: {Allow: "GET"}});
   const headers = {"cache-control": "no-store"};
   try {
-    const data = await specialCatalog();
-    const {collections} = await import("./collectionService.ts");
-    const withPosters = await collections.withPosterChoices({collections: data.lists});
-    return Response.json({lists: withPosters.collections}, {headers});
+    return Response.json(await specialCatalog(), {headers});
   } catch {
     return Response.json({error: "Spotlight is temporarily unavailable."}, {status: 502, headers});
   }

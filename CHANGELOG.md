@@ -1,6 +1,7 @@
 # Changelog
 
 ## Website updates since 1.1.30
+- Shelves show each title's usual TMDB poster again; Weekly Picks and Spotlight posters no longer rotate, so a title looks the same everywhere.
 
 - Spotlight calendar: a holiday or seasonal list every month under one Spotlight heading with one timer to the end of the month (New Year, New Obsession; Fall in Love This February; White Day Sweethearts; Spring Into Love; Watch With Mom; Summer Crush; Beach Brain; Last Days of Summer; Chuseok at Home; K-Horror Night; Thankful for Family; Snowed In for Christmas). It changes by itself at midnight Pacific on the 1st. The GTA 6 list now ends when the winter list begins (December 1). In Nuvio, "Spotlight of the month" always shows the current month's list.
 - Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today" right under This Week's Picks on Discover, with big rank numbers beside the posters. Ranked by TMDB popularity (dramas airing now, films from the last six months), refreshed daily, and available as Nuvio catalogs.
@@ -9,7 +10,6 @@
 - "Watch this while they play GTA 6": a limited-time, hand-picked catalog of 20 easy, funny dramas and movies. It is the first list on Discover, under a "Spotlight" heading with a countdown, can be added to Nuvio, and disappears at midnight Pacific on January 1, 2027.
 - "Because you watched" rows now hold 30 titles each, topped up from similar titles, shared themes and the same genres and country.
 - "Because you watched …": up to three personal rows under Weekly Picks for a connected MyDramaList username, also available as Nuvio catalogs. Built from the watchlist (watching, then completed titles scored 8+) and TMDB recommendations, leaving out anything already on the watchlist. The rows change every Monday.
-- Weekly Picks posters rotate every 12 hours (midnight and noon Pacific): each title cycles through up to six of its English and textless TMDB posters, the same for everyone in that window. Opening a title keeps the poster it showed on the shelf. Nuvio catalogs keep one poster.
 - Search shows the YourDramaList bear while results load: "Searching for" your search, with three blue dots. It fades in only if a search takes a moment, gives way to results, "No matches" or an error, and stays still for people who prefer reduced motion. It is reusable for other loading states (`loadingBear.ts`).
 
 ## 1.1.30

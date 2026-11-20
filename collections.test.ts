@@ -26,42 +26,6 @@ await test("TMDB metadata takes priority without changing artwork or inheriting 
 });
 
 console.log(JSON.stringify({passed}));
-await test("Weekly Picks posters: English and textless portrait posters, cached, added without changing the usual poster",async()=>{
- let images=0;const saved:any={};
- const images_reply={posters:[
-  {file_path:"/best.jpg",iso_639_1:"en",width:2000,aspect_ratio:0.667,vote_count:9,vote_average:5.5},
-  {file_path:"/clean.jpg",iso_639_1:null,width:1000,aspect_ratio:0.667,vote_count:4,vote_average:5.3},
-  {file_path:"/korean.jpg",iso_639_1:"ko",width:2000,aspect_ratio:0.667,vote_count:20,vote_average:6},
-  {file_path:"/tiny.jpg",iso_639_1:"en",width:300,aspect_ratio:0.667,vote_count:30,vote_average:6},
-  {file_path:"/wide.jpg",iso_639_1:"en",width:2000,aspect_ratio:1.78,vote_count:30,vote_average:6},
-  {file_path:"../evil.jpg",iso_639_1:"en",width:2000,aspect_ratio:0.667,vote_count:30,vote_average:6},
-  ...Array.from({length:8},(_,i)=>({file_path:"/more"+i+".jpg",iso_639_1:"en",width:800,aspect_ratio:0.667,vote_count:1,vote_average:5}))]};
- const fetch2:typeof fetch=async input=>{const url=new URL(String(input));if(url.pathname.endsWith("/images")){images++;ok(url.searchParams.get("include_image_language")==="en,null","asks for English and textless only");return Response.json(images_reply)}return Response.json({})};
- const svc=createCollectionService(undefined,()=>"k",fetch2,()=>clock,{load:async()=>saved.rows,save:async(v:any)=>{saved.rows=v}});
- const choices=await svc.posterChoices("tv",123);
- ok(choices.length===6&&choices[0]==="https://image.tmdb.org/t/p/w780/best.jpg"&&choices[1]==="https://image.tmdb.org/t/p/w780/clean.jpg","best voted English first, then textless, capped at six: "+choices.join(","));
- ok(!choices.some((u:string)=>/korean|tiny|wide|evil/.test(u)),"other languages, small, wide and bad paths are left out");
- await svc.posterChoices("tv",123);ok(images===1,"a second lookup uses the cache");
- ok((await svc.posterChoices("tv","1;drop")).length===0&&images===1,"a bad id makes no request");
- const data={collections:[{catalog:{name:"Romance"},items:[{kind:"tv",id:123,name:"A",poster:"https://image.tmdb.org/t/p/w780/usual.jpg"},{kind:"movie",id:9,name:"B",poster:"https://image.tmdb.org/t/p/w780/b.jpg"}]}]};
- const allowed=new Set(["https://image.tmdb.org/t/p/w780/usual.jpg",...choices]);
- const pick=async()=>(await svc.withPosterChoices(data)).collections[0].items[0].poster;
- const saved_clock=clock;
- const first=await pick();
- ok(allowed.has(first),"the poster is one of the title's posters: "+first);
- clock+=3*3600000;const sameHalfDay=await pick();
- clock=saved_clock+12*3600000;const nextHalfDay=await pick();
- clock=saved_clock;
- ok(sameHalfDay===first,"within the same 12 hours the poster stays the same");
- ok(allowed.has(nextHalfDay)&&nextHalfDay!==first,"12 hours later the title moves to another poster: "+first+" / "+nextHalfDay);
- ok(data.collections[0].items[0].poster==="https://image.tmdb.org/t/p/w780/usual.jpg","the weekly data itself (used by Nuvio) is not changed");
- const none=createCollectionService(undefined,()=>"k",async()=>Response.json({posters:[]}),()=>clock);
- ok((await none.withPosterChoices(data)).collections[0].items[1].poster==="https://image.tmdb.org/t/p/w780/b.jpg","a title with no other posters keeps its own");
- ok(Array.isArray(saved.rows)&&saved.rows.length===2,"poster lists are saved in their own store");
- const slow=createCollectionService(undefined,()=>"k",async()=>new Promise<Response>(()=>{}),()=>clock);
- const started=Date.now();const quick=await slow.withPosterChoices(data,50);
- ok(Date.now()-started<1000&&quick.collections[0].items[0].posters===undefined,"a slow TMDB never holds up the page");
-});
 await test("Monday Pacific midnight follows daylight saving",()=>{
  ok(weekWindow(Date.UTC(2026,2,8,12)).nextRefresh==="2026-03-09T07:00:00.000Z");
  ok(weekWindow(Date.UTC(2026,9,31,12)).nextRefresh==="2026-11-02T08:00:00.000Z");
