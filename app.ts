@@ -367,7 +367,7 @@ if(new URLSearchParams(location.search).get('tint-preview')==='1')window.addEven
 let currentPage='',preferencesUI,preferencesReady,discoverScroll=0;
 const androidFlow=['selection','preferences','confirm'];
 let connectedUser='';try{const saved=localStorage.getItem('ydl-v3-user')||'';if(/^[a-zA-Z0-9_-]{1,60}$/.test(saved))connectedUser=saved}catch{}
-function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}}
+function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}window.ydlRefreshPersonal?.()}
 // Connect comes first: until someone enters a username or continues without an account, the other pages stay closed.
 // Returning visitors (a saved username, the saved choice, or any saved selection or collection) go straight in.
 function markStarted(){try{localStorage.setItem('ydl-v3-started','1')}catch{}}
@@ -541,7 +541,7 @@ async function loadProfile(username){
 }
 
 renderSelection();
-function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();listRequest++;communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';showMyCollections(tab);window.syncAndroidNav?.(currentPage)}
+function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();listRequest++;communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';showMyCollections(tab);if(tab==='discover')window.ydlRefreshPersonal?.();window.syncAndroidNav?.(currentPage)}
 function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs)exploreUI.render();}
 function openSelection(tab){navigate('selection');switchTab(tab)}
 function openCommunity(username){

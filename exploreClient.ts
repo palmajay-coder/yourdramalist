@@ -180,6 +180,8 @@ export function installExploreUI() {
     // The limited-time catalog stays the very first list; Weekly Picks comes right after it.
     if (specialSection?.isConnected) specialSection.after(weekly);
     else parent2.prepend(weekly);
+    // "Recommended for you" always sits directly under Weekly Picks, whichever loaded first.
+    if (recsSection?.isConnected) weekly.after(recsSection);
     const outdated = () => !weekly.isConnected || isOutdated();
     const weeklyRows = document.createElement("div");
     weekly.append(weeklyRows);
@@ -276,12 +278,19 @@ export function installExploreUI() {
           if (!data) recsUser = "";
           return;
         }
+        const header = document.createElement("div");
+        header.className = "androidWeeklyHeading";
+        const heading = document.createElement("h2");
+        heading.className = "catalogSectionTitle";
+        heading.textContent = "Recommended for you";
+        header.append(heading);
+        section.append(header);
         data.rows.slice(0, 3).forEach((row, slot) => {
           if (!row?.seed?.title || !Array.isArray(row.items) || !row.items.length) return;
           const catalog = { kind: "recs", slot, url: "ydl-recs:" + slot, type: "series", name: "Because you watched " + row.seed.title, description: "Titles like " + row.seed.title + ", picked from your MyDramaList watchlist. They change every Monday." };
           shelf(catalog, section).fill(row.items);
         });
-        section.hidden = !section.childElementCount;
+        section.hidden = !section.querySelector(".catalogShelf");
         sync();
       })
       .catch(() => { if (recsSection === section) recsUser = ""; });
@@ -490,12 +499,20 @@ export function installExploreUI() {
       showAndroidDialog(dialog);
     };
   }
+  // Connecting a username (Connect, or a lookup in Lists) or opening Discover again shows or updates the
+  // "Recommended for you" rows straight away, without waiting for the next full render.
+  const refreshPersonal = () => {
+    const parent2 = $("androidCatalogs");
+    if (parent2) mountRecs(parent2, () => !parent2.isConnected);
+  };
+  window.ydlRefreshPersonal = refreshPersonal;
   select.onchange = render3;
   sortSelect.onchange = render3;
   return {
     render: render3,
     sync,
     openFilters,
+    refreshPersonal,
     resetMedia() {
       if (activeCatalogType === "all") return;
       activeCatalogType = "all";

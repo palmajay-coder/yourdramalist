@@ -130,6 +130,7 @@ await test("\"Because you watched\" shelves sit under Weekly Picks for a connect
   const section=document.querySelector(".recsSection") as any;
   const headings=[...section.querySelectorAll(".catalogShelf h3")].map((h:any)=>h.textContent);
   assert(headings.join(" | ")==="Because you watched The Glory | Because you watched Move to Heaven","each row is named after its title: "+headings.join(" | "));
+  assert(section.querySelector("h2.catalogSectionTitle")?.textContent==="Recommended for you","the rows sit under a Recommended for you heading");
   const weekly=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
   assert(weekly.indexOf(section)===weekly.findIndex((s:any)=>s.textContent.includes("This Week: Romance"))+1,"the rows sit directly under Weekly Picks");
   assert(section.textContent.includes("Mouse")&&section.textContent.includes("Our Blues"),"the rows show their titles");
@@ -199,6 +200,35 @@ await test("tapping Add to Collection is counted (once per person per day on the
  (document.querySelector(".quickSearchResults .discoverTitleAdd") as any).click();await new Promise(r=>setTimeout(r,10));
  assert(sent.some(x=>x.source==="add-to-collection"),"tapping Add sends the count: "+JSON.stringify(sent));
  assert(document.querySelector(".collectionPicker")?.hasAttribute("open")||(document.querySelector(".collectionPicker") as any)?.open,"the collection picker still opens");
+});
+await test("connecting a username after the app has started shows Recommended for you on Discover, without a restart",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const realInterval=globalThis.setInterval,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const saved=new Map<string,string>([["ydl-v3-started","1"]]),asked:string[]=[];
+ const fetcher=async(url:string)=>{const u=String(url);asked.push(u);
+  if(u.startsWith("/api/mdl/profile"))return Response.json({profileName:"Jaesan",lists:[{name:"Jaesan’s Completed",url:"https://mydramalist.com/dramalist/jaesan/completed",kind:"watchlist"}]});
+  if(u.startsWith("/api/recommendations"))return Response.json({rows:[{seed:{title:"The Glory",slug:"1"},items:[{kind:"tv",id:7,name:"Mouse",date:"2021-03-03",poster:"https://image.tmdb.org/t/p/w780/m.jpg"}]}]});
+  if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog:{id:"w",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0},items:[{kind:"tv",id:1,name:"Love A",date:"2024-01-01",poster:"https://image.tmdb.org/t/p/w780/a.jpg"}]}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
+  return Response.json({collections:[],items:[]});
+ };
+ const tick=(ms=30)=>new Promise(r=>setTimeout(r,ms));
+ try{
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  await tick(80);
+  assert(!asked.some(u=>u.startsWith("/api/recommendations"))&&!document.querySelector(".recsSection .catalogShelf"),"no username yet: no rows and no request");
+  (document.querySelector('.androidNavItem[data-destination="community"]') as any).click();await tick();
+  (document.getElementById("profileInput") as any).value="Jaesan";
+  await (document.getElementById("profileForm") as any).onsubmit({preventDefault(){}});await tick(60);
+  (document.querySelector('.androidNavItem[data-destination="discover"]') as any).click();await tick(80);
+  const section=document.querySelector(".recsSection") as any;
+  assert(section&&!section.hidden&&section.querySelector("h2")?.textContent==="Recommended for you"&&section.textContent.includes("Because you watched The Glory"),"the rows appear after looking up a username in Lists");
+  assert(asked.filter(u=>u.startsWith("/api/recommendations")).length===1,"the rows are requested once: "+asked.filter(u=>u.startsWith("/api/recommendations")).length);
+  const sections=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
+  const weekly=sections.findIndex((s:any)=>s.textContent.includes("This Week: Romance"));
+  assert(weekly>=0&&sections[weekly+1]===section,"they sit directly under Weekly Picks");
+ }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);

@@ -2,6 +2,7 @@
 
 ## Website updates since 1.1.30
 
+- "Because you watched" rows sit under a "Recommended for you" heading, and now appear as soon as a username is connected (on Connect or by a lookup in Lists), without restarting the app.
 - Usage count for Add to Collection: people who tap it (one scrambled code per person per day, like the other counts), shown on the admin page under Search. The privacy page says so.
 - "Watch this while they play GTA 6": a limited-time, hand-picked catalog of 20 easy, funny dramas and movies. It is the first list on Discover, under a "Spotlight" heading with a countdown, can be added to Nuvio, and disappears at midnight Pacific on January 1, 2027.
 - "Because you watched" rows now hold 30 titles each, topped up from similar titles, shared themes and the same genres and country.
