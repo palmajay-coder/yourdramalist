@@ -1,4 +1,4 @@
-import {mdlTitleMeta,normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter,listStatus,analyticsScopes} from './addon.ts';
+import {mdlTitleMeta,normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter,listStatus,analyticsScopes,selectionFromConfig,configurePage} from './addon.ts';
 import {parseModernWatchlist,profileWatchlistCards,extractMDLTitlePoster} from './addonScrape.ts';
 import {Ge,Sz,Go,Xe,hiddenTitleKey} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
@@ -188,5 +188,33 @@ await test('Spotlight, Top 10 and Because you watched count as their own catalog
  assert(scopes.every(s=>validAnalytics(s.split(':')[0] as any,s.slice(s.indexOf(':')+1))),'every scope is an accepted category');
  assert(analyticsCategoryLabel('spotlight:monthly:JP')==='Spotlight of the month (Japan)'&&analyticsCategoryLabel('spotlight:gta6:all')==='Spotlight · GTA 6'&&analyticsCategoryLabel('top10:movie:CN')==='Top 10 Movies Today (China)'&&analyticsCategoryLabel('recs:1')==='Because you watched · Row 2','labels');
  assert(['spotlight','top10','recommended'].every(s=>validAnalytics('catalog.added',s))&&!validAnalytics('catalog.selected','top10:tv:US'),'Discover Add sources are accepted; unknown countries are not');
+});
+await test('Configure in Nuvio and Stremio reopens the setup with the same catalogs and no keys',async()=>{
+ const full={...body,user:'TestUser',preferences:{reviews:true,hideUnreleased:true},catalogs:[
+  {name:'My community list',url:'https://mydramalist.com/list/q1XvK6w3',filter:{type:'drama'}},
+  {name:'TestUser’s Watchlist',url:'https://mydramalist.com/dramalist/testuser',kind:'watchlist'},
+  {name:'Lee Min Ho',kind:'filmography',mode:'actor',personUrl:'https://mydramalist.com/people/123-lee-min-ho'},
+  {...exploreCatalog('top-movies','1'),kind:'explore'},
+  {name:'w',kind:'weekly',country:'3',slot:1},
+  {name:'Top 10 Dramas Today (Japan)',kind:'top10',url:'ydl-top10:tv:JP'},
+  {name:'Thankful for Family (China)',kind:'special',url:'ydl-special:monthly:CN'},
+  {name:'Because you watched X',kind:'recs',slot:2},
+ ]};
+ const c=normalizeAddon(full);
+ const again=normalizeAddon({user:c.user,preferences:c.preferences,catalogs:selectionFromConfig(c)});
+ const show=(x:any)=>x.entries.map((e:any)=>e.id+'|'+e.name+'|'+e.type).join(' / ');
+ assert(show(again)===show(c),'the same catalogs come back:\n'+show(c)+'\n'+show(again));
+ assert(makeManifest(c).behaviorHints.configurable===true,'the manifest offers Configure');
+ const keyed=normalizeAddon({...body,preferences:{posters:false},rpdb:{apiKey:'t0-SECRETKEY123456'}});
+ const page=configurePage(keyed);
+ assert(page.includes('ydl-v3-selection')&&page.includes("location.replace('/setup/lists')")&&!page.includes('SECRETKEY')&&!/<\/script>[\s\S]*<\/script>[\s\S]*<\/script>/.test(page),'the page restores the setup without keys');
+ Deno.env.set('YDL_MANIFEST_SECRET','c'.repeat(64));
+ const made=await handleAddon(new Request('https://test/api/addon/configure',{method:'POST',headers:{origin:'https://test','content-type':'application/json'},body:JSON.stringify(full)}));
+ const link=new URL((await made.json()).url);
+ const opened=await handleAddon(new Request('https://test'+link.pathname.replace('manifest.json','configure')));
+ const html=await opened.text();
+ assert(opened.status===200&&opened.headers.get('content-type')?.includes('text/html')&&opened.headers.get('x-robots-tag')==='noindex'&&html.includes('ydl-special:monthly:CN'),'a real install link opens its setup');
+ const bad=await handleAddon(new Request('https://test/addon/not-a-token/configure'));
+ assert(bad.status===302&&bad.headers.get('location')==='/','a broken link goes to the home page');
 });
 console.log(JSON.stringify({passed}));

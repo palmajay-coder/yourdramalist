@@ -70,6 +70,31 @@ export function normalizeAddon(body:any){
  return{entries,user,preferences,...(betterPosters?{betterPosters}:{}),...(posterPlus?{posterPlus}:{}),...(rpdb?{rpdb:{apiKey:rpdb}}:{}),keys:preferences.posters?keys:{tmdb:'',mdblist:''}};
 }
 export type AddonConfig=ReturnType<typeof normalizeAddon>;
+/**
+ * The setup page's selection for a stored config, so Configure in Nuvio or Stremio reopens it: the reverse of
+ * the entry mapping in normalizeAddon (normalizeAddon(selection) gives the same entries back).
+ */
+export function selectionFromConfig(config:AddonConfig){
+ return config.entries.map((e:Entry)=>{
+  const filtered=e.filter?{filter:e.filter,filterLabel:e.filterLabel,originalName:e.name}:{};
+  if(e.personal)return{kind:'user-collection',url:'ydl-personal:'+e.id,name:e.name};
+  if(e.top10)return{...top10Catalog(e.top10.id,(e.top10.country||'KR') as any)};
+  if(e.special){const country=e.special.country as any,list=e.special.id==='gta6'?GTA6:monthlySpotlight(Date.now(),country);return{kind:'special',id:e.special.id,url:e.id,name:spotlightName(list,country),type:'series'};}
+  if(e.recs)return{kind:'recs',slot:e.recs.slot,url:'ydl-recs:'+e.recs.slot,name:e.name,type:'series'};
+  if(e.weekly)return{...weeklyCatalog(e.weekly.country,e.weekly.slot),kind:'weekly',country:e.weekly.country,slot:e.weekly.slot};
+  if(e.explore)return{...exploreCatalog(e.explore.category,e.explore.country),name:e.name,...filtered};
+  if(e.person)return{kind:'filmography',mode:e.mode,personUrl:e.person,url:e.person,name:e.name};
+  if(e.watchlist)return{kind:'watchlist',url:'https://mydramalist.com/dramalist/'+e.watchlist+(e.watchlistStatus?'/'+e.watchlistStatus:''),name:e.name,...filtered};
+  const base=e.filter?e.id.replace(/:f[^:]*$/,''):e.id;
+  return{url:/^d\.[1-5]\./.test(base)?base:'https://mydramalist.com/list/'+base,name:e.name,...filtered};
+ });
+}
+/** The page Configure opens: it puts the install's catalogs and settings back in this browser, then shows Your Selection. */
+export function configurePage(config:AddonConfig){
+ // Keys and poster patterns are never written back; the setup page asks for them again.
+ const data=JSON.stringify({selection:selectionFromConfig(config),preferences:config.preferences,user:config.user||''}).replace(/</g,'\\u003c');
+ return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Opening your setup · YourDramaList</title><style>body{margin:0;background:#181818;color:#ddd;font:16px Lato,Arial,sans-serif;display:grid;place-items:center;min-height:100dvh}</style></head><body><p>Opening your setup…</p><script>(()=>{const d=${data};try{localStorage.setItem('ydl-v3-selection',JSON.stringify(d.selection));localStorage.setItem('ydl-v3-preferences',JSON.stringify(d.preferences));if(d.user)localStorage.setItem('ydl-v3-user',d.user);localStorage.setItem('ydl-v3-started','1');sessionStorage.setItem('ydl-from-configure','1')}catch{}location.replace('/setup/lists')})()</script></body></html>`;
+}
 type StoredAddonConfig=AddonConfig & {setupId?:string};
 const encode=(value:Uint8Array)=>btoa(String.fromCharCode(...value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=(value:string)=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
@@ -144,7 +169,7 @@ export function analyticsScopes(config:StoredAddonConfig){
  for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)scopes.push('feature.selected:'+category);}
  return scopes;
 }
-export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={},recsNames:Record<number,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:(e.recs?(recsNames[e.recs.slot]?'Because you watched '+recsNames[e.recs.slot]:'Because you watched…'):e.special?.id==='monthly'?spotlightName(monthlySpotlight(Date.now(),e.special.country as any),e.special.country as any):localizedCatalogName(e,language,personNames))+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={},recsNames:Record<number,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:(e.recs?(recsNames[e.recs.slot]?'Because you watched '+recsNames[e.recs.slot]:'Because you watched…'):e.special?.id==='monthly'?spotlightName(monthlySpotlight(Date.now(),e.special.country as any),e.special.country as any):localizedCatalogName(e,language,personNames))+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:true}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
@@ -322,7 +347,9 @@ export async function handleAddon(req:Request){
  if(req.method==='OPTIONS')return new Response(null,{status:204});
  if(req.method!=='GET'&&req.method!=='HEAD')return fail('method',405);
  const parts=u.pathname.split('/').filter(Boolean);if(parts[0]!=='addon'||parts.length<3)return fail('path',404);
- let config:StoredAddonConfig;try{config=await tokens().open(parts[1]);}catch{return fail('configuration',404);}
+ let config:StoredAddonConfig;try{config=await tokens().open(parts[1]);}catch{return parts[2]==='configure'?new Response(null,{status:302,headers:{location:'/'}}):fail('configuration',404);}
+ // Configure in Nuvio or Stremio: reopen this install's setup on the site, counted once a day per person.
+ if(parts[2]==='configure'&&parts.length===3){await popularity.recordVisit(req,['feature.selected:configure-opened']).catch(()=>{});return new Response(configurePage(config),{headers:{...headers,'content-type':'text/html; charset=utf-8','x-robots-tag':'noindex'}});}
  if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config,await personNamesFor(config),await recsNamesFor(config)),{headers});
  if(!await catalogLimiter.acquire())return fail('busy',429);
  try{

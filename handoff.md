@@ -56,6 +56,10 @@
 - **Analytics for new catalog kinds:** every new catalog kind needs its own category, or it falls through and counts as a Community public list. Add it in `analyticsScopes` (`addon.ts`), `CATALOG_CATEGORIES`, `ADD_SOURCES` and `analyticsCategoryLabel` (`analyticsApi.ts`), `catalogAddSource` (`app.ts`), and `searchSources` (`wallpaperAdmin.ts`). Spotlight uses `spotlight:<id>:<country|all>`, Top 10 uses `top10:<id>:<country>`, Because you watched uses `recs:<slot>`.
 - **Discover order** (`arrange()` in `exploreClient.ts`): Spotlight, This Week's Picks, Top 10, Recommended for you, Browse All.
 
+## Growth
+- **Configure button:** the manifest sets `configurable:true`, so Nuvio and Stremio open `/addon/<token>/configure`. `configurePage` writes `selectionFromConfig(config)`, the preferences and the username into the browser, then goes to `/setup/lists`. Keys and poster patterns are never written back. Every new catalog kind needs a case in `selectionFromConfig` (tested by a round trip through `normalizeAddon`).
+- **Search:** `/guide` (`guidePage.ts`) is plain server HTML with HowTo and FAQ data. `/robots.txt` and `/sitemap.xml` live in the same file. The owner should add the site to Google Search Console and submit the sitemap.
+
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
 - The container can't reach TMDB, yourdramalist.net or workers.dev. Check visual changes locally with `wrangler dev --local` and Playwright.

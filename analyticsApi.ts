@@ -15,7 +15,7 @@ const FEATURE_CATEGORIES = new Set([
   "community-public-list", "community-watchlist", "community-combined-watchlist",
   "actor-filmography", "director-filmography", "reviews", "hide-unreleased", "hide-completed",
   "metadata-mdl", "metadata-tmdb", "posters-tmdb", "posters-easyposters", "posters-betterposters",
-  "posters-poster-plus", "posters-rpdb", "filtered-catalog",
+  "posters-poster-plus", "posters-rpdb", "filtered-catalog", "configure-opened",
 ]);
 // Spotlight and Top 10 count by country ("all" is a Spotlight added without one, as older installs have).
 const DISCOVER_COUNTRIES = ["KR", "JP", "CN", "TW", "TH"];
@@ -183,7 +183,7 @@ export const analyticsLabels:Record<string,string>={
   "actor-filmography":"Actor filmographies", "director-filmography":"Director filmographies", reviews:"MyDramaList reviews",
   "hide-unreleased":"Hide unreleased titles", "hide-completed":"Hide completed and dropped titles",
   "metadata-mdl":"MyDramaList metadata", "metadata-tmdb":"TMDB metadata",
-  "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs",
+  "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs", "configure-opened":"Opened Configure in Nuvio/Stremio",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
   "recs:0":"Because you watched · Row 1", "recs:1":"Because you watched · Row 2", "recs:2":"Because you watched · Row 3",
   spotlight:"Spotlight adds", top10:"Top 10 adds", recommended:"Recommended for you adds",

@@ -1,6 +1,8 @@
 # Changelog
 
 ## Website updates since 1.1.30
+- Configure button for YourDramaList in Nuvio and Stremio: it reopens your setup on the site with your catalogs, settings and username already filled in (API keys are typed again), so you can add new lists and install the new link. Configure opens are counted on the admin page.
+- New setup guide at /guide, "How to Add MyDramaList Catalogs to Nuvio and Stremio", written for search engines, linked from the Connect screen and the footer. Added robots.txt and sitemap.xml.
 - Analytics count Spotlight, Top 10 and Because you watched as their own catalogs (with a breakdown by country, and by row for Because you watched) and their Discover Add taps as Spotlight, Top 10 and Recommended for you adds. Before this they were counted as Community public lists.
 - "Catalogs by Country" on Discover is now "Browse All", since the country filter applies to every section.
 - Discover's country filter now applies to Spotlight and Top 10. Spotlight shows that country's hand-picked titles first, then fills up to 15 with the country's best-rated titles on the same theme (comedies for GTA 6, family stories for Thankful for Family, and so on); a list that still has fewer than 5 titles hides for that country. Top 10 shows that country's rows. Adding either to Nuvio keeps the country.
