@@ -165,6 +165,7 @@ await test("the limited-time GTA 6 shelf is the first list on Discover, with a c
   const {document,saved}=await mount({catalog,items:[{kind:"tv",id:5,name:"Business Proposal",date:"2022-02-28",poster:"https://image.tmdb.org/t/p/w780/b.jpg"}]});
   const sections=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
   assert(sections[0]?.classList.contains("specialSection")&&sections[1]?.textContent.includes("This Week: Romance"),"the GTA 6 shelf comes first, then Weekly Picks: "+sections.map((s:any)=>s.className).join(","));
+  assert(sections[0].querySelector("h2").textContent==="Spotlight","the section is headed Spotlight");
   assert(sections[0].querySelector(".catalogShelf h3").textContent==="Watch this while they play GTA 6"&&sections[0].textContent.includes("Business Proposal"),"the shelf shows its name and picks");
   assert(sections[0].querySelector(".collectionClock").textContent==="◷ 41d 3h","the countdown shows the time left to January 1: "+sections[0].querySelector(".collectionClock").textContent);
   sections[0].querySelector(".catalogAdd").click();

@@ -2,7 +2,7 @@
 
 ## Website updates since 1.1.30
 
-- (Test site) "Watch this while they play GTA 6": a limited-time, hand-picked catalog of 20 easy, funny dramas and movies. It is the first list on Discover with a countdown, can be added to Nuvio, and disappears at midnight Pacific on January 1, 2027.
+- (Test site) "Watch this while they play GTA 6": a limited-time, hand-picked catalog of 20 easy, funny dramas and movies. It is the first list on Discover, under a "Spotlight" heading with a countdown, can be added to Nuvio, and disappears at midnight Pacific on January 1, 2027.
 - (Test site) "Because you watched" rows now hold 30 titles each, topped up from similar titles, shared themes and the same genres and country.
 - (Test site) "Because you watched …": up to three personal rows under Weekly Picks for a connected MyDramaList username, also available as Nuvio catalogs. Built from the watchlist (watching, then completed titles scored 8+) and TMDB recommendations, leaving out anything already on the watchlist. The rows change every Monday.
 - Weekly Picks posters rotate every 12 hours (midnight and noon Pacific): each title cycles through up to six of its English and textless TMDB posters, the same for everyone in that window. Opening a title keeps the poster it showed on the shelf. Nuvio catalogs keep one poster.

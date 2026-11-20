@@ -316,7 +316,7 @@ export function installExploreUI() {
         }
         const heading = document.createElement("h2");
         heading.className = "catalogSectionTitle";
-        heading.textContent = "Limited time";
+        heading.textContent = "Spotlight";
         const clock = document.createElement("span");
         clock.className = "collectionClock";
         clock.title = "Until January 1, midnight Pacific time";
