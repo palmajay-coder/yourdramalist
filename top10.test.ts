@@ -51,7 +51,7 @@ await test("built once per Pacific day, saved, and kept for up to three days whe
   clock += 6 * 3600000; // 6pm the same day
   await top.current();
   ok(calls.length === first, "the same Pacific day reuses the list");
-  ok(saved.value?.date === "2026-11-20" && saved.value.rows.length === 2, "the list is saved");
+  ok(saved.value?.KR?.date === "2026-11-20" && saved.value.KR.rows.length === 2, "the list is saved");
   clock = NOON + 24 * 3600000;
   await top.current();
   ok(calls.length === first * 2, "the next day rebuilds");
@@ -60,5 +60,24 @@ await test("built once per Pacific day, saved, and kept for up to three days whe
   ok((await restarted.current()).rows.length === 2, "TMDB trouble shows the saved list");
   const later = createTop10({tmdb, now: () => NOON + 5 * 24 * 3600000, storage});
   ok((await later.current()).rows.length === 0, "after three days without TMDB nothing shows");
+});
+await test("follows the country filter, with each country's own rows and names", async () => {
+  const {tmdb, calls} = fake();
+  const top = createTop10({tmdb, now: () => NOON});
+  const jp = await top.current("JP");
+  ok(calls.every(c => c.params.with_origin_country === "JP"), "asks for Japanese titles");
+  ok(jp.rows.map(r => r.catalog.name).join(" / ") === "Top 10 J-Dramas Today / Top 10 J-Movies Today", "Japanese names: " + jp.rows.map(r => r.catalog.name));
+  ok(jp.rows[0].catalog.url === "ydl-top10:tv:JP" && jp.rows[1].catalog.url === "ydl-top10:movie:JP", "the country is in the address");
+  const th = await top.current("TH");
+  ok(th.rows[0].catalog.name === "Top 10 Thai Dramas Today" && calls.some(c => c.params.with_origin_country === "TH" && c.params["vote_count.gte"] === "1"), "small markets use a lower vote floor");
+  const kr = await top.current();
+  ok(kr.rows[0].catalog.url === "ydl-top10:tv" && kr.rows[0].catalog.name === "Top 10 K-Dramas Today", "Korea keeps its original address and name");
+});
+
+await test("a saved list from before countries still counts as Korea's", async () => {
+  const {tmdb, calls} = fake();
+  const old = {date: "2026-11-20", builtAt: NOON, rows: [{catalog: TOP10_CATALOGS.tv, items: []}]};
+  const top = createTop10({tmdb, now: () => NOON, storage: {load: async () => old, save: async () => {}}});
+  ok((await top.current("KR")).rows.length === 1 && calls.length === 0, "used as Korea's list for today");
 });
 console.log(JSON.stringify({passed}));

@@ -65,12 +65,58 @@ await test("each running list is matched on TMDB in its hand-picked order, shari
   const before = calls.length;
   await spotlight.current();
   ok(calls.length === before, "matches are reused");
-  ok(Array.isArray(saved.rows) && saved.rows.length === 5, "matches are saved");
+  ok(Array.isArray(saved.rows?.matches) && saved.rows.matches.length === 5, "matches are saved");
 });
 
 await test("a list that has nothing to show is left out", async () => {
   const {tmdb} = fakeTmdb();
   const spotlight = createSpecialCatalog({tmdb, now: () => NOW, lists: () => [one("monthly", "Empty", "2026-12-01T08:00:00.000Z", [{title: "Nowhere Show", year: 2020, country: "KR", kind: "tv"}])]});
   ok((await spotlight.current()).lists.length === 0, "no titles, no list");
+});
+await test("a country sees its own picks first, topped up to 15 on the list's theme, and kept for a week", async () => {
+  const {tmdb: base, calls} = fakeTmdb();
+  const discover: Record<string, string>[] = [];
+  let clock = NOW;
+  const tmdb = async (path: string, params: Record<string, string> = {}) => {
+    if (path === "search/keyword") return {results: [{id: params.query === "romance" ? 9840 : 818, name: params.query}]};
+    if (path.startsWith("discover/")) {
+      discover.push({path, ...params});
+      const kind = path.slice(9), many = params["vote_count.gte"] === "20" ? 6 : 20;
+      return {results: Array.from({length: many}, (_, i) => ({id: (kind === "tv" ? 500 : 700) + i, name: "JP " + kind + " " + i, title: "JP " + kind + " " + i, origin_country: ["JP"], poster_path: "/j" + i + ".jpg", vote_average: 9 - i / 10, overview: "", first_air_date: "2020-01-01", release_date: "2020-01-01"}))};
+    }
+    return base(path, params);
+  };
+  const saved: any = {};
+  const themed = () => lists().map(list => ({...list, theme: list.id === "gta6" ? {genre: "35"} : {keywords: ["romance", "family"]}}));
+  const spotlight = createSpecialCatalog({tmdb, now: () => clock, lists: themed, storage: {load: async () => saved.rows, save: async (rows: any) => { saved.rows = rows; }}});
+  const data = await spotlight.current("JP");
+  ok(data.lists.map(l => l.catalog.url).join(",") === "ydl-special:gta6:JP,ydl-special:monthly:JP", "both lists, with the country in their address: " + data.lists.map(l => l.catalog.url));
+  const gta = data.lists[0];
+  ok(gta.items.length === 15 && gta.items[0].id === 3, "Japan's hand-picked title comes first, then 14 more: " + gta.items.length);
+  ok(!gta.items.some(i => i.id === 1 || i.id === 2 || i.id === 4), "other countries' picks are left out");
+  const comedy = discover.filter(d => d.with_genres === "35");
+  ok(comedy.length >= 2 && comedy.every(d => d.with_origin_country === "JP" && !d.with_keywords), "GTA 6 is topped up with Japanese comedies");
+  ok(discover.some(d => d.with_keywords === "9840|818" && d.with_origin_country === "JP"), "the month's list is topped up on its keywords");
+  ok(discover.find(d => d["vote_count.gte"] === "5"), "a short list relaxes the rating floor");
+  const before = discover.length;
+  clock += 3 * 86400000;
+  await spotlight.current("JP");
+  ok(discover.length === before, "the top-up is kept for a week");
+  ok(Array.isArray(saved.rows?.fills) && saved.rows.fills.length === 2, "top-ups are saved");
+  const all = await spotlight.current();
+  ok(all.lists[0].catalog.url === "ydl-special:gta6" && all.lists[0].items.length === 4 && !all.lists[0].catalog.country, "without a country every country's picks show, with no top-up");
+  ok(calls.length > 0, "matching still runs");
+});
+
+await test("a country with fewer than five titles after the top-up does not get that list", async () => {
+  const tmdb = async (path: string) => path.startsWith("discover/") ? {results: [{id: 1, name: "Only one", origin_country: ["TW"], poster_path: "/a.jpg", vote_average: 8}]} : path === "search/keyword" ? {results: []} : {results: []};
+  const spotlight = createSpecialCatalog({tmdb, now: () => NOW, lists: () => lists().map(list => ({...list, theme: {genre: "35"}}))});
+  ok((await spotlight.current("TW")).lists.length === 0, "too short to show");
+});
+
+await test("every running list has a theme for topping up", () => {
+  for (const time of [Date.UTC(2026, 10, 20), ...Array.from({length: 12}, (_, m) => Date.UTC(2027, m, 15))]) {
+    for (const list of activeSpotlights(time)) ok(list.theme && (list.theme.genre || list.theme.keywords?.length), list.name + " has a theme");
+  }
 });
 console.log(JSON.stringify({passed}));

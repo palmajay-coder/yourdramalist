@@ -1,6 +1,7 @@
 # Changelog
 
 ## Website updates since 1.1.30
+- Discover's country filter now applies to Spotlight and Top 10. Spotlight shows that country's hand-picked titles first, then fills up to 15 with the country's best-rated titles on the same theme (comedies for GTA 6, family stories for Thankful for Family, and so on); a list that still has fewer than 5 titles hides for that country. Top 10 shows that country's rows (Top 10 J-Dramas Today, C-Dramas, Taiwanese, Thai). Adding either to Nuvio keeps the country.
 - Shelves show each title's usual TMDB poster again; Weekly Picks and Spotlight posters no longer rotate, so a title looks the same everywhere.
 
 - Spotlight calendar: a holiday or seasonal list every month under one Spotlight heading with one timer to the end of the month (New Year, New Obsession; Fall in Love This February; White Day Sweethearts; Spring Into Love; Watch With Mom; Summer Crush; Beach Brain; Last Days of Summer; Chuseok at Home; K-Horror Night; Thankful for Family; Snowed In for Christmas). It changes by itself at midnight Pacific on the 1st. The GTA 6 list now ends when the winter list begins (December 1). In Nuvio, "Spotlight of the month" always shows the current month's list.

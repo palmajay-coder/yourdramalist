@@ -14,14 +14,15 @@ import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
 import {recommendationsFor} from './recommendations.ts';
 import {specialCatalog,GTA6,monthlySpotlight} from './specialCatalog.ts';
-import {top10,TOP10_CATALOGS} from './top10.ts';
+import {top10,top10Catalog} from './top10.ts';
+const SPOTLIGHT_CODES=['KR','JP','CN','TW','TH'];
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
 import {loadPersonalCatalog,personalCatalogId} from './personalCatalogs.ts';
-type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string};top10?:{id:'tv'|'movie'};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string;country?:string};top10?:{id:'tv'|'movie';country?:string};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -48,11 +49,13 @@ export function normalizeAddon(body:any){
    if(!personalCatalogId.test(ref))throw new InvalidConfig('catalog-entry');
    return{id:ref,name,type:'series',personal:true};
   }
-  // Netflix-style Top 10 (K-dramas or K-movies today); the setup page sends the address ydl-top10:<id>.
-  if(item.kind==='top10'){const id=item.id||String(item.url||'').replace(/^ydl-top10:/,'');const c=(TOP10_CATALOGS as any)[id];if(!c||!['tv','movie'].includes(id))throw new InvalidConfig('catalog-entry');return{id:c.url,name:c.name,type:c.type,top10:{id}};}
+  // Netflix-style Top 10 (dramas or movies today); the setup page sends the address ydl-top10:<id>, plus :<country>
+  // for a country other than Korea (ydl-top10:tv:JP). The id alone is accepted too.
+  if(item.kind==='top10'){const [id,country]=(typeof item.url==='string'&&item.url.startsWith('ydl-top10:')?item.url.slice(10):String(item.id||'')).split(':');if(!['tv','movie'].includes(id)||(country!==undefined&&!SPOTLIGHT_CODES.includes(country)))throw new InvalidConfig('catalog-entry');const c=top10Catalog(id as 'tv'|'movie',(country||'KR') as any);return{id:c.url,name:c.name,type:c.type,top10:{id:id as 'tv'|'movie',...(country&&country!=='KR'?{country}:{})}};}
   // A limited-time, hand-picked catalog ("Watch this while they play GTA 6").
-  // The setup page sends the catalog's address (ydl-special:<id>); its id is accepted too.
-  if(item.kind==='special'){const special=item.id||String(item.url||'').replace(/^ydl-special:/,'');if(!['gta6','monthly'].includes(special))throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+special,name:special==='gta6'?GTA6.name:'Spotlight of the month',type:'series',special:{id:special}};}
+  // The setup page sends the catalog's address (ydl-special:<id>, plus :<country> when Discover was filtered to one
+  // country, for example ydl-special:monthly:JP); its id is accepted too. Without a country every country's picks show.
+  if(item.kind==='special'){const [special,country]=(typeof item.url==='string'&&item.url.startsWith('ydl-special:')?item.url.slice(12):String(item.id||'')).split(':');if(!['gta6','monthly'].includes(special)||(country!==undefined&&!SPOTLIGHT_CODES.includes(country)))throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+special+(country?':'+country:''),name:special==='gta6'?GTA6.name:'Spotlight of the month',type:'series',special:{id:special,...(country?{country}:{})}};}
   // "Because you watched …": one of up to three personal rows, built from the install's MyDramaList username.
   if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return{id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}};}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
@@ -145,14 +148,14 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   return meta;
  }
  if(entry.top10){
-  const data=await ((deps as any).top10||top10)();
+  const data=await ((deps as any).top10||top10)(entry.top10.country||'KR');
   const items=data?.rows?.find((row:any)=>row.catalog?.id===entry.top10!.id)?.items||[];
   const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.special){
   // GTA 6, or the month's list (which changes by itself on the 1st). An ended list has no titles.
-  const data=await ((deps as any).special||specialCatalog)();
+  const data=await ((deps as any).special||specialCatalog)(entry.special.country);
   const items=data?.lists?.find((list:any)=>list.catalog?.id===entry.special!.id)?.items||[];
   const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};

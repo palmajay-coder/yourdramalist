@@ -118,6 +118,12 @@ await test('Top 10 K-dramas and K-movies install in Nuvio and list today\'s rank
  const m=makeManifest(c as any).catalogs;
  assert(m[0].name==='Top 10 K-Dramas Today'&&m[0].type==='series'&&m[1].name==='Top 10 K-Movies Today'&&m[1].type==='movie','names and types: '+JSON.stringify(m));
  let refused=false;try{normalizeAddon({...body,catalogs:[{name:'X',kind:'top10',url:'ydl-top10:anime'}]})}catch{refused=true}
+ {const f=normalizeAddon({...body,catalogs:[{name:'Top 10 J-Dramas Today',kind:'top10',url:'ydl-top10:tv:JP'},{name:'Thankful for Family',kind:'special',url:'ydl-special:monthly:JP'}]});
+  const [t,sp]=f.entries as any[];assert(t.id==='ydl-top10:tv:JP'&&t.top10.country==='JP'&&t.name==='Top 10 J-Dramas Today'&&sp.id==='ydl-special:monthly:JP'&&sp.special.country==='JP','a filtered Top 10 and Spotlight keep their country');
+  let bad=false;try{normalizeAddon({...body,catalogs:[{name:'X',kind:'top10',url:'ydl-top10:tv:US'}]})}catch{bad=true}assert(bad,'an unknown country is refused');
+  let asked:any[]=[];const d={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),top10:async(c:string)=>{asked.push(c);return{rows:[{catalog:{id:'tv'},items:[{kind:'tv',id:1,name:'X'}]}]}},special:async(c:string)=>{asked.push(c);return{lists:[{catalog:{id:'monthly'},items:[{kind:'tv',id:6,name:'Y'}]}]}},weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any;
+  await loadCatalog(f,0,0,'https://test/addon/token',d);await loadCatalog(f,1,0,'https://test/addon/token',d);
+  assert(asked.join(',')==='JP,JP','Nuvio loads the country\'s list: '+asked.join(','));}
  assert(refused,'only K-dramas and K-movies exist');
  const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),top10:async()=>({rows:[{catalog:{id:'tv'},items:[{kind:'tv',id:1,name:'Pro Bono'}]},{catalog:{id:'movie'},items:[{kind:'movie',id:2,name:'No Other Choice'}]}]}),weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:x.kind==='tv'?'series':'movie',name:x.name}))} as any;
  const dramas=await loadCatalog(c,0,0,'https://test/addon/token',deps),movies=await loadCatalog(c,1,0,'https://test/addon/token',deps);

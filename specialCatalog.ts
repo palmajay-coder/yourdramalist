@@ -2,15 +2,22 @@
 // - "Watch this while they play GTA 6" runs until the winter list begins (midnight Pacific, December 1, 2026).
 // - A holiday or seasonal list for every month, which changes by itself at midnight Pacific on the 1st.
 // Both sit under one "Spotlight" heading with one timer counting to the end of the month.
+// Discover's country filter applies: a country sees its own hand-picked titles first, then the list is topped up
+// with that country's best-rated titles on the same theme (THEMES below).
 import {blob} from "https://esm.town/v/std/blob/main.ts";
 import {normalizeTitle, posterUrl} from "./collections.ts";
 import {pacificDate, pacificMidnight} from "./pacificTime.ts";
 
 type Storage = {load: () => Promise<any>; save: (value: any) => Promise<any>};
-type Country = "KR" | "JP" | "CN" | "TW" | "TH";
+export type Country = "KR" | "JP" | "CN" | "TW" | "TH";
 type Pick = {title: string; year: number; country: Country; kind: "tv" | "movie"; alt?: string[]};
 export type SpecialItem = {kind: "tv" | "movie"; id: number; name: string; poster: string; overview: string; date: string; score: number};
-type Spotlight = {id: string; name: string; until: string; titles: Pick[]};
+type Spotlight = {id: string; name: string; until: string; titles: Pick[]; theme?: Theme};
+/** What a list is about, for topping it up: TMDB keywords (any of them) or a TMDB genre. */
+type Theme = {keywords?: string[]; genre?: string};
+export const SPOTLIGHT_COUNTRIES: Record<string, Country> = {"3": "KR", "2": "CN", "1": "JP", "5": "TW", "6": "TH"};
+/** A filtered list is topped up to this many titles; one with fewer than MIN_LIST is left out for that country. */
+const FULL_LIST = 15, MIN_LIST = 5;
 
 const tv = (title: string, year: number, country: Country = "KR", alt?: string[]): Pick => ({title, year, country, kind: "tv", ...(alt ? {alt} : {})});
 const film = (title: string, year: number, country: Country = "KR", alt?: string[]): Pick => ({title, year, country, kind: "movie", ...(alt ? {alt} : {})});
@@ -45,6 +52,22 @@ export const GTA6: Spotlight = {
 /** Kept for older callers: the GTA 6 list. */
 export const SPECIAL = GTA6;
 
+/** The theme of each list, used to top it up for a country (keyed by "gta6" or the month number). */
+export const THEMES: Record<string, Theme> = {
+  gta6: {genre: "35"},
+  1: {genre: "18"},
+  2: {keywords: ["romance", "first love"]},
+  3: {keywords: ["romantic comedy", "romance"]},
+  4: {keywords: ["romance", "cherry blossom"]},
+  5: {genre: "10751"},
+  6: {keywords: ["first love", "summer", "youth"]},
+  7: {keywords: ["beach", "island", "summer vacation"]},
+  8: {keywords: ["coming of age", "summer"]},
+  9: {keywords: ["historical", "period drama", "joseon dynasty"]},
+  10: {keywords: ["horror", "ghost", "zombie"]},
+  11: {genre: "10751"},
+  12: {keywords: ["christmas", "winter", "snow"]},
+};
 /** One list per month (1 = January), chosen for that month's holiday or season. */
 export const MONTHLY: Record<number, {name: string; titles: Pick[]}> = {
   1: {name: "New Year, New Obsession", titles: [
@@ -109,11 +132,11 @@ export function monthlySpotlight(time: number): Spotlight {
   const {date} = pacificDate(time);
   const month = date.getUTCMonth() + 1;
   const until = new Date(pacificMidnight(new Date(Date.UTC(date.getUTCFullYear(), month, 1)))).toISOString();
-  return {id: "monthly", name: MONTHLY[month].name, until, titles: MONTHLY[month].titles};
+  return {id: "monthly", name: MONTHLY[month].name, until, titles: MONTHLY[month].titles, theme: THEMES[month]};
 }
 /** The Spotlight lists running at a given moment, GTA 6 first. */
 export function activeSpotlights(time: number, gta: Spotlight = GTA6): Spotlight[] {
-  return [...(time < Date.parse(gta.until) ? [gta] : []), monthlySpotlight(time)];
+  return [...(time < Date.parse(gta.until) ? [{theme: THEMES.gta6, ...gta}] : []), monthlySpotlight(time)];
 }
 const LANGUAGE: Record<string, string> = {KR: "ko", JP: "ja", CN: "zh", TW: "zh", TH: "th"};
 const DAY = 86400000;
@@ -121,10 +144,20 @@ const DAY = 86400000;
 export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record<string, string>) => Promise<any>; now?: () => number; storage?: Storage; lists?: (time: number) => Spotlight[]}) {
   const now = deps.now || Date.now, listsAt = deps.lists || ((time: number) => activeSpotlights(time));
   const cache = new Map<string, {item: SpecialItem | null; expires: number}>();
+  // Top-ups per list, month and country, kept a week so a country's list stays the same from day to day.
+  const fills = new Map<string, {items: SpecialItem[]; expires: number}>();
   let ready: Promise<void> | undefined, saving = Promise.resolve();
   const bounded = async <T>(p: Promise<T>) => { let t: any; try { return await Promise.race([p, new Promise<undefined>(r => { t = setTimeout(r, 1000); })]); } finally { clearTimeout(t); } };
   async function init() {
-    ready ??= (async () => { try { const rows = deps.storage ? await bounded(deps.storage.load()) : null; if (Array.isArray(rows)) for (const [k, v] of rows) if (v && typeof v.expires === "number") cache.set(k, v); } catch { /* Start empty. */ } })();
+    ready ??= (async () => {
+      try {
+        const data = deps.storage ? await bounded(deps.storage.load()) : null;
+        // Older saves were just the matches; newer ones are {matches, fills}.
+        const matches = Array.isArray(data) ? data : data?.matches, saved = Array.isArray(data?.fills) ? data.fills : [];
+        if (Array.isArray(matches)) for (const [k, v] of matches) if (v && typeof v.expires === "number") cache.set(k, v);
+        for (const [k, v] of saved) if (v && typeof v.expires === "number" && Array.isArray(v.items)) fills.set(k, v);
+      } catch { /* Start empty. */ }
+    })();
     await ready;
   }
 
@@ -166,17 +199,70 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
     return {changed, items: items.filter((item): item is SpecialItem => !!item && !seen.has(item.kind + ":" + item.id) && !!seen.add(item.kind + ":" + item.id))};
   }
 
-  /** Every Spotlight list running now (GTA 6 first, then the month's list), with its titles. */
-  async function current() {
+  /** A TMDB keyword's id, remembered for 90 days (null if TMDB has no such keyword). */
+  async function keywordId(name: string): Promise<number | null> {
+    const key = "keyword:" + name, hit = cache.get(key);
+    if (hit && hit.expires > now()) return (hit.item as any)?.id ?? null;
+    const data = await deps.tmdb("search/keyword", {query: name});
+    const found = (Array.isArray(data?.results) ? data.results : []).find((r: any) => normalizeTitle(String(r?.name || "")) === normalizeTitle(name));
+    cache.set(key, {item: found ? {id: Number(found.id)} as any : null, expires: now() + 90 * DAY});
+    return found ? Number(found.id) : null;
+  }
+
+  /** The country's best-rated titles on the list's theme, leaving out titles already on the list. */
+  async function topUp(theme: Theme, country: Country, have: SpecialItem[], count: number): Promise<SpecialItem[]> {
+    const keywords = (await Promise.all((theme.keywords || []).map(name => keywordId(name).catch(() => null)))).filter(Boolean).join("|");
+    if (!keywords && !theme.genre) return [];
+    const today = new Date(now()).toISOString().slice(0, 10), seen = new Set(have.map(item => item.kind + ":" + item.id));
+    const find = async (kind: "tv" | "movie", votes: number, average: number) => {
+      const params: Record<string, string> = {with_origin_country: country, include_adult: "false", language: "en-US", sort_by: "vote_average.desc", "vote_count.gte": String(votes), "vote_average.gte": String(average), without_genres: "16,99,10763,10764,10767", [kind === "tv" ? "first_air_date.lte" : "primary_release_date.lte"]: today, page: "1"};
+      if (keywords) params.with_keywords = keywords; else params.with_genres = theme.genre!;
+      const data = await deps.tmdb("discover/" + kind, params);
+      return (Array.isArray(data?.results) ? data.results : [])
+        .filter((r: any) => !r.adult && posterUrl(r.poster_path) && (kind !== "tv" || (Array.isArray(r.origin_country) && r.origin_country.includes(country))))
+        .map((r: any): SpecialItem => ({kind, id: Number(r.id), name: String(r.name || r.title || "").trim(), poster: posterUrl(r.poster_path)!, overview: String(r.overview || ""), date: String(r.first_air_date || r.release_date || ""), score: Number(r.vote_average) || 0}))
+        .filter((item: SpecialItem) => item.name);
+    };
+    const found: SpecialItem[] = [];
+    const add = (more: SpecialItem[]) => { for (const item of more.sort((a, b) => b.score - a.score || a.id - b.id)) if (!seen.has(item.kind + ":" + item.id)) { seen.add(item.kind + ":" + item.id); found.push(item); } };
+    // Well-known titles first; small markets (Taiwan, Thailand) then relax the rating floor.
+    add((await Promise.all((["tv", "movie"] as const).map(kind => find(kind, 20, 6.5)))).flat());
+    if (found.length < count) add((await Promise.all((["tv", "movie"] as const).map(kind => find(kind, 5, 6)))).flat());
+    return found.slice(0, count);
+  }
+
+  /**
+   * Every Spotlight list running now (GTA 6 first, then the month's list), with its titles. With a country
+   * (KR, JP, CN, TW or TH), each list keeps that country's hand-picked titles and is topped up to 15 on its theme.
+   */
+  async function current(country?: Country) {
     await init();
     const lists = [];
     let changed = false;
     for (const list of listsAt(now())) {
-      const result = await resolve(list);
+      const picks = country ? {...list, titles: list.titles.filter(pick => pick.country === country)} : list;
+      const result = await resolve(picks);
       changed ||= result.changed;
-      if (result.items.length) lists.push({catalog: {kind: "special", id: list.id, url: "ydl-special:" + list.id, name: list.name, type: "series", until: list.until}, items: result.items});
+      let items = result.items;
+      if (country && list.theme && items.length < FULL_LIST) {
+        const key = list.id + ":" + list.name + ":" + country, hit = fills.get(key);
+        let extra = hit && hit.expires > now() ? hit.items : null;
+        if (!extra) {
+          try { extra = await topUp(list.theme, country, items, FULL_LIST - items.length); fills.set(key, {items: extra, expires: now() + 7 * DAY}); changed = true; }
+          catch { extra = hit?.items || []; }
+        }
+        const seen = new Set(items.map(item => item.kind + ":" + item.id));
+        items = [...items, ...extra.filter(item => !seen.has(item.kind + ":" + item.id))].slice(0, FULL_LIST);
+      }
+      if (country ? items.length < MIN_LIST : !items.length) continue;
+      const url = "ydl-special:" + list.id + (country ? ":" + country : "");
+      lists.push({catalog: {kind: "special", id: list.id, url, name: list.name, type: "series", until: list.until, ...(country ? {country} : {})}, items});
     }
-    if (changed && deps.storage) { const rows = [...cache]; saving = saving.catch(() => {}).then(() => deps.storage!.save(rows)); await bounded(saving).catch(() => {}); }
+    if (changed && deps.storage) {
+      for (const [k, v] of fills) if (v.expires <= now()) fills.delete(k);
+      const rows = {matches: [...cache], fills: [...fills]};
+      saving = saving.catch(() => {}).then(() => deps.storage!.save(rows)); await bounded(saving).catch(() => {});
+    }
     return {lists};
   }
   return {current};
@@ -184,10 +270,10 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
 
 let shared: ReturnType<typeof createSpecialCatalog> | undefined;
 /** The site's Spotlight lists right now, using the shared TMDB limits. */
-export async function specialCatalog() {
+export async function specialCatalog(country?: Country) {
   const {collections} = await import("./collectionService.ts");
   shared ??= createSpecialCatalog({tmdb: collections.tmdb, storage: {load: () => blob.getJSON("special:v1"), save: value => blob.setJSON("special:v1", value)}});
-  return shared.current();
+  return shared.current(country);
 }
 
 /** GET /api/catalogs/special for the Discover Spotlight, with each title's usual TMDB poster. */
@@ -195,7 +281,10 @@ export async function handleSpecialCatalog(req: Request) {
   if (req.method !== "GET") return new Response("Method not allowed", {status: 405, headers: {Allow: "GET"}});
   const headers = {"cache-control": "no-store"};
   try {
-    return Response.json(await specialCatalog(), {headers});
+    // ?country= takes Discover's filter value ("3" = South Korea); without it every country's picks show (Nuvio's original lists).
+    const value = new URL(req.url).searchParams.get("country");
+    if (value !== null && !SPOTLIGHT_COUNTRIES[value]) return Response.json({error: "Choose a country."}, {status: 400, headers});
+    return Response.json(await specialCatalog(value === null ? undefined : SPOTLIGHT_COUNTRIES[value]), {headers});
   } catch {
     return Response.json({error: "Spotlight is temporarily unavailable."}, {status: 502, headers});
   }

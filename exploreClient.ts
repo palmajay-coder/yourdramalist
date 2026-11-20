@@ -36,8 +36,8 @@ export function installExploreUI() {
   sortLabel.className = "catalogSortLabel";
   let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
   let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "";
-  let specialSection, specialClock;
-  let top10Section;
+  let specialSection, specialClock, specialCountry;
+  let top10Section, top10Country;
   const buttons = new Map();
   let workers = 0;
   const jobs = [];
@@ -314,11 +314,19 @@ export function installExploreUI() {
   }
   // A limited-time, hand-picked catalog ("Watch this while they play GTA 6"): the first list on Discover,
   // with a countdown to its end. It removes itself when the countdown runs out or the server says it ended.
+  // The country filter applies: each country sees its own picks, topped up on the same theme.
   function mountSpecial(parent2) {
+    if (specialSection && specialCountry !== selectedCountry) {
+      clearInterval(specialClock);
+      specialSection.remove();
+      specialSection = null;
+      pruneButtons();
+    }
     if (specialSection) {
       if (specialSection.isConnected) arrange(parent2);
       return;
     }
+    specialCountry = selectedCountry;
     const section = document.createElement("section");
     section.className = "specialSection";
     section.hidden = true;
@@ -330,7 +338,7 @@ export function installExploreUI() {
       section.remove();
       pruneButtons();
     };
-    fetch("/api/catalogs/special", { signal: AbortSignal.timeout(45e3) })
+    fetch("/api/catalogs/special?country=" + encodeURIComponent(specialCountry), { signal: AbortSignal.timeout(45e3) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (specialSection !== section) return;
@@ -384,18 +392,25 @@ export function installExploreUI() {
   }
   // Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today", right under This Week's Picks,
   // ranked by TMDB popularity and refreshed daily. Nothing shows if there is no list.
+  // The rows follow the country filter (Top 10 J-Dramas Today for Japan, and so on).
   function mountTop10(parent2) {
+    if (top10Section && top10Country !== selectedCountry) {
+      top10Section.remove();
+      top10Section = null;
+      pruneButtons();
+    }
     if (top10Section) {
       if (top10Section.isConnected) arrange(parent2);
       return;
     }
+    top10Country = selectedCountry;
     const section = document.createElement("section");
     section.className = "top10Section";
     section.hidden = true;
     top10Section = section;
     parent2.prepend(section);
     arrange(parent2);
-    fetch("/api/catalogs/top10", { signal: AbortSignal.timeout(45e3) })
+    fetch("/api/catalogs/top10?country=" + encodeURIComponent(top10Country), { signal: AbortSignal.timeout(45e3) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (top10Section !== section) return;

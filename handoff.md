@@ -46,10 +46,12 @@
   - **Calendar:** a holiday or seasonal list for every month (`MONTHLY` in `specialCatalog.ts`), changing at midnight Pacific on the 1st. GTA 6 (`GTA6`) runs until Dec 1, 2026, when the winter list begins.
   - **One heading:** all running lists sit under one "Spotlight" heading with one timer to the end of the month.
   - **Nuvio:** `special` ids `gta6` and `monthly` ("Spotlight of the month", always the current month's list).
+  - **Country filter:** `/api/catalogs/special?country=<filter value>` keeps that country's picks and tops up to 15 from TMDB on the list's theme (`THEMES` in `specialCatalog.ts`: keywords or a genre), best rated first. Top-ups are saved for a week in `special:v1` (now `{matches, fills}`). Under 5 titles hides the list for that country. Addresses add the country (`ydl-special:monthly:JP`); without one, every country's picks show (older Nuvio installs).
 - **Top 10** (`top10.ts`, `/api/catalogs/top10`): Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today", right under This Week's Picks.
   - **Ranking:** TMDB popularity of Korean dramas with an episode in the last 30 days, and Korean films from the last 180 days.
   - **Refresh:** rebuilt daily at Pacific midnight and saved in `top10:v1`. The last list is kept for up to 3 days if TMDB fails.
   - **Nuvio:** kind `top10`, ids `tv` and `movie`.
+  - **Country filter:** `/api/catalogs/top10?country=<filter value>` (Korea by default). Names follow the country (J-, C-, Taiwanese, Thai). Korea keeps `ydl-top10:tv`; others add the country (`ydl-top10:tv:JP`). `top10:v1` holds a list per country.
 - **Discover order** (`arrange()` in `exploreClient.ts`): Spotlight, This Week's Picks, Top 10, Recommended for you, Catalogs by Country.
 
 ## Quirks
