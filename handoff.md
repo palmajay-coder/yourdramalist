@@ -3,7 +3,7 @@
 ## Project
 - **What it does:** YourDramaList (YDL) turns MyDramaList catalogs, watchlists, filmographies and weekly picks into Nuvio/Stremio install links, with a Discover site and an Android app.
 - **Live site:** https://yourdramalist.net, served by the Cloudflare Worker `yourdramalist`.
-- **Branches:** `main` and `migration/cloudflare` of `palmajay-coder/yourdramalist` are kept identical. Other tools (Codex) commit to `main`, so fetch and fast-forward from `main` before starting.
+- **Branches:** `main` and `migration/cloudflare` of `palmajay-coder/yourdramalist` are kept identical. Other tools (Codex) commit to `main` or to `migration/cloudflare` and may deploy live, so right before every deploy fetch BOTH branches and merge any new commits; otherwise the deploy silently removes their live changes (this happened once with the Lists wording on November 20).
 - **Test site:** https://yourdramalist-discover-preview.palmajay.workers.dev (Worker `yourdramalist-discover-preview`, branch `preview/connect-first`, its own R2 bucket `ydl-discover-preview-data`).
 - **Release:** 1.1.29 (Android versionCode 105).
 
