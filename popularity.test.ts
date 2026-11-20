@@ -89,7 +89,7 @@ await test("admin analytics: people counts, device split, returns, combined Disc
  assert(/Individual watchlists/.test($("featureRanks").textContent!)&&/Not used: .*Director filmographies/.test($("featureUnused").textContent!),"catalog types tab lists used and unused features");
  (document.querySelector('#featureTabs [data-group="posters"]') as any).click();
  assert(/TMDB posters/.test($("featureRanks").textContent!)&&/RPDB/.test($("featureUnused").textContent!),"poster styles tab");
- assert([...document.querySelectorAll("#searchRanks li")].map(li=>li.textContent).join("|")==="Drama search6|Actor search4|Director search0","search breakdown shows every search, even unused ones");
+ assert([...document.querySelectorAll("#searchRanks li")].map(li=>li.textContent).join("|")==="Drama search6|Actor search4|Director search0|Add to Collection taps0","search breakdown shows every search and Add to Collection taps, even unused ones");
  assert(document.querySelectorAll("#dailyRows .sparkBar").length===7,"seven days of bars");
  (document.querySelector('#analyticsRange [data-range="30"]') as any).click();
  assert(document.querySelectorAll("#dailyRows .sparkBar").length===30&&$("peopleRangeLabel").textContent==="People · 30 days"&&$("peopleRange").textContent==="80","range switch");

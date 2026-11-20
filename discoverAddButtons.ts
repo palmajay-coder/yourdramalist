@@ -49,11 +49,16 @@ export function installDiscoverAddButtons() {
     button.dataset.titleName = item.title || item.name;
     button.dataset.titleAction = placement;
     button.setAttribute("aria-haspopup", "dialog");
-    button.onclick = () => open(saving => {
+    button.onclick = () => {
+      // Counts people (one scrambled code per person per day, like the other usage counts) who use
+      // Add to Collection, to judge whether My Collections is worth keeping.
+      fetch("/api/analytics/catalog-add", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({source: "add-to-collection"}), keepalive: true}).catch(() => {});
+      open(saving => {
       button.disabled = saving;
       if (saving) button.setAttribute("aria-busy", "true");
       else button.removeAttribute("aria-busy");
-    });
+      });
+    };
     paint(button, savedTitles().has(item.url));
     return button;
   };

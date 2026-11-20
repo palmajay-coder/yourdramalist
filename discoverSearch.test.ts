@@ -175,6 +175,31 @@ await test("the limited-time GTA 6 shelf is the first list on Discover, with a c
   assert(!ended.document.querySelector(".specialSection"),"after the end date there is no shelf");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
+await test("tapping Add to Collection is counted (once per person per day on the server)",async()=>{
+ const {recordCatalogAddition}=await import("./analyticsApi.ts");
+ const counted:string[]=[];
+ const post=(source:string)=>recordCatalogAddition(new Request("https://test/api/analytics/catalog-add",{method:"POST",headers:{origin:"https://test","content-type":"application/json"},body:JSON.stringify({source})}),async(s:string)=>{counted.push(s)});
+ assert((await post("add-to-collection")).status===200&&counted.includes("add-to-collection"),"the server accepts the Add to Collection count");
+ assert((await post("made-up-source")).status===400,"unknown sources are still refused");
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const proto=Object.getPrototypeOf(document.createElement("dialog"));
+ if(!proto.showModal){proto.showModal=function(){this.open=true};proto.close=function(){if(!this.open)return;this.open=false;this.dispatchEvent(new window.Event("close"))};}
+ const sent:any[]=[];
+ const fetcher=async(url:string,options:any={})=>{const u=String(url);
+  if(u==="/api/analytics/catalog-add"){sent.push(JSON.parse(options.body));return Response.json({ok:true})}
+  if(u.startsWith("/api/mdl/people-search"))return Response.json({query:"Mouse",page:1,titles:[{name:"Mouse",year:2021,url:"https://mydramalist.com/1-mouse"}],people:[],hasNextPage:false});
+  return Response.json({collections:[],items:[]});
+ };
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:()=>null,setItem(){},removeItem(){}},{href:"https://test/setup",origin:"https://test",pathname:"/setup",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ (document.querySelector(".androidNavAdd") as any).click();
+ (document.getElementById("quickSearchInput") as HTMLInputElement).value="Mouse";
+ (document.querySelector(".quickSearch form") as any).dispatchEvent(new window.Event("submit",{cancelable:true}));
+ await new Promise(r=>setTimeout(r,40));
+ (document.querySelector(".quickSearchResults .discoverTitleAdd") as any).click();await new Promise(r=>setTimeout(r,10));
+ assert(sent.some(x=>x.source==="add-to-collection"),"tapping Add sends the count: "+JSON.stringify(sent));
+ assert(document.querySelector(".collectionPicker")?.hasAttribute("open")||(document.querySelector(".collectionPicker") as any)?.open,"the collection picker still opens");
+});
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
