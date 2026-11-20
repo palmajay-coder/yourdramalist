@@ -312,8 +312,6 @@ export function installPreferencesUI(api: {
     manifest.append(install,row,status);
     row.hidden = install.hidden = true;
     manifest.append(generate);
-    // Opened from Configure in Nuvio or Stremio: a changed setup is a new add-on, so the old one should go.
-    try{if(sessionStorage.getItem("ydl-from-configure")==="1")manifest.append(paragraph(copy.manifestReplaceOld,"prefHelp"));}catch{}
     if(artworkMode()==="ratings")manifest.append(paragraph(copy.manifestKeyPrivacy,"prefHelp"));
     if(artworkMode()==="better"||artworkMode()==="posterplus")manifest.append(paragraph(copy.manifestBetterPrivacy,"prefHelp"));
     if(artworkMode()==="rpdb")manifest.append(paragraph(copy.posterRpdbPrivacy,"prefHelp"));confirm.append(manifest);

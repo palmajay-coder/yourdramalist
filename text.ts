@@ -148,7 +148,6 @@ export const TEXT = {
   confirmCatalogs: "Your catalogs",
   confirmPreferences: "Your preferences",
   manifestUrl: "Manifest URL",
-  manifestReplaceOld: "Changed something? Install this new link, then remove the old YourDramaList add-on.",
   copyManifest: "Copy",
   generateAndInstall: "Generate & Install",
   copiedManifest: "Copied",
