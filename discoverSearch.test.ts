@@ -273,6 +273,53 @@ await test("Top 10 K-Dramas and K-Movies sit right under This Week's Picks, abov
   assert(!empty.document.querySelector(".top10Section"),"no list means no section");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
+await test("Sort by and Movies/Shows apply to Spotlight, Weekly Picks and Recommended, and Top 10 keeps its ranking",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text();
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const realInterval=globalThis.setInterval,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const mixed=[{kind:"tv",id:1,name:"Old Show",date:"2015-01-01",poster:"https://image.tmdb.org/t/p/w780/a.jpg"},{kind:"movie",id:2,name:"New Film",date:"2025-05-01",poster:"https://image.tmdb.org/t/p/w780/b.jpg"},{kind:"tv",id:3,name:"Mid Show",date:"2020-01-01",poster:"https://image.tmdb.org/t/p/w780/c.jpg"}];
+ const ten=(kind:string)=>Array.from({length:10},(_,i)=>({kind,id:i+1,name:kind+" "+(i+1),date:"20"+(10+i)+"-01-01",poster:"https://image.tmdb.org/t/p/w780/"+kind+i+".jpg"}));
+ const until=new Date(Date.now()+5*864e5).toISOString();
+ const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>([["ydl-v3-user","Jaesan"]]);
+ const fetcher=async(url:string)=>{const u=String(url);
+  if(u.startsWith("/api/catalogs/special"))return Response.json({lists:[{catalog:{kind:"special",id:"monthly",url:"ydl-special:monthly:KR",name:"Thankful for Family (South Korea)",type:"series",until},items:mixed}]});
+  if(u.startsWith("/api/catalogs/top10"))return Response.json({date:"2026-11-20",rows:[{catalog:{kind:"top10",id:"tv",url:"ydl-top10:tv",name:"Top 10 Dramas Today (South Korea)",type:"series"},items:ten("tv")},{catalog:{kind:"top10",id:"movie",url:"ydl-top10:movie",name:"Top 10 Movies Today (South Korea)",type:"movie"},items:ten("movie")}]});
+  if(u.startsWith("/api/recommendations"))return Response.json({rows:[{seed:{title:"The Glory",slug:"1"},items:mixed}]});
+  if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog:{id:"w",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0},items:mixed}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
+  return Response.json({collections:[],items:[]});
+ };
+ const settle=async()=>{for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,10));if(document.querySelector(".specialSection:not([hidden]) .catalogShelf")&&document.querySelector(".top10Section:not([hidden]) .catalogShelf")&&document.querySelector(".recsSection:not([hidden]) .catalogShelf"))break;}await new Promise(r=>setTimeout(r,30));};
+ try{
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  await settle();
+  // The test DOM cannot set a select's value, so pick the option and fire change, as a person would.
+  const sort=document.getElementById("exploreSort") as any;
+  sort.querySelector('option[value="newest"]').setAttribute("selected","");
+  try{sort.value="newest"}catch{/* preferences.test.ts gives selects a value setter; without it, the selected option counts. */}
+  sort.onchange();
+  const until=async(done:()=>boolean)=>{for(let i=0;i<300&&!done();i++)await new Promise(r=>setTimeout(r,10));await new Promise(r=>setTimeout(r,20));};
+  const first=(selector:string)=>document.querySelector(selector+" .catalogShelf .catalogPoster strong")?.textContent;
+  await until(()=>first(".specialSection")==="New Film"&&first(".recsSection")==="New Film"&&!!document.querySelector(".top10Section:not([hidden]) .catalogShelf"));
+  const titles=(selector:string)=>[...document.querySelectorAll(selector+" .catalogShelf")].map((shelf:any)=>[...shelf.querySelectorAll(".catalogPoster strong")].map((t:any)=>t.textContent).join(","));
+  assert(titles(".specialSection")[0]==="New Film,Mid Show,Old Show","Spotlight newest first: "+titles(".specialSection"));
+  assert(titles(".recsSection")[0]==="New Film,Mid Show,Old Show","Recommended newest first: "+titles(".recsSection"));
+  const weekly=[...document.querySelectorAll("#androidCatalogs > section")].find((x:any)=>x.textContent.includes("This Week: Romance")) as any;
+  assert([...weekly.querySelectorAll(".catalogPoster strong")].map((t:any)=>t.textContent).join(",")==="New Film,Mid Show,Old Show","Weekly newest first");
+  const ranks=[...document.querySelectorAll(".top10Section .catalogShelf")[0].querySelectorAll(".rankNumber")].map((n:any)=>n.textContent).join(",");
+  const top=[...document.querySelectorAll(".top10Section .catalogShelf")[0].querySelectorAll(".catalogPoster strong")].map((t:any)=>t.textContent);
+  assert(ranks==="1,2,3,4,5,6,7,8,9,10"&&top[0]==="tv 1"&&top[9]==="tv 10","Top 10 keeps its ranking: "+top.join(","));
+  (document.querySelector(".specialSection .catalogAdd") as any).click();
+  const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
+  const added=selection.find((x:any)=>x.kind==="special");
+  assert(added?.filter?.sort==="newest"&&/^ydl-special:monthly:KR\?ydlf=/.test(added.url),"Add keeps the sort for Nuvio: "+JSON.stringify(added));
+  const shows=document.querySelector('input[name="discoverMediaType"][value="series"]') as any;
+  shows.checked=true;shows.dispatchEvent(new window.Event("change"));
+  await until(()=>first(".specialSection")==="Mid Show"&&document.querySelectorAll(".top10Section:not([hidden]) .catalogShelf").length===1);
+  assert([...document.querySelectorAll(".top10Section .catalogShelf h3")].map((h:any)=>h.textContent).join("|")==="Top 10 Dramas Today (South Korea)","Shows leaves out the Top 10 Movies row");
+  assert(titles(".specialSection")[0]==="Mid Show,Old Show","Shows leaves movies out of Spotlight: "+titles(".specialSection"));
+ }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
+});
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

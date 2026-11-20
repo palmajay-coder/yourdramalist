@@ -36,8 +36,22 @@ export function installExploreUI() {
   sortLabel.className = "catalogSortLabel";
   let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
   let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "";
-  let specialSection, specialClock, specialCountry;
-  let top10Section, top10Country;
+  let specialSection, specialClock, specialCountry, specialView;
+  let top10Section, top10Country, top10View, weeklyView, recsView;
+  // Sort by and Movies/Shows apply to every section (Top 10 keeps its ranking). A filtered shelf carries the
+  // filter into Nuvio when added, the same way Browse All does.
+  function viewFilter() {
+    return normalizeShelfFilter({ type: activeCatalogType === "movie" ? "movie" : activeCatalogType === "series" ? "drama" : undefined, sort: sortSelect.value || undefined });
+  }
+  function viewKey() {
+    const f = viewFilter();
+    return f ? shelfFilterKey(f) : "";
+  }
+  function viewed(catalog, items) {
+    const f = viewFilter();
+    if (!f) return { catalog, items };
+    return { catalog: { ...catalog, url: catalog.url + "?ydlf=" + shelfFilterKey(f), filter: f, filterLabel: "" }, items: applyShelfFilter(tmdbShelfItems(items), f) };
+  }
   const buttons = new Map();
   let workers = 0;
   const jobs = [];
@@ -197,6 +211,7 @@ export function installExploreUI() {
     weekly.append(header);
     weeklySection = weekly;
     weeklyCountry = country;
+    weeklyView = viewKey();
     // The limited-time catalog stays the very first list; Weekly Picks comes right after it.
     parent2.prepend(weekly);
     arrange(parent2);
@@ -230,8 +245,10 @@ export function installExploreUI() {
         weeklyRows.replaceChildren();
         clock2.hidden = false;
         for (const collection of data2.collections || []) {
-          const row = shelf(collection.catalog, weeklyRows);
-          row.fill(collection.items);
+          const view = viewed(collection.catalog, collection.items);
+          if (!view.items.length) continue;
+          const row = shelf(view.catalog, weeklyRows);
+          row.fill(view.items);
         }
         if (data2.warning) {
           const warning = document.createElement("p");
@@ -272,7 +289,7 @@ export function installExploreUI() {
       recsUser = "";
       return;
     }
-    if (recsSection && recsUser === connectedUser) {
+    if (recsSection && recsUser === connectedUser && recsView === viewKey()) {
       if (recsSection.isConnected) arrange(parent2);
       return;
     }
@@ -283,6 +300,7 @@ export function installExploreUI() {
     section.hidden = true;
     recsSection = section;
     recsUser = connectedUser;
+    recsView = viewKey();
     parent2.prepend(section);
     arrange(parent2);
     const user = connectedUser;
@@ -305,7 +323,8 @@ export function installExploreUI() {
         data.rows.slice(0, 3).forEach((row, slot) => {
           if (!row?.seed?.title || !Array.isArray(row.items) || !row.items.length) return;
           const catalog = { kind: "recs", slot, url: "ydl-recs:" + slot, type: "series", name: "Because you watched " + row.seed.title, description: "Titles like " + row.seed.title + ", picked from your MyDramaList watchlist. They change every Monday." };
-          shelf(catalog, section).fill(row.items);
+          const view = viewed(catalog, row.items);
+          if (view.items.length) shelf(view.catalog, section).fill(view.items);
         });
         section.hidden = !section.querySelector(".catalogShelf");
         sync();
@@ -316,7 +335,7 @@ export function installExploreUI() {
   // with a countdown to its end. It removes itself when the countdown runs out or the server says it ended.
   // The country filter applies: each country sees its own picks, topped up on the same theme.
   function mountSpecial(parent2) {
-    if (specialSection && specialCountry !== selectedCountry) {
+    if (specialSection && (specialCountry !== selectedCountry || specialView !== viewKey())) {
       clearInterval(specialClock);
       specialSection.remove();
       specialSection = null;
@@ -327,6 +346,7 @@ export function installExploreUI() {
       return;
     }
     specialCountry = selectedCountry;
+    specialView = viewKey();
     const section = document.createElement("section");
     section.className = "specialSection";
     section.hidden = true;
@@ -343,7 +363,8 @@ export function installExploreUI() {
       .then(data => {
         if (specialSection !== section) return;
         // Every running list (GTA 6 first, then the month's list) sits under one Spotlight heading.
-        const lists = (Array.isArray(data?.lists) ? data.lists : []).filter(list => list?.catalog && Number.isFinite(Date.parse(list.catalog.until)) && Date.parse(list.catalog.until) > Date.now() && Array.isArray(list.items) && list.items.length);
+        const lists = (Array.isArray(data?.lists) ? data.lists : []).filter(list => list?.catalog && Number.isFinite(Date.parse(list.catalog.until)) && Date.parse(list.catalog.until) > Date.now() && Array.isArray(list.items))
+          .map(list => ({ ...list, ...viewed(list.catalog, list.items) })).filter(list => list.items.length);
         if (!lists.length) {
           // Ended or empty: nothing shows. A failed request is tried again the next time Discover opens.
           if (!data) specialSection = null;
@@ -394,7 +415,7 @@ export function installExploreUI() {
   // ranked by TMDB popularity and refreshed daily. Nothing shows if there is no list.
   // The rows follow the country filter ("Top 10 Dramas Today (Japan)", and so on).
   function mountTop10(parent2) {
-    if (top10Section && top10Country !== selectedCountry) {
+    if (top10Section && (top10Country !== selectedCountry || top10View !== activeCatalogType)) {
       top10Section.remove();
       top10Section = null;
       pruneButtons();
@@ -404,6 +425,7 @@ export function installExploreUI() {
       return;
     }
     top10Country = selectedCountry;
+    top10View = activeCatalogType;
     const section = document.createElement("section");
     section.className = "top10Section";
     section.hidden = true;
@@ -414,7 +436,8 @@ export function installExploreUI() {
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (top10Section !== section) return;
-        const rows = Array.isArray(data?.rows) ? data.rows.filter(row => row?.catalog && Array.isArray(row.items) && row.items.length) : [];
+        // Top 10 keeps its ranking whatever the sort; Movies or Shows only leaves out the other row.
+        const rows = Array.isArray(data?.rows) ? data.rows.filter(row => row?.catalog && Array.isArray(row.items) && row.items.length && (activeCatalogType === "all" || row.catalog.type === activeCatalogType)) : [];
         if (!rows.length) {
           if (!data) top10Section = null;
           section.remove();
@@ -444,7 +467,7 @@ export function installExploreUI() {
     catalogSection?.remove();
     pruneButtons();
     mountSpecial(parent2);
-    if (!weeklySection?.isConnected || weeklyCountry !== selectedCountry) {
+    if (!weeklySection?.isConnected || weeklyCountry !== selectedCountry || weeklyView !== viewKey()) {
       clearInterval(countdown);
       weeklySection?.remove();
       pruneButtons();

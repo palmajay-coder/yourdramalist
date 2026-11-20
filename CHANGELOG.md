@@ -1,6 +1,7 @@
 # Changelog
 
 ## Website updates since 1.1.30
+- Discover's Sort by and Movies/Shows now apply to Spotlight, This Week's Picks and Recommended for you as well as Browse All, and carry into Nuvio when a sorted row is added. Top 10 keeps its 1 to 10 ranking; Movies or Shows just leaves out the other Top 10 row.
 - Configure button for YourDramaList in Nuvio and Stremio: it reopens your setup on the site with your catalogs, settings and username already filled in (API keys are typed again), so you can add new lists and install the new link. Configure opens are counted on the admin page.
 - New setup guide at /guide, "How to Add MyDramaList Catalogs to Nuvio and Stremio", written for search engines, linked from the Connect screen and the footer. Its words live in guide-text.md, so they can be edited without touching code. Added robots.txt and sitemap.xml.
 - Analytics count Spotlight, Top 10 and Because you watched as their own catalogs (with a breakdown by country, and by row for Because you watched) and their Discover Add taps as Spotlight, Top 10 and Recommended for you adds. Before this they were counted as Community public lists.

@@ -17,7 +17,7 @@ import {specialCatalog,GTA6,monthlySpotlight,spotlightName} from './specialCatal
 import {top10,top10Catalog} from './top10.ts';
 const SPOTLIGHT_CODES=['KR','JP','CN','TW','TH'];
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
-import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
+import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,tmdbShelfItems,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
@@ -55,10 +55,10 @@ export function normalizeAddon(body:any){
   // A limited-time, hand-picked catalog ("Watch this while they play GTA 6").
   // The setup page sends the catalog's address (ydl-special:<id>, plus :<country> when Discover was filtered to one
   // country, for example ydl-special:monthly:JP); its id is accepted too. Without a country every country's picks show.
-  if(item.kind==='special'){const [special,country]=(typeof item.url==='string'&&item.url.startsWith('ydl-special:')?item.url.slice(12):String(item.id||'')).split(':');if(!['gta6','monthly'].includes(special)||(country!==undefined&&!SPOTLIGHT_CODES.includes(country)))throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+special+(country?':'+country:''),name:special==='gta6'?spotlightName(GTA6,country as any):'Spotlight of the month',type:'series',special:{id:special,...(country?{country}:{})}};}
+  if(item.kind==='special'){const [special,country]=(typeof item.url==='string'&&item.url.startsWith('ydl-special:')?item.url.slice(12).replace(/\?.*$/,''):String(item.id||'')).split(':');if(!['gta6','monthly'].includes(special)||(country!==undefined&&!SPOTLIGHT_CODES.includes(country)))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-special:'+special+(country?':'+country:''),name:special==='gta6'?spotlightName(GTA6,country as any):'Spotlight of the month',type:'series',special:{id:special,...(country?{country}:{})}},item.filter);}
   // "Because you watched …": one of up to three personal rows, built from the install's MyDramaList username.
-  if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return{id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}};}
-  if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
+  if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}},item.filter);}
+  if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return withFilter({id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}},item.filter);}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return withFilter({id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}},item.filter);}
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
   const source=String(item.url||'');let id='';
@@ -79,9 +79,9 @@ export function selectionFromConfig(config:AddonConfig){
   const filtered=e.filter?{filter:e.filter,filterLabel:e.filterLabel,originalName:e.name}:{};
   if(e.personal)return{kind:'user-collection',url:'ydl-personal:'+e.id,name:e.name};
   if(e.top10)return{...top10Catalog(e.top10.id,(e.top10.country||'KR') as any)};
-  if(e.special){const country=e.special.country as any,list=e.special.id==='gta6'?GTA6:monthlySpotlight(Date.now(),country);return{kind:'special',id:e.special.id,url:e.id,name:spotlightName(list,country),type:'series'};}
-  if(e.recs)return{kind:'recs',slot:e.recs.slot,url:'ydl-recs:'+e.recs.slot,name:e.name,type:'series'};
-  if(e.weekly)return{...weeklyCatalog(e.weekly.country,e.weekly.slot),kind:'weekly',country:e.weekly.country,slot:e.weekly.slot};
+  if(e.special){const country=e.special.country as any,list=e.special.id==='gta6'?GTA6:monthlySpotlight(Date.now(),country),url='ydl-special:'+e.special.id+(country?':'+country:'');return{kind:'special',id:e.special.id,url:e.filter?url+'?ydlf='+shelfFilterKey(e.filter):url,name:spotlightName(list,country),type:'series',...filtered};}
+  if(e.recs)return{kind:'recs',slot:e.recs.slot,url:'ydl-recs:'+e.recs.slot,name:e.name,type:'series',...filtered};
+  if(e.weekly)return{...weeklyCatalog(e.weekly.country,e.weekly.slot),kind:'weekly',country:e.weekly.country,slot:e.weekly.slot,...filtered};
   if(e.explore)return{...exploreCatalog(e.explore.category,e.explore.country),name:e.name,...filtered};
   if(e.person)return{kind:'filmography',mode:e.mode,personUrl:e.person,url:e.person,name:e.name};
   if(e.watchlist)return{kind:'watchlist',url:'https://mydramalist.com/dramalist/'+e.watchlist+(e.watchlistStatus?'/'+e.watchlistStatus:''),name:e.name,...filtered};
@@ -201,20 +201,23 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  if(entry.special){
   // GTA 6, or the month's list (which changes by itself on the 1st). An ended list has no titles.
   const data=await ((deps as any).special||specialCatalog)(entry.special.country);
-  const items=data?.lists?.find((list:any)=>list.catalog?.id===entry.special!.id)?.items||[];
+  const found=data?.lists?.find((list:any)=>list.catalog?.id===entry.special!.id)?.items||[];
+  const items=entry.filter?applyShelfFilter(tmdbShelfItems(found),entry.filter):found;
   const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.recs){
   // Everything on the owner's watchlist and anything unreleased is already left out of these rows.
   const data=await ((deps as any).recs||recommendationsFor)(config.user);
-  const items=data?.rows?.[entry.recs.slot]?.items||[];
+  const found=data?.rows?.[entry.recs.slot]?.items||[];
+  const items=entry.filter?applyShelfFilter(tmdbShelfItems(found),entry.filter):found;
   const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
   return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.weekly){
   const data=await (deps as any).weekly?.(entry.weekly.country)??await collections.weekly(entry.weekly.country);
   let items=data.collections[entry.weekly.slot]?.items||[];
+  if(entry.filter)items=applyShelfFilter(tmdbShelfItems(items),entry.filter);
   if(config.preferences.hideCompleted&&config.user){
    const watched=await ((deps as any).watchlist||G)(config.user).catch(()=>({}));
    const hidden=[...(watched[2]||[]),...(watched[5]||[])];

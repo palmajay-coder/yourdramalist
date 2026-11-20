@@ -50,6 +50,11 @@ export function shelfNeedsFacts(filter: any, items: any[]): boolean {
   return !!filter.countries?.length && items.some((item) => !shelfCountry(item));
 }
 
+/** TMDB titles (Spotlight, Weekly Picks, Because you watched) in the shape applyShelfFilter reads: a year and a type. */
+export function tmdbShelfItems(items: any[]): any[] {
+  return (Array.isArray(items) ? items : []).map((item) => ({...item, year: Number(String(item?.date || "").slice(0, 4)) || item?.year || null, type: item?.kind === "movie" ? "Movie" : "Drama"}));
+}
+
 /** Applies a filter and sort. Items keep MyDramaList order unless a sort is chosen. */
 export function applyShelfFilter(items: any[], filter: any, facts: Record<string, any> = {}): any[] {
   if (!filter) return items;

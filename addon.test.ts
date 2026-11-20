@@ -217,4 +217,20 @@ await test('Configure in Nuvio and Stremio reopens the setup with the same catal
  const bad=await handleAddon(new Request('https://test/addon/not-a-token/configure'));
  assert(bad.status===302&&bad.headers.get('location')==='/','a broken link goes to the home page');
 });
+await test('a sorted or Movies/Shows-filtered Spotlight, Weekly Picks or Because you watched row keeps that in Nuvio',async()=>{
+ const items=[{kind:'tv',id:1,name:'Old Show',date:'2015-01-01',score:7},{kind:'movie',id:2,name:'New Film',date:'2025-05-01',score:8},{kind:'tv',id:3,name:'New Show',date:'2024-01-01',score:9}];
+ const c=normalizeAddon({...body,user:'TestUser',catalogs:[
+  {name:'Thankful for Family (Japan)',kind:'special',url:'ydl-special:monthly:JP?ydlf=x',filter:{sort:'newest'}},
+  {name:'w',kind:'weekly',country:'3',slot:0,filter:{type:'drama',sort:'oldest'}},
+  {name:'Because you watched X',kind:'recs',slot:1,filter:{sort:'rating'}}]});
+ const [sp,wk,rc]=c.entries as any[];
+ assert(sp.special.id==='monthly'&&sp.special.country==='JP'&&sp.filter.sort==='newest'&&wk.filter.type==='drama'&&rc.filter.sort==='rating','the filters are kept: '+JSON.stringify(c.entries));
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),special:async()=>({lists:[{catalog:{id:'monthly'},items}]}),weekly:async()=>({collections:[{items},{items:[]}]}),recs:async()=>({rows:[{items:[]},{items}]}),weeklyMetas:async(list:any[])=>list.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any;
+ const names=async(i:number)=>(await loadCatalog(c,i,0,'https://test/addon/token',deps)).metas.map((m:any)=>m.name).join(',');
+ assert(await names(0)==='New Film,New Show,Old Show','Spotlight newest first: '+await names(0));
+ assert(await names(1)==='Old Show,New Show','Weekly Picks shows only, oldest first: '+await names(1));
+ assert(await names(2)==='New Show,New Film,Old Show','Because you watched by rating: '+await names(2));
+ const again=normalizeAddon({user:c.user,preferences:c.preferences,catalogs:selectionFromConfig(c)});
+ assert(JSON.stringify(again.entries)===JSON.stringify(c.entries),'Configure keeps the filters');
+});
 console.log(JSON.stringify({passed}));
