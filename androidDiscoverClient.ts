@@ -8,7 +8,7 @@ export function installAndroidDiscover() {
   heading.textContent = "Discover";
   toolbar.append(heading);
   const header = document.querySelector("body > header");
-  const mainTitles = {profiles: "Community", discover: "Discover", collections: "My Collections"};
+  const mainTitles = {profiles: "Lists", discover: "Discover", collections: "My Collections"};
   function syncHeader() {
     const mobileHeader = currentPage === "selection" && !document.body.classList.contains("wideWeb");
     header.classList.toggle("mobilePageHeader", mobileHeader);
@@ -23,7 +23,7 @@ export function installAndroidDiscover() {
   const form = $("profileForm");
   form.querySelector("label").classList.add("androidScreenReader");
   const input = $("profileInput");
-  input.placeholder = "Example: Jaesan or https://mydramalist.com/list/Lp6xJJr4";
+  input.placeholder = "Enter username or paste a link…";
   input.setAttribute("enterkeyhint", "search");
   input.required = false;
   $("communityViews").querySelector("[data-community-view]").remove();
@@ -47,8 +47,12 @@ export function installAndroidDiscover() {
   selectionButton.onclick = () => $("reviewSelection").click();
   actions.append(selectionButton);
   header.append(actions);
-  input.setAttribute("aria-label", "MyDramaList username or list URL");
+  input.setAttribute("aria-label", "MyDramaList username or link containing a list");
   home.insertBefore(toolbar, workspace);
+  const pageDescription = document.createElement("p");
+  pageDescription.className = "androidPageDescription";
+  pageDescription.style.cssText = "margin:8px 16px 16px;color:#b9c1ce;font-size:14px;line-height:1.5";
+  home.insertBefore(pageDescription, workspace);
 
   const discoverForm = $("discoverForm");
   const discoverInput = $("discoverInput");
@@ -90,7 +94,7 @@ export function installAndroidDiscover() {
   bottomNav.setAttribute("aria-label", "Main navigation");
   const destinations = [
     ["connect", '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>', "Connect"],
-    ["community", "♡", "Community"],
+    ["community", '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>', "Lists"],
     ["search", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v9M7.5 12h9"/></svg>', "Search titles to add"],
     ["discover", "▦", "Discover"],
     ["collections", layeredPostersIcon, "My Collections"],
@@ -127,6 +131,8 @@ export function installAndroidDiscover() {
     const inDiscover = state.tab === "discover";
     const inCollections = state.tab === "collections";
     syncHeader();
+    pageDescription.hidden = inDiscover;
+    pageDescription.textContent = inCollections ? "Create and manage your own custom catalogs here." : "Import lists from MyDramaList by searching a username or pasting a link to a list.";
     filters.hidden = inCollections;
     catalogs.hidden = !inDiscover;
     actions.classList.toggle("hidden", page !== "selection");

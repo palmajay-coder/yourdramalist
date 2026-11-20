@@ -135,7 +135,6 @@ export function installMyCollections() {
       return;
     }
     if (!collections.length) {
-      panel.append(element("p", "myCollectionsMessage", "Build your own custom catalog"));
       return;
     }
 
