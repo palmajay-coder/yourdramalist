@@ -6,7 +6,7 @@ export function installPeopleUI() {
   let target = discoverTarget;
   function cleanup() {
     compactButtons.clear();
-    if (titlesView?.dialog.open && titlesView.person) watchButton(titlesView.person.id, titlesView.add);
+    if (titlesView?.dialog.open && titlesView.person) watchButton(titlesView.person.id, titlesView.add, () => titlesView.filter);
   }
   // Blue "+ Add Filmography" / green "✓ Added" pill, like every other Add button.
   function paintFilmography(button, added) {
@@ -18,13 +18,14 @@ export function installPeopleUI() {
     button.classList.toggle("is-added", added);
     button.setAttribute("aria-pressed", String(added));
   }
-  function watchButton(personId, button) {
-    if (!compactButtons.has(personId)) compactButtons.set(personId, new Set());
-    compactButtons.get(personId).add(button);
+  // Each button shows one catalog: search rows the plain filmography, the person page whichever sort is chosen.
+  function watchButton(personId, button, filterOf = () => null) {
+    if (!compactButtons.has(personId)) compactButtons.set(personId, new Map());
+    compactButtons.get(personId).set(button, filterOf);
   }
   function sync() {
     for (const [personId, buttons] of compactButtons) {
-      for (const button of buttons) paintFilmography(button, !!selectedFilmography(personId));
+      for (const [button, filterOf] of buttons) paintFilmography(button, !!selectedFilmography(personId, filterOf()));
     }
   }
   const personApi = (url, mode) => "/api/mdl/person?mode=" + mode + "&url=" + encodeURIComponent(url);
@@ -55,7 +56,7 @@ export function installPeopleUI() {
   }
   /** Adds or removes a person's filmography in Your Selection; report() shows progress or problems. */
   async function toggleFilmography(person, button, report, stale = () => false, filter = null) {
-    const selected = selectedFilmography(person.id);
+    const selected = selectedFilmography(person.id, filter);
     if (selected) {
       toggleList(selected);
       return;
@@ -69,7 +70,7 @@ export function installPeopleUI() {
         report("No filmography credits found.");
         return;
       }
-      if (!selectedFilmography(person.id)) {
+      if (!selectedFilmography(person.id, filter)) {
         toggleList(withPersonFilter({ ...result.list, posters: [], analyticsSource: "discover-" + mode + "-filmography" }, filter));
       }
       report("");
@@ -180,13 +181,12 @@ export function installPeopleUI() {
       filterButton.querySelector(".personTitlesFilterDot").hidden = !on;
       filterButton.setAttribute("aria-pressed", String(on));
     }
-    // A new choice repaints the titles and, when the filmography is already added, updates it in Your Selection.
+    // Each choice is its own catalog: a new choice repaints the titles and shows whether that one is added.
     function setFilter(raw) {
       view.filter = normalizeShelfFilter(raw);
       showControls();
       paintTitles(view);
-      const selected = view.person && selectedFilmography(view.person.id);
-      if (selected) replaceSelected(selected, withPersonFilter(selected, view.filter));
+      if (view.person) paintFilmography(add, !!selectedFilmography(view.person.id, view.filter));
     }
     const body = document.createElement("div");
     body.className = "androidWatchlistBody";
@@ -265,15 +265,14 @@ export function installPeopleUI() {
     if (person.poster) view.photo.src = person.poster;
     view.subtitle.textContent = "";
     view.add.setAttribute("aria-label", "Add or remove filmography for " + (person.displayName || person.name));
-    // An added filmography opens with its saved sort and Movies/Shows choice.
-    const savedFilter = selectedFilmography(person.id)?.filter;
-    view.filter = savedFilter ? normalizeShelfFilter(savedFilter) : null;
+    // The page opens on the plain filmography; each sort or Movies/Shows choice can be added as its own catalog.
+    view.filter = null;
     view.credits = [];
     view.showControls();
     view.add.onclick = () => toggleFilmography(person, view.add, message => { view.status.textContent = message; },
       () => token !== view.token, view.filter);
-    watchButton(person.id, view.add);
-    paintFilmography(view.add, !!selectedFilmography(person.id));
+    watchButton(person.id, view.add, () => view.filter);
+    paintFilmography(view.add, !!selectedFilmography(person.id, view.filter));
     view.grid.replaceChildren(createLoadingBear("Loading filmography..."));
     view.status.textContent = "";
     showAndroidDialog(view.dialog);
@@ -296,12 +295,12 @@ export function installPeopleUI() {
       view.status.append(retry);
     }
   }
-  function selectedFilmography(personId) {
-    // A sorted filmography's address ends in ?ydlf=…; the person is the part before it.
-    return state.selection.find(({ url }) => {
-      const base = String(url).replace(/\?.*$/, "");
-      return base === "ydl-filmography:actor:" + personId || base === "ydl-filmography:director:" + personId;
-    });
+  // The added catalog for exactly this choice: the plain address, or the address plus ?ydlf=<filter key>.
+  function selectedFilmography(personId, filter = null) {
+    const f = filter ? normalizeShelfFilter(filter) : null, key = f ? "?ydlf=" + shelfFilterKey(f) : "";
+    return state.selection.find(({ url }) =>
+      url === "ydl-filmography:actor:" + personId + key || url === "ydl-filmography:director:" + personId + key
+    );
   }
   function compactPerson(person) {
     const requestId = listRequest;

@@ -260,4 +260,10 @@ await test('Top Rated filmographies are a Top 10 with Netflix-style names',async
  const back=selectionFromConfig(c)[0] as any;
  assert(back.name==='Son Ye Jin’s Top 10 All Time'&&back.personName==='Son Ye Jin'&&JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure keeps the name');
 });
+await test('one person can have several filmography catalogs, one per sort or Movies/Shows choice',async()=>{
+ const base={kind:'filmography',mode:'actor',personUrl:'https://mydramalist.com/people/1-son-ye-jin',personName:'Son Ye Jin',name:'Son Ye Jin’s Filmography'};
+ const c=normalizeAddon({...body,catalogs:[base,{...base,filter:{sort:'rating',type:'drama'}},{...base,filter:{sort:'rating',type:'movie'}},{...base,filter:{sort:'newest'}}]});
+ assert(new Set(c.entries.map((e:any)=>e.id)).size===4,'four separate catalogs');
+ assert(makeManifest(c).catalogs.map((x:any)=>x.name).join(' | ')==='Son Ye Jin’s Filmography | Son Ye Jin’s Top 10 Dramas | Son Ye Jin’s Top 10 Movies | Son Ye Jin’s Latest','each has its own Nuvio name: '+makeManifest(c).catalogs.map((x:any)=>x.name).join(' | '));
+});
 console.log(JSON.stringify({passed}));
