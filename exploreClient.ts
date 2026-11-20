@@ -36,6 +36,7 @@ export function installExploreUI() {
   sortLabel.className = "catalogSortLabel";
   let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
   let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "";
+  let specialSection, specialClock;
   const buttons = new Map();
   let workers = 0;
   const jobs = [];
@@ -176,7 +177,9 @@ export function installExploreUI() {
     weekly.append(header);
     weeklySection = weekly;
     weeklyCountry = country;
-    parent2.prepend(weekly);
+    // The limited-time catalog stays the very first list; Weekly Picks comes right after it.
+    if (specialSection?.isConnected) specialSection.after(weekly);
+    else parent2.prepend(weekly);
     const outdated = () => !weekly.isConnected || isOutdated();
     const weeklyRows = document.createElement("div");
     weekly.append(weeklyRows);
@@ -283,6 +286,61 @@ export function installExploreUI() {
       })
       .catch(() => { if (recsSection === section) recsUser = ""; });
   }
+  // A limited-time, hand-picked catalog ("Watch this while they play GTA 6"): the first list on Discover,
+  // with a countdown to its end. It removes itself when the countdown runs out or the server says it ended.
+  function mountSpecial(parent2) {
+    if (specialSection) {
+      if (specialSection.isConnected && parent2.firstElementChild !== specialSection) parent2.prepend(specialSection);
+      return;
+    }
+    const section = document.createElement("section");
+    section.className = "specialSection";
+    section.hidden = true;
+    specialSection = section;
+    parent2.prepend(section);
+    const end = () => {
+      clearInterval(specialClock);
+      section.remove();
+      pruneButtons();
+    };
+    fetch("/api/catalogs/special", { signal: AbortSignal.timeout(45e3) })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (specialSection !== section) return;
+        const until = Date.parse(data?.catalog?.until);
+        if (!data?.catalog || !Number.isFinite(until) || until <= Date.now() || !Array.isArray(data.items) || !data.items.length) {
+          // Ended or empty: nothing shows. A failed request is tried again the next time Discover opens.
+          if (!data) specialSection = null;
+          section.remove();
+          return;
+        }
+        const heading = document.createElement("h2");
+        heading.className = "catalogSectionTitle";
+        heading.textContent = "Limited time";
+        const clock = document.createElement("span");
+        clock.className = "collectionClock";
+        clock.title = "Until January 1, midnight Pacific time";
+        const header = document.createElement("div");
+        header.className = "androidWeeklyHeading";
+        header.append(heading, clock);
+        const rows = document.createElement("div");
+        section.append(header, rows);
+        shelf(data.catalog, rows).fill(data.items);
+        const tick = () => {
+          const remaining = until - Date.now();
+          if (remaining <= 0) return end();
+          const hours = Math.floor(remaining / 36e5);
+          clock.textContent = "\u25F7 " + Math.floor(hours / 24) + "d " + hours % 24 + "h";
+        };
+        tick();
+        specialClock = setInterval(tick, 6e4);
+        section.hidden = false;
+        sync();
+      })
+      .catch(() => {
+        if (specialSection === section) { specialSection = null; section.remove(); }
+      });
+  }
   function render3() {
     const parent2 = $("androidCatalogs");
     const id = ++renderId;
@@ -297,6 +355,7 @@ export function installExploreUI() {
     jobs.length = 0;
     catalogSection?.remove();
     pruneButtons();
+    mountSpecial(parent2);
     if (!weeklySection?.isConnected || weeklyCountry !== selectedCountry) {
       clearInterval(countdown);
       weeklySection?.remove();

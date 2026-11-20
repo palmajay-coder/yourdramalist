@@ -82,6 +82,51 @@ await test("rows: matched seeds, filtered titles, no repeats, shared favorites f
   ok(next.rows.map(r => r.seed.title).join(",") === nextExpected.join(",") && next.week !== data.week, "next Monday brings the next seeds: " + next.rows.map(r => r.seed.title).join(","));
 });
 
+await test("rows fill to 30: recommendations, then similar, then same themes, then same genres, all filtered", async () => {
+  const sections: Record<string, any[]> = {1: [entry("Alpha", {episodesSeen: 3}), entry("Bravo", {episodesSeen: 2}), entry("Charlie", {episodesSeen: 1})], 3: [entry("Already Planned", {year: 2022})]};
+  const seeds: Record<string, number> = {Alpha: 1, Bravo: 2, Charlie: 3};
+  const calls: string[] = [];
+  const show = (id: number, extra: Record<string, unknown> = {}) => ({id, name: "Title " + id, first_air_date: "2022-02-02", origin_country: ["KR"], genre_ids: [18], poster_path: "/x" + id + ".jpg", vote_average: 6, vote_count: 30, ...extra});
+  const range = (from: number, count: number) => Array.from({length: count}, (_, i) => show(from + i));
+  let bigRecs = false;
+  const tmdb = async (path: string, params: Record<string, string> = {}) => {
+    calls.push(path + (params.page ? "#" + params.page : "") + (params.with_keywords ? "#keywords" : params.with_genres ? "#genres" : ""));
+    if (path === "search/tv") return {results: [show(seeds[params.query], {name: params.query, first_air_date: "2020-01-01"})]};
+    const seed = Number(path.split("/")[1]) || 0;
+    if (path.endsWith("/recommendations")) {
+      if (bigRecs) return {results: range(seed * 1000 + (params.page === "2" ? 20 : 0), 20), total_pages: 2};
+      return {results: [...range(seed * 1000, 8), show(seed * 1000 + 99, {origin_country: ["US"]})], total_pages: 1};
+    }
+    if (path.endsWith("/similar")) return {results: range(seed * 1000 + 100, 5), total_pages: 1};
+    if (path.endsWith("/keywords")) return {results: [{id: 11}, {id: 12}]};
+    if (path.startsWith("discover/") && params.with_keywords) {
+      ok(params.with_origin_country === "KR" && params.with_keywords === "11|12", "themes stay in the same country");
+      return {results: [...range(seed * 1000 + 200, 10), show(seed * 1000 + 298, {origin_country: ["US"]}), show(seed * 1000 + 299, {name: "Already Planned", first_air_date: "2022-05-05"})]};
+    }
+    if (/^tv\/\d+$/.test(path)) return {genres: [{id: 18}, {id: 35}]};
+    if (path.startsWith("discover/") && params.with_genres) {
+      ok(params.with_genres === "18|35" && params.with_origin_country === "KR", "genres stay in the same country");
+      // Shared by every title (so later rows lose some) plus titles of its own.
+      return {results: [...range(5000 + (params.page === "2" ? 20 : 0), 20), ...range(seed * 1000 + 300 + (params.page === "2" ? 20 : 0), 20)]};
+    }
+    throw Error("unexpected " + path);
+  };
+  const recs = createRecommendations({watchlist: async () => sections, tmdb, now: () => NOW});
+  const data = await recs.forUser("Jaesan");
+  ok(data.rows.length === 3 && data.rows.every(r => r.items.length === 30), "three rows of 30: " + data.rows.map(r => r.items.length).join(","));
+  const all = data.rows.flatMap(r => r.items.map(i => i.id));
+  ok(new Set(all).size === all.length, "no title repeats across rows");
+  ok(!data.rows.flatMap(r => r.items.map(i => i.name)).some(n => n === "Already Planned") && !all.some(id => id % 1000 === 99 || id % 1000 === 298), "top-up titles are filtered too");
+  const first = data.rows[0].items.map(i => i.id - 1000 * Math.floor(i.id / 1000));
+  const tierOf = (id: number) => id < 100 ? 0 : id < 200 ? 1 : id < 300 ? 2 : 3;
+  const tiers = data.rows[0].items.map(i => i.id >= 5000 ? 3 : tierOf(i.id % 1000));
+  ok(tiers.every((t, i) => i === 0 || t >= tiers[i - 1]), "recommendations, then similar, then themes, then genres: " + tiers.join(""));
+  ok(first.slice(0, 8).every((id, i) => id === i), "TMDB's own recommendations lead, in TMDB's order");
+  calls.length = 0;bigRecs = true;
+  const quick = createRecommendations({watchlist: async () => ({1: [entry("Alpha")]}), tmdb, now: () => NOW});
+  const one = await quick.forUser("Other");
+  ok(one.rows[0].items.length === 30 && !calls.some(c => /keywords|discover/.test(c)), "plenty of recommendations means no theme or genre lookups: " + calls.join(","));
+});
 await test("no rows, never an error, for private watchlists, bad usernames or TMDB trouble", async () => {
   const privateList = createRecommendations({watchlist: async () => { throw Object.assign(Error("private"), {code: "PRIVATE"}); }, tmdb: async () => ({}), now: () => NOW});
   ok((await privateList.forUser("Someone")).rows.length === 0, "a private watchlist shows nothing");

@@ -141,6 +141,39 @@ await test("\"Because you watched\" shelves sit under Weekly Picks for a connect
   assert(!anonymous.asked.some(u=>u.startsWith("/api/recommendations"))&&!anonymous.document.querySelector(".recsSection"),"without a username there are no recommendation rows");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
+await test("the limited-time GTA 6 shelf is the first list on Discover, with a countdown to January 1",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text();
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const weekly={id:"weekly-kr-1",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0};
+ const realInterval=globalThis.setInterval,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const mount=async(special:any)=>{
+  const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>();
+  const fetcher=async(url:string)=>{const u=String(url);
+   if(u.startsWith("/api/catalogs/special"))return Response.json(special);
+   if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog:weekly,items:[{kind:"tv",id:1,name:"Love A",date:"2024-01-01",poster:"https://image.tmdb.org/t/p/w780/a.jpg"}]}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
+   return Response.json({collections:[],items:[]});
+  };
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,10));if(document.querySelector(".specialSection:not([hidden]) .catalogShelf")&&document.querySelector(".catalogPoster"))break;}
+  await new Promise(r=>setTimeout(r,30));
+  return {document,saved};
+ };
+ const until=new Date(Date.now()+(41*24+3)*36e5+60000).toISOString();
+ const catalog={kind:"special",id:"gta6",url:"ydl-special:gta6",name:"Watch this while they play GTA 6",type:"series",until};
+ try{
+  const {document,saved}=await mount({catalog,items:[{kind:"tv",id:5,name:"Business Proposal",date:"2022-02-28",poster:"https://image.tmdb.org/t/p/w780/b.jpg"}]});
+  const sections=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
+  assert(sections[0]?.classList.contains("specialSection")&&sections[1]?.textContent.includes("This Week: Romance"),"the GTA 6 shelf comes first, then Weekly Picks: "+sections.map((s:any)=>s.className).join(","));
+  assert(sections[0].querySelector(".catalogShelf h3").textContent==="Watch this while they play GTA 6"&&sections[0].textContent.includes("Business Proposal"),"the shelf shows its name and picks");
+  assert(sections[0].querySelector(".collectionClock").textContent==="◷ 41d 3h","the countdown shows the time left to January 1: "+sections[0].querySelector(".collectionClock").textContent);
+  sections[0].querySelector(".catalogAdd").click();
+  const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
+  assert(selection.some((x:any)=>x.kind==="special"&&x.id==="gta6"&&x.name==="Watch this while they play GTA 6"),"Add puts it in Your Selection: "+JSON.stringify(selection));
+  const ended=await mount({catalog:null,items:[]});
+  assert(!ended.document.querySelector(".specialSection"),"after the end date there is no shelf");
+ }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
+});
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

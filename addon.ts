@@ -13,13 +13,14 @@ import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
 import {recommendationsFor} from './recommendations.ts';
+import {specialCatalog,SPECIAL} from './specialCatalog.ts';
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
 import {loadPersonalCatalog,personalCatalogId} from './personalCatalogs.ts';
-type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};special?:{id:string};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -46,6 +47,9 @@ export function normalizeAddon(body:any){
    if(!personalCatalogId.test(ref))throw new InvalidConfig('catalog-entry');
    return{id:ref,name,type:'series',personal:true};
   }
+  // A limited-time, hand-picked catalog ("Watch this while they play GTA 6").
+  // The setup page sends the catalog's address (ydl-special:<id>); its id is accepted too.
+  if(item.kind==='special'){if((item.id||String(item.url||'').replace(/^ydl-special:/,''))!==SPECIAL.id)throw new InvalidConfig('catalog-entry');return{id:'ydl-special:'+SPECIAL.id,name:SPECIAL.name,type:'series',special:{id:SPECIAL.id}};}
   // "Because you watched …": one of up to three personal rows, built from the install's MyDramaList username.
   if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return{id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}};}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
@@ -136,6 +140,12 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(plusPattern)return {...meta,poster:posterPlusImageUrl(plusPattern,meta)};
   if(rpdbKey)return {...meta,poster:rpdbPosterUrl(rpdbKey,meta.id)};
   return meta;
+ }
+ if(entry.special){
+  // Once the catalog has ended it has no titles; its name stays until the add-on is rebuilt.
+  const data=await ((deps as any).special||specialCatalog)();
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(data?.items||[],base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
+  return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.recs){
   // Everything on the owner's watchlist and anything unreleased is already left out of these rows.
