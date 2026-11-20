@@ -132,7 +132,7 @@ export function installAndroidDiscover() {
     const inCollections = state.tab === "collections";
     syncHeader();
     pageDescription.hidden = inDiscover;
-    pageDescription.textContent = inCollections ? "Create and manage your own custom catalogs here." : "Import lists from MyDramaList by searching a username or pasting a link containing a list.";
+    pageDescription.textContent = inCollections ? "Create and manage your own custom catalogs here." : "Import lists from MyDramaList by searching a username or pasting a link to a list.";
     filters.hidden = inCollections;
     catalogs.hidden = !inDiscover;
     actions.classList.toggle("hidden", page !== "selection");
