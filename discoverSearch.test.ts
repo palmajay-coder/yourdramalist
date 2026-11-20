@@ -131,11 +131,13 @@ await test("Weekly Picks titles open the full preview; Add waits for a MyDramaLi
   const preview=()=>document.querySelector(".catalogTitleDialog") as any;
   posters[0].click();
   assert(preview().open&&preview().classList.contains("discoverTitlePreview")&&preview().querySelector(".catalogDialogClose").textContent==="Back","Weekly Picks opens the full preview");
+  assert(preview().querySelector(".ydlLoadingSpinner")&&preview().textContent.includes("Loading details..."),"title preview opens immediately with the compact spinner");
   assert(!preview().querySelector(".discoverPreviewActions button"),"Add waits for a MyDramaList match");
   await tick();
   assert(asked.some(u=>u.includes("view=discover")&&u.includes("themoviedb.org%2Ftv%2F11")),"the preview asks for the full view: "+asked.join(", "));
   assert(preview().querySelector(".discoverPreviewActions .discoverCollectionAction")&&preview().querySelector('.discoverPreviewActions a[href="https://mydramalist.com/11-matched-show"]'),"a match shows Add to Collection and Open in MyDramaList");
   assert(preview().textContent.includes("Story A")&&preview().textContent.includes("Story"),"the story shows");
+  assert(!preview().querySelector(".ydlLoadingSpinner"),"the spinner disappears when preview details resolve");
   preview().close();
   posters[1].click();await tick();
   assert(preview().open&&!preview().querySelector(".discoverPreviewActions button")&&preview().textContent.includes("Story B"),"no match: TMDB story only, no Add button");
@@ -167,7 +169,10 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  const row=document.querySelector(".quickSearchResults .compactCatalogRow")!;
  const rowAdd=row.querySelector(".catalogAdd") as any;
  assert(rowAdd.classList.contains("discoverAddPill")&&rowAdd.textContent==="+Add Filmography","the row uses the blue Add Filmography pill");
- (row.querySelector(".compactPersonIdentity") as any).click();await tick();
+ (row.querySelector(".compactPersonIdentity") as any).click();
+ assert(document.querySelector(".personTitlesDialog .ydlLoadingSpinner"),"filmography opens with the shared compact spinner");
+ await tick();
+ assert(!document.querySelector(".personTitlesDialog .ydlLoadingSpinner"),"filmography spinner disappears when titles load");
  const view=document.querySelector(".personTitlesDialog") as any;
  assert(view.open&&view.querySelector("h2").textContent==="Gong Yoo"&&view.textContent.includes("2 titles"),"tapping the actor opens their titles");
  const cards=[...view.querySelectorAll(".androidWatchlistTitle")] as any[];
@@ -295,7 +300,7 @@ await test("the Connect poster wall uses the saved tint, and the admin preview o
  message("https://test",{type:"ydl-tint-preview",tint:"#ff0000",opacity:0.2});
  assert(shade().includes("rgba(255,0,0,0.20) 0%"),"the admin preview updates the tint live: "+shade());
 });
-await test("the loading bear shows while searching and gives way to results, no matches or an error",async()=>{
+await test("the compact loading indicator shows during search and gives way to results, no matches or an error",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
  assert(pageHtml.includes(".ydlLoadingBear{")&&pageHtml.includes("prefers-reduced-motion:reduce"),"the bear's styles, with reduced motion, are on the page");
