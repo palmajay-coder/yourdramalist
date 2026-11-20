@@ -4,7 +4,7 @@
 // Origins can be overridden when a custom domain is added, for example:
 //   YDL_PUBLIC_ORIGIN=https://yourdramalist.net node build.mjs
 import * as esbuild from "esbuild";
-import { readFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -119,4 +119,13 @@ async function bundle({ entry, outfile, assets, buildId }) {
 
 const buildId = String(Date.now()); // Digits only: app.ts matches /__immutable/\d+/.
 await mkdir(path.join(here, "dist"), { recursive: true });
+// The owner writes the setup guide in guide-text.md; copy it into guideText.ts so every runtime can import it.
+async function syncGuideText() {
+  const text = await readFile(path.join(root, "guide-text.md"), "utf8");
+  const module = "// Generated from guide-text.md by cloudflare/build.mjs. Edit guide-text.md, not this file.\nexport const GUIDE_TEXT = " + JSON.stringify(text) + ";\n";
+  const target = path.join(root, "guideText.ts");
+  const current = await readFile(target, "utf8").catch(() => "");
+  if (current !== module) { await writeFile(target, module); console.log("Updated guideText.ts from guide-text.md"); }
+}
+await syncGuideText();
 await bundle({ entry: "worker.ts", outfile: "worker.js", assets: await buildAssets(), buildId });

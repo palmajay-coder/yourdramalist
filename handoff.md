@@ -58,7 +58,7 @@
 
 ## Growth
 - **Configure button:** the manifest sets `configurable:true`, so Nuvio and Stremio open `/addon/<token>/configure`. `configurePage` writes `selectionFromConfig(config)`, the preferences and the username into the browser, then goes to `/setup/lists`. Keys and poster patterns are never written back. Every new catalog kind needs a case in `selectionFromConfig` (tested by a round trip through `normalizeAddon`).
-- **Search:** `/guide` (`guidePage.ts`) is plain server HTML with HowTo and FAQ data. `/robots.txt` and `/sitemap.xml` live in the same file. The owner should add the site to Google Search Console and submit the sitemap.
+- **Search:** `/guide` (`guidePage.ts`) is plain server HTML with HowTo and FAQ data. **The owner writes its text in `guide-text.md`** (rules at the top of that file). `cloudflare/build.mjs` copies it into `guideText.ts` on every build; after the owner edits it, fetch, build, commit `guideText.ts` and deploy. A test fails if `guideText.ts` is out of date. Don't police the owner's wording in tests. `/robots.txt` and `/sitemap.xml` live in the same file. The owner should add the site to Google Search Console and submit the sitemap.
 
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
