@@ -196,7 +196,7 @@ export const TEXT = {
   communityAllTitles: "All Dramas & Films",
   communityAllTitlesDescription: "All your lists combined.",
   discoverTab: "Discover",
-  profileSearchLabel: "Import lists from MyDramaList by searching a username or pasting a link containing a list.",
+  profileSearchLabel: "Import lists from MyDramaList by searching a username or pasting a link to a list.",
   profilePlaceholder:
     "Enter username or paste a link…",
   discoverSearchLabel: "name a title, actor, director...",
