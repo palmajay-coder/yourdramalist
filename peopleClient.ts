@@ -168,8 +168,8 @@ export function installPeopleUI() {
       () => token !== view.token);
     watchButton(person.id, view.add);
     paintFilmography(view.add, !!selectedFilmography(person.id));
-    view.grid.replaceChildren();
-    view.status.textContent = copy.loadingLists;
+    view.grid.replaceChildren(createLoadingBear("Loading filmography..."));
+    view.status.textContent = "";
     showAndroidDialog(view.dialog);
     view.body.scrollTop = 0;
     try {
@@ -323,7 +323,7 @@ export function installPeopleUI() {
     target = where;
     cleanup();
     const requestId = ++listRequest;
-    // The loading bear holds the results area until results, "no matches" or an error replace it.
+    // Shared compact loading status is replaced by results, empty state, or error.
     target.list().replaceChildren(createLoadingBear("Searching for " + query2));
     target.status().textContent = "";
     try {
