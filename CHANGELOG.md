@@ -2,7 +2,7 @@
 
 ## Website updates since 1.1.30
 
-- Weekly Picks posters change on every page load: each title rotates through up to six of its English and textless TMDB posters. The title's preview and selection use the same pick. Nuvio catalogs keep one poster.
+- Weekly Picks posters rotate every 12 hours (midnight and noon Pacific): each title cycles through up to six of its English and textless TMDB posters, the same for everyone in that window. Opening a title keeps the poster it showed on the shelf. Nuvio catalogs keep one poster.
 - Search shows the YourDramaList bear while results load: "Searching for" your search, with three blue dots. It fades in only if a search takes a moment, gives way to results, "No matches" or an error, and stays still for people who prefer reduced motion. It is reusable for other loading states (`loadingBear.ts`).
 
 ## 1.1.30

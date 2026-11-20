@@ -208,13 +208,8 @@ export function installExploreUI() {
         clock2.hidden = false;
         for (const collection of data2.collections || []) {
           const row = shelf(collection.catalog, weeklyRows);
-          // Titles with several posters show a different one on every load; the tile, the selection
-          // thumbnails and the preview all use the same pick.
-          const items = (collection.items || []).map(item => {
-            const posters = Array.isArray(item.posters) ? item.posters.filter(url => typeof url === "string" && url.startsWith("https://image.tmdb.org/")) : [];
-            return posters.length > 1 ? { ...item, poster: posters[Math.floor(Math.random() * posters.length)] } : item;
-          });
-          row.fill(items);
+          // The server picks each title's poster for the current 12 hours (Weekly Picks rotate posters).
+          row.fill(collection.items);
         }
         if (data2.warning) {
           const warning = document.createElement("p");

@@ -3,6 +3,7 @@ import {COLLECTION_COUNTRIES,weekWindow,weeklyCatalog,posterUrl,matchArtwork,nor
 import {createExploreService} from "./exploreApi.ts";
 import {tmdbExploreItems,sortExploreItems} from "./tmdbExplore.ts";
 import {normalizeShelfFilter} from "./shelfFilters.ts";
+import {pacificDate} from "./pacificTime.ts";
 
 type Storage={load:()=>Promise<any>;save:(value:any)=>Promise<any>};
 export function createCollectionService(storage:Storage|undefined,keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now,posterStorage?:Storage){
@@ -133,8 +134,8 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   while(posterCache.size>600)posterCache.delete(posterCache.keys().next().value!);
   return posters;
  }
- /** Adds `posters` (the usual poster first, then TMDB's alternatives) to Weekly Picks items. Titles not
-  * looked up within the time budget keep only their usual poster and fill in on a later load. */
+ /** Gives each Weekly Picks item one of its posters (the usual one and TMDB's alternatives), changing every
+  * 12 hours. Titles not looked up within the time budget keep their usual poster and fill in on a later load. */
  async function withPosterChoices(data:any,budgetMs=3000){
   if(!keyFor()||!Array.isArray(data?.collections))return data;
   await posterInit();
@@ -147,10 +148,15 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   async function worker(){while(!expired&&cursor<todo.length){const item=todo[cursor++];try{found.set(item.kind+":"+item.id,await posterChoices(item.kind,item.id));changed=true}catch{/* Keep the usual poster; try again on a later load. */}}}
   try{await Promise.race([Promise.all([worker(),worker(),worker()]),new Promise<void>(resolve=>{timer=setTimeout(()=>{expired=true;resolve()},budgetMs)})])}finally{clearTimeout(timer)}
   if(changed&&posterStorage){const rows=[...posterCache];posterSaving=posterSaving.catch(()=>{}).then(()=>posterStorage.save(rows));await bounded(posterSaving).catch(()=>{})}
+  // Every title moves to its next poster at midnight and noon Pacific time; everyone sees the same one meanwhile.
+  const {date,hour}=pacificDate(now()),slot=Math.round(date.getTime()/43200000)+(hour>=12?1:0);
   return {...data,collections:data.collections.map((c:any)=>({...c,items:(c.items||[]).map((item:any)=>{
    const extra=found.get(item?.kind+":"+item?.id)||[];
-   const posters=[...new Set([item.poster,...extra].filter(Boolean))];
-   return posters.length>1?{...item,posters}:item;
+   const posters=[...new Set([item.poster,...extra].filter(Boolean))] as string[];
+   if(posters.length<2)return item;
+   // A fixed per-title offset keeps titles on different posters from one another.
+   let offset=0;for(const ch of item.kind+":"+item.id)offset=(offset*31+ch.charCodeAt(0))>>>0;
+   return {...item,poster:posters[(offset+slot)%posters.length]};
   })}))};
  }
  return{weekly,artwork,metas,standardArtwork,posterChoices,withPosterChoices};

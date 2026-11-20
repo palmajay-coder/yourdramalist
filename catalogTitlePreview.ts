@@ -125,7 +125,10 @@ export function installCatalogTitlePreview() {
         const runtime = details.duration || (details.runtime ? details.runtime + " min" : "");
         meta.textContent = [details.year || year, details.country, runtime].filter(Boolean).join(" · ");
         for (const genre of details.genres || []) genres.append(element("span", "", genre));
-        if (details.poster) {
+        // A title tapped on a shelf keeps the TMDB poster it showed there (Weekly Picks rotate posters);
+        // other titles (for example search results with MyDramaList art) get the TMDB poster.
+        const keepPoster = /^https:\/\/image\.tmdb\.org\//.test(item.poster || "");
+        if (details.poster && !keepPoster) {
           const poster = new Image();
           poster.onload = () => {
             if (controller.signal.aborted) return;
