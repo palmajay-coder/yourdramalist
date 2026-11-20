@@ -42,7 +42,15 @@
 - **Spotlight** (`specialCatalog.ts`, `/api/catalogs/special`): "Watch this while they play GTA 6", 20 hand-picked titles.
   - **Placement:** the first list on Discover, with a countdown, and as Nuvio kind `special`.
   - **End:** it ends at midnight Pacific on January 1, 2027.
-  - **Matching:** titles are matched on TMDB by name, year and country, with matches saved in `special:v1`. Swap titles in `SPECIAL.titles`.
+  - **Matching:** titles are matched on TMDB by name, year and country, with matches saved in `special:v1`. Unmatched titles are logged as `unmatched` in the Worker logs.
+  - **Calendar:** a holiday or seasonal list for every month (`MONTHLY` in `specialCatalog.ts`), changing at midnight Pacific on the 1st. GTA 6 (`GTA6`) runs until Dec 1, 2026, when the winter list begins.
+  - **One heading:** all running lists sit under one "Spotlight" heading with one timer to the end of the month.
+  - **Nuvio:** `special` ids `gta6` and `monthly` ("Spotlight of the month", always the current month's list).
+- **Top 10** (`top10.ts`, `/api/catalogs/top10`): Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today", right under This Week's Picks.
+  - **Ranking:** TMDB popularity of Korean dramas with an episode in the last 30 days, and Korean films from the last 180 days.
+  - **Refresh:** rebuilt daily at Pacific midnight and saved in `top10:v1`. The last list is kept for up to 3 days if TMDB fails.
+  - **Nuvio:** kind `top10`, ids `tv` and `movie`.
+- **Discover order** (`arrange()` in `exploreClient.ts`): Spotlight, This Week's Picks, Top 10, Recommended for you, Catalogs by Country.
 
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
