@@ -3,7 +3,7 @@
 ## Project
 - **What it does:** YourDramaList (YDL) turns MyDramaList catalogs, watchlists, filmographies and weekly picks into Nuvio/Stremio install links, with a Discover site and an Android app.
 - **Live site:** https://yourdramalist.net, served by the Cloudflare Worker `yourdramalist`.
-- **Work branch:** `migration/cloudflare` of `palmajay-coder/yourdramalist`. GitHub `main` is kept fast-forwarded to it.
+- **Branches:** `main` and `migration/cloudflare` of `palmajay-coder/yourdramalist` are kept identical. Other tools (Codex) commit to `main`, so fetch and fast-forward from `main` before starting.
 - **Test site:** https://yourdramalist-discover-preview.palmajay.workers.dev (Worker `yourdramalist-discover-preview`, branch `preview/connect-first`, its own R2 bucket `ydl-discover-preview-data`).
 - **Release:** 1.1.29 (Android versionCode 105).
 
@@ -28,6 +28,10 @@
   - **One release only:** after publishing, the workflow deletes older releases (`mobile/prune-releases.sh`). Tags stay. Release notes have no install or signing text.
 - **Website changes reach the app** without a new APK, because the app loads the site.
 - **Before deploying,** fetch and merge any Codex work.
+- **Deploy only from source** with `node build.mjs` and `wrangler deploy`. Never hand-patch `dist/worker.js` or the live script: the build renames functions (for example `createLoadingBear2` on the server, exposed to the page as `createLoadingBear`), and a hand patch once broke drama previews. To check that live matches GitHub, download the live script from the Cloudflare API and diff it against a fresh build.
+
+## Approved designs
+- **Loading indicator** (`loadingBear.ts`, name kept for compatibility): a 24px blue spinner centered above 18px muted text, 8px gap, with a fade-in and reduced-motion support. It's shared by search ("Searching for …"), title previews ("Loading details...") and filmographies ("Loading filmography..."). The owner approved it: no bear, no skeletons, no side-by-side layout unless asked. A title preview must open right away, with the indicator inside it, and the indicator must be removed when loading finishes or fails.
 
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
