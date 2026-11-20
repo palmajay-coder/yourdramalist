@@ -144,8 +144,8 @@ export function installPeopleUI() {
     sortLabel.htmlFor = "personSort";
     const sortSelect = document.createElement("select");
     sortSelect.id = "personSort";
-    // MyDramaList lists credits newest first; a filmography has no ratings to sort by.
-    for (const [value, text] of [["", copy.catalogSortDefault], ["oldest", copy.shelfSortOldest], ["az", copy.shelfSortAz]]) {
+    // The same sorts as Discover. Rating uses TMDB's score; titles without one go last.
+    for (const [value, text] of [["", copy.catalogSortDefault], ["newest", copy.shelfSortNewest], ["oldest", copy.shelfSortOldest], ["rating", copy.shelfSortRating], ["az", copy.shelfSortAz]]) {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = text;

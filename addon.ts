@@ -240,7 +240,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(!catalog?.items?.length)return{metas:[]};
   pool=catalog.items;
  }
- else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:/^tmdb-(tv|movie)-\d+$/.test(x.id)?x.id:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url}));}
+ else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:/^tmdb-(tv|movie)-\d+$/.test(x.id)?x.id:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url,...(x.score?{score:x.score}:{})}));}
  else if(entry.watchlist&&entry.watchlistStatus)pool=await (deps.watchlistCategory??loadWatchlistCategory)(entry.watchlist,entry.watchlistStatus);
  else if(entry.watchlist){
   const sections=await (deps.watchlistSections??loadWatchlist)(entry.watchlist);

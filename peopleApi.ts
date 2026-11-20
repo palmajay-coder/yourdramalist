@@ -54,7 +54,7 @@ export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,
   })().finally(()=>pending.delete(key));pending.set(key,p);return p;
  }
  return {
-  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
+  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:v2:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
   async search(query:string,pageNumber:number){return page('discover-search:'+query.toLowerCase()+':'+pageNumber,'/v2/search?q='+encodeURIComponent(query)+'&page='+pageNumber,data=>discoverSearchResults(data,pageNumber),300000)}
  };
 }

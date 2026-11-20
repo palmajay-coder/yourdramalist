@@ -47,3 +47,21 @@ console.log('PASS person cards add the right filmography in one tap, cross-count
 for(const query of ['mode=invalid&url=https://mydramalist.com/people/1-example','mode=actor&url=https://evil.test/people/1-example'])assert((await handlePeople(new Request('https://test/api/mdl/filmography?'+query))).status===400,'invalid filmography request accepted: '+query);
 assert((await handlePeople(new Request('https://test/api/mdl/filmography?mode=actor&url=https://mydramalist.com/people/1-example',{method:'POST'}))).status===405,'write method accepted');
 console.log('PASS filmography endpoint validates role and person URL before network access');
+
+// TMDB credits carry a rating for the Rating sort on actor and director pages, when enough people voted.
+{
+  const {tmdbPersonCredits}=await import('./tmdbPeople.ts');
+  const {applyShelfFilter}=await import('./shelfFilters.ts');
+  const tmdbFetch=(async(input:any)=>{const u=new URL(String(input));
+    if(u.pathname.endsWith('/search/person'))return Response.json({results:[{id:7,name:'Son Ye-jin',original_name:'손예진',popularity:9}]});
+    return Response.json({cast:[
+      {id:1,media_type:'tv',name:'Crash Landing on You',first_air_date:'2019-12-14',vote_average:8.6,vote_count:900,character:'Yoon Se-ri',genre_ids:[18]},
+      {id:2,media_type:'movie',title:'The Classic',release_date:'2003-01-30',vote_average:7.9,vote_count:300,character:'Ji-hye',genre_ids:[18]},
+      {id:3,media_type:'movie',title:'Little Known',release_date:'2010-01-01',vote_average:10,vote_count:2,character:'Mi-na',genre_ids:[18]}],crew:[]})}) as typeof fetch;
+  const credits=await tmdbPersonCredits({name:'Son Ye-jin',nativeName:'손예진'},{fetcher:tmdbFetch,key:'k'});
+  const [cloy,classic,little]=['Crash Landing on You','The Classic','Little Known'].map(n=>credits!.actor.find(c=>c.name===n)!);
+  assert(cloy.score===8.6&&classic.score===7.9&&little.score===undefined,'TMDB ratings are kept, but not from two votes: '+JSON.stringify(credits!.actor.map(c=>[c.name,c.score])));
+  const byRating=applyShelfFilter(credits!.actor,{sort:'rating'}).map((c:any)=>c.name).join(',');
+  assert(byRating==='Crash Landing on You,The Classic,Little Known','Rating sort puts unrated titles last: '+byRating);
+  console.log('PASS filmography credits carry TMDB ratings for the Rating sort');
+}

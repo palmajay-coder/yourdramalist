@@ -438,7 +438,7 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  const sheet=document.querySelector(".personFilters") as any;
  assert(sheet.open&&sheet.querySelectorAll('input[name="personMediaType"]').length===3,"the icon opens All, Movies and Shows with a sort");
  const sortMenu=sheet.querySelector("#personSort") as any;
- assert(![...sortMenu.querySelectorAll("option")].some((o:any)=>o.value==="rating"),"no rating sort for credits");
+ assert([...sortMenu.querySelectorAll("option")].map((o:any)=>o.value).join(",")===",newest,oldest,rating,az","the same five sorts as Discover");
  for(const o of sortMenu.querySelectorAll("option"))o.removeAttribute("selected");
  sortMenu.querySelector('option[value="oldest"]').setAttribute("selected","");try{sortMenu.value="oldest"}catch{}
  sortMenu.onchange();

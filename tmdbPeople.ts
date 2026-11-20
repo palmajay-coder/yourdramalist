@@ -49,6 +49,8 @@ const credit = (c: any, role: string | null): Credit | null => {
     type: c.media_type === "movie" ? "Movie" : "Drama",
     role,
     poster: posterUrl(c.poster_path),
+    // TMDB's rating, for the Rating sort; left out when too few people voted for it to mean much.
+    ...(Number(c?.vote_count) >= 5 && Number(c?.vote_average) > 0 ? { score: Math.round(Number(c.vote_average) * 10) / 10 } : {}),
   };
 };
 const newestFirst = (list: Credit[]) => list.sort((a, b) => (b.year ?? -1) - (a.year ?? -1));
