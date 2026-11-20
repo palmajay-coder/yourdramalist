@@ -78,6 +78,30 @@ await test("title Add buttons follow saved collections and only turn green after
  box().checked=false;box().dispatchEvent(new window.Event("change"));submit();
  assert(!added(),"removing the title from its last collection turns the button blue again");
 });
+await test("Weekly Picks shows a different one of a title's posters on each load",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text();
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const posters=["https://image.tmdb.org/t/p/w780/a.jpg","https://image.tmdb.org/t/p/w780/b.jpg","https://image.tmdb.org/t/p/w780/c.jpg"];
+ const catalog={id:"weekly-kr-1",name:"This Week: Romance",url:"https://yourdramalist/weekly/kr/1",type:"series"};
+ const realInterval=globalThis.setInterval,realRandom=Math.random,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const load=async(random:number)=>{
+  const {document,window}=parseHTML(pageHtml);Math.random=()=>random;
+  const fetcher=async(url:string)=>String(url).startsWith("/api/catalogs/weekly")
+   ?Response.json({collections:[{catalog,items:[{kind:"tv",id:1,name:"Love A",poster:posters[0],posters},{kind:"tv",id:2,name:"Love B",poster:"https://image.tmdb.org/t/p/w780/only.jpg"},{kind:"tv",id:3,name:"Love C",poster:posters[0],posters:["javascript:alert(1)","https://evil.test/x.jpg"]}]}],nextRefresh:new Date(Date.now()+864e5).toISOString()})
+   :Response.json({collections:[],items:[]});
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:()=>null,setItem(){},removeItem(){}},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  let images:any[]=[];
+  for(let i=0;i<50&&images.length<3;i++){await new Promise(r=>setTimeout(r,10));images=[...document.querySelectorAll(".catalogPoster img")];}
+  return images.map((img:any)=>img.getAttribute("src"));
+ };
+ try{
+  const first=await load(0),second=await load(0.9);
+  assert(first[0]===posters[0]&&second[0]===posters[2],"each load picks from the title's posters: "+first[0]+" / "+second[0]);
+  assert(first[1]==="https://image.tmdb.org/t/p/w780/only.jpg"&&second[1]===first[1],"a title with one poster keeps it");
+  assert(first[2]===posters[0]&&second[2]===posters[0],"posters from anywhere but TMDB are ignored");
+ }finally{Math.random=realRandom;globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
+});
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

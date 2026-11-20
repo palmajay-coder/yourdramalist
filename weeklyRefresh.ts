@@ -9,7 +9,8 @@ export default async function(){
  if(date.getUTCDay()!==1)return [];
  const results=[];
  for(const country of Object.keys(COLLECTION_COUNTRIES)){
-  try{const data=await collections.weekly(country);results.push({country,status:data.status,titles:data.collections.reduce((n:any,c:any)=>n+c.items.length,0)})}
+  // Also look up each title's alternative posters now, so visitors rarely wait for them.
+  try{const data=await collections.weekly(country);await collections.withPosterChoices(data,20000).catch(()=>{});results.push({country,status:data.status,titles:data.collections.reduce((n:any,c:any)=>n+c.items.length,0)})}
   catch{results.push({country,status:'unavailable'})}
  }
  console.log(JSON.stringify({weeklyRefresh:results}));return results;
