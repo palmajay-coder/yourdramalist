@@ -31,7 +31,7 @@
 - **Deploy only from source** with `node build.mjs` and `wrangler deploy`. Never hand-patch `dist/worker.js` or the live script: the build renames functions (for example `createLoadingBear2` on the server, exposed to the page as `createLoadingBear`), and a hand patch once broke drama previews. To check that live matches GitHub, download the live script from the Cloudflare API and diff it against a fresh build.
 
 ## Approved designs
-- **Loading indicator** (`loadingBear.ts`, name kept for compatibility): a 24px blue spinner centered above 18px muted text, 8px gap, with a fade-in and reduced-motion support. It's shared by search ("Searching for …"), title previews ("Loading details...") and filmographies ("Loading filmography..."). The owner approved it: no bear, no skeletons, no side-by-side layout unless asked. A title preview must open right away, with the indicator inside it, and the indicator must be removed when loading finishes or fails.
+- **Loading indicator** (`loadingBear.ts`, name kept for compatibility): a 24px blue spinner centered above 18px muted text, 8px gap, with a fade-in and reduced-motion support. It always shows in the exact center of the screen (site-wide standard, `position:fixed`), wherever the caller inserts it. It's shared by search ("Searching for …"), title previews ("Loading details...") and filmographies ("Loading filmography..."). The owner approved it: no bear, no skeletons, no side-by-side layout unless asked. A title preview must open right away, with the indicator inside it, and the indicator must be removed when loading finishes or fails.
 
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).

@@ -155,8 +155,6 @@ body.androidSetup #discoverForm[hidden],body.androidSetup #discoverLabel[hidden]
 .quickSearchClearText svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .quickSearchRecentView[hidden]{display:none}
 .quickSearchStatus{margin:12px 0;color:#a6adba}.quickSearchStatus:empty{display:none}
-/* The loading bear fills the search area so it sits in the middle of it. */
-.quickSearchBody:has(>.quickSearchResults>.ydlLoadingBear){display:flex;flex-direction:column}.quickSearchResults:has(>.ydlLoadingBear){flex:1;display:flex;flex-direction:column}.quickSearchResults>.ydlLoadingBear{flex:1;min-height:0}
 .quickSearchResults .catalogSectionTitle{margin:14px 0 8px;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#a6adba}
 .quickSearchResults .discoverTitleRow{margin:0;padding:10px 0;border:0;border-bottom:1px solid #ffffff12;border-radius:0;background:transparent}
 .quickSearchResults .discoverTitleIdentity img,.quickSearchResults .discoverTitleIdentity .shelfPosterBlank{width:52px;height:78px;flex-basis:52px}

@@ -303,7 +303,9 @@ await test("the Connect poster wall uses the saved tint, and the admin preview o
 await test("the compact loading indicator shows during search and gives way to results, no matches or an error",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
- assert(pageHtml.includes(".ydlLoadingBear{")&&pageHtml.includes("prefers-reduced-motion:reduce"),"the bear's styles, with reduced motion, are on the page");
+ assert(pageHtml.includes(".ydlLoadingBear{")&&pageHtml.includes("prefers-reduced-motion:reduce"),"the loader's styles, with reduced motion, are on the page");
+ const loaderRule=pageHtml.match(/\.ydlLoadingBear\{[^}]*\}/)?.[0]||"";
+ assert(/position:fixed/.test(loaderRule)&&/left:50%/.test(loaderRule)&&/top:50%/.test(loaderRule)&&/translate\(-50%,-50%\)/.test(loaderRule),"the loader sits in the exact center of the screen: "+loaderRule);
  const storage={getItem:()=>null,setItem(){},removeItem(){}};
  const location={href:"https://test/setup",origin:"https://test",pathname:"/setup",search:"",hostname:"test"};
  const proto=Object.getPrototypeOf(document.createElement("dialog"));
