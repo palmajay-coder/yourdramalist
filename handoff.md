@@ -53,6 +53,7 @@
   - **Refresh:** rebuilt daily at Pacific midnight and saved in `top10:v1`. The last list is kept for up to 3 days if TMDB fails.
   - **Nuvio:** kind `top10`, ids `tv` and `movie`.
   - **Country filter:** `/api/catalogs/top10?country=<filter value>` (Korea by default). Names read "Top 10 Dramas Today (Japan)". Korea keeps `ydl-top10:tv`; others add the country (`ydl-top10:tv:JP`). `top10:v1` holds a list per country.
+- **Analytics for new catalog kinds:** every new catalog kind needs its own category, or it falls through and counts as a Community public list. Add it in `analyticsScopes` (`addon.ts`), `CATALOG_CATEGORIES`, `ADD_SOURCES` and `analyticsCategoryLabel` (`analyticsApi.ts`), `catalogAddSource` (`app.ts`), and `searchSources` (`wallpaperAdmin.ts`). Spotlight uses `spotlight:<id>:<country|all>`, Top 10 uses `top10:<id>:<country>`, Because you watched uses `recs:<slot>`.
 - **Discover order** (`arrange()` in `exploreClient.ts`): Spotlight, This Week's Picks, Top 10, Recommended for you, Browse All.
 
 ## Quirks

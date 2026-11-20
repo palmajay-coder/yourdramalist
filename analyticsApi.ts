@@ -17,12 +17,17 @@ const FEATURE_CATEGORIES = new Set([
   "metadata-mdl", "metadata-tmdb", "posters-tmdb", "posters-easyposters", "posters-betterposters",
   "posters-poster-plus", "posters-rpdb", "filtered-catalog",
 ]);
+// Spotlight and Top 10 count by country ("all" is a Spotlight added without one, as older installs have).
+const DISCOVER_COUNTRIES = ["KR", "JP", "CN", "TW", "TH"];
 const CATALOG_CATEGORIES = new Set([
   "weekly:0", "weekly:1",
+  ...["gta6", "monthly"].flatMap(id => ["all", ...DISCOVER_COUNTRIES].map(country => `spotlight:${id}:${country}`)),
+  ...["tv", "movie"].flatMap(id => DISCOVER_COUNTRIES.map(country => `top10:${id}:${country}`)),
+  "recs:0", "recs:1", "recs:2",
   "explore:top-shows:all", "explore:popular-shows:all", "explore:newest-shows:all", "explore:upcoming-shows:all", "explore:airing-shows:all", "explore:variety-shows:all", "explore:top-movies:all", "explore:popular-movies:all", "explore:newest-movies:all", "explore:upcoming-movies:all",
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
-const ADD_SOURCES = new Set(["popular-this-month","discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks","add-to-collection"]);
+const ADD_SOURCES = new Set(["popular-this-month","discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks","add-to-collection","spotlight","top10","recommended"]);
 export const POSTER_VERIFY_CATEGORIES = new Set([
   "unknown:invalid-input", "unknown:invalid-configuration", "unknown:request-limit", "unknown:request-size", "unknown:request-origin", "unknown:request-format", "unknown:request-method",
   ...["ratings", "better", "posterplus", "rpdb"].flatMap(provider => [
@@ -180,6 +185,8 @@ export const analyticsLabels:Record<string,string>={
   "metadata-mdl":"MyDramaList metadata", "metadata-tmdb":"TMDB metadata",
   "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
+  "recs:0":"Because you watched · Row 1", "recs:1":"Because you watched · Row 2", "recs:2":"Because you watched · Row 3",
+  spotlight:"Spotlight adds", top10:"Top 10 adds", recommended:"Recommended for you adds",
   "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation", "token-too-large":"Install link too long",
 };
 export function analyticsCategoryLabel(category:string){
@@ -189,6 +196,13 @@ export function analyticsCategoryLabel(category:string){
     const providerName:Record<string,string>={ratings:"EasyPosters",better:"BetterPosters",posterplus:"Poster+",rpdb:"RPDB",unknown:"Other"};
     const issueName:Record<string,string>={"invalid-credentials":"Invalid or missing credentials","invalid-settings":"Invalid URL or settings","credentials-rejected":"Provider rejected credentials","provider-unavailable":"Provider unavailable","provider-response":"Provider error","provider-rate-limit":"Provider rate limit","sample-poster-missing":"Sample poster unavailable","not-an-image":"Provider did not return an image","request-limit":"Verification request limit","request-size":"Request too large","request-origin":"Request origin check","request-format":"Request format","request-method":"Request method","invalid-input":"Invalid request","invalid-configuration":"Invalid settings","client-network":"Browser connection error"};
     if(providerName[provider]&&issueName[issue])return `${providerName[provider]} · ${issueName[issue]}`;
+  }
+  // Spotlight and Top 10: one row per catalog, with the country in brackets for the admin page's breakdown.
+  const countryName:Record<string,string>={KR:"South Korea",JP:"Japan",CN:"China",TW:"Taiwan",TH:"Thailand"};
+  if(category.startsWith("spotlight:")||category.startsWith("top10:")){
+    const [kind,id,country]=category.split(":");
+    const name=kind==="spotlight"?(id==="gta6"?"Spotlight · GTA 6":"Spotlight of the month"):`Top 10 ${id==="tv"?"Dramas":"Movies"} Today`;
+    return countryName[country]?`${name} (${countryName[country]})`:name;
   }
   if(category.startsWith("explore:")){
     const [,id,countryId]=category.split(":");

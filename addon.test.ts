@@ -1,4 +1,4 @@
-import {mdlTitleMeta,normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter,listStatus} from './addon.ts';
+import {mdlTitleMeta,normalizeAddon,createTokenCodec,makeManifest,loadCatalog,handleAddon,createRequestLimiter,listStatus,analyticsScopes} from './addon.ts';
 import {parseModernWatchlist,profileWatchlistCards,extractMDLTitlePoster} from './addonScrape.ts';
 import {Ge,Sz,Go,Xe,hiddenTitleKey} from './addonCore.ts';
 import {exploreCatalog} from './explore.ts';
@@ -179,5 +179,14 @@ await test('manifest diagnostics correlate safe logs with rejected requests', as
   } finally {
     console.warn = warn;
   }
+});
+await test('Spotlight, Top 10 and Because you watched count as their own catalogs, not as community lists',async()=>{
+ const {validAnalytics,analyticsCategoryLabel}=await import('./analyticsApi.ts');
+ const c=normalizeAddon({...body,catalogs:[{name:'Thankful for Family (Japan)',kind:'special',url:'ydl-special:monthly:JP'},{name:'GTA',kind:'special',url:'ydl-special:gta6'},{name:'Top 10 Dramas Today (South Korea)',kind:'top10',url:'ydl-top10:tv'},{name:'Top 10 Movies Today (China)',kind:'top10',url:'ydl-top10:movie:CN'},{name:'Because you watched X',kind:'recs',slot:1}]});
+ const scopes=analyticsScopes(c).filter(s=>s.startsWith('catalog.selected:')||s.endsWith('community-public-list'));
+ assert(scopes.join(',')==='catalog.selected:spotlight:monthly:JP,catalog.selected:spotlight:gta6:all,catalog.selected:top10:tv:KR,catalog.selected:top10:movie:CN,catalog.selected:recs:1','scopes: '+scopes.join(','));
+ assert(scopes.every(s=>validAnalytics(s.split(':')[0] as any,s.slice(s.indexOf(':')+1))),'every scope is an accepted category');
+ assert(analyticsCategoryLabel('spotlight:monthly:JP')==='Spotlight of the month (Japan)'&&analyticsCategoryLabel('spotlight:gta6:all')==='Spotlight · GTA 6'&&analyticsCategoryLabel('top10:movie:CN')==='Top 10 Movies Today (China)'&&analyticsCategoryLabel('recs:1')==='Because you watched · Row 2','labels');
+ assert(['spotlight','top10','recommended'].every(s=>validAnalytics('catalog.added',s))&&!validAnalytics('catalog.selected','top10:tv:US'),'Discover Add sources are accepted; unknown countries are not');
 });
 console.log(JSON.stringify({passed}));

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Website updates since 1.1.30
+- Analytics count Spotlight, Top 10 and Because you watched as their own catalogs (with a breakdown by country, and by row for Because you watched) and their Discover Add taps as Spotlight, Top 10 and Recommended for you adds. Before this they were counted as Community public lists.
 - "Catalogs by Country" on Discover is now "Browse All", since the country filter applies to every section.
 - Discover's country filter now applies to Spotlight and Top 10. Spotlight shows that country's hand-picked titles first, then fills up to 15 with the country's best-rated titles on the same theme (comedies for GTA 6, family stories for Thankful for Family, and so on); a list that still has fewer than 5 titles hides for that country. Top 10 shows that country's rows. Adding either to Nuvio keeps the country.
 - Spotlight and Top 10 are named like Weekly Picks, with the country in brackets: "Thankful for Family (Japan)", "Horror Night (Thailand)", "Top 10 Dramas Today (China)".

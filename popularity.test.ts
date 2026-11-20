@@ -71,6 +71,13 @@ await test("people are counted once per category and range, with device type and
  assert(deviceType(request("1.1.1.1","Mozilla/5.0 (iPad; CPU OS 17_0)"))==="mobile"&&deviceType(request("1.1.1.1","Mozilla/5.0 (Linux; Android 14; Pixel 8)"))==="mobile"&&deviceType(request("1.1.1.1"))==="computer","tablets count as mobile");
 });
 
+await test("Because you watched rows and Spotlight countries count a person once",async()=>{
+ const f=fakeDb();
+ const p=createPopularity({db:f.db,now:()=>noon,record:async()=>{}});
+ await p.recordManifest(request("192.0.2.40"),["catalog.selected:recs:0","catalog.selected:recs:2","catalog.selected:spotlight:monthly:JP","catalog.selected:spotlight:monthly:CN","catalog.selected:top10:tv:KR"]);
+ const s=await p.summary();
+ assert(s.ranges[7].groups.recs===1&&s.ranges[7].groups.monthly===1&&s.ranges[7].groups.tv===1&&s.ranges[7].scopes["catalog.selected:spotlight:monthly:JP"]===1,"groups: "+JSON.stringify(s.ranges[7].groups));
+});
 await test("admin analytics: people counts, device split, returns, combined Discover catalogs, features and search",async()=>{
  const html=adminPage(true);const {document,window}=parseHTML(html);
  const range=(people:number,extra:any={})=>({people,mobile:Math.round(people*0.75),computer:people-Math.round(people*0.75),returning:3,groups:{weekly:30,"newest-shows":22,"airing-shows":9},scopes:{"catalog.selected:explore:newest-shows:3":20,"catalog.selected:explore:newest-shows:1":5,"catalog.selected:explore:airing-shows:3":9,"catalog.selected:weekly:0":30,"feature.selected:community-watchlist":7,"feature.selected:posters-tmdb":9,"catalog.added:discover-actor-filmography":4,"catalog.added:discover-drama-related":6},...extra});
@@ -89,7 +96,7 @@ await test("admin analytics: people counts, device split, returns, combined Disc
  assert(/Individual watchlists/.test($("featureRanks").textContent!)&&/Not used: .*Director filmographies/.test($("featureUnused").textContent!),"catalog types tab lists used and unused features");
  (document.querySelector('#featureTabs [data-group="posters"]') as any).click();
  assert(/TMDB posters/.test($("featureRanks").textContent!)&&/RPDB/.test($("featureUnused").textContent!),"poster styles tab");
- assert([...document.querySelectorAll("#searchRanks li")].map(li=>li.textContent).join("|")==="Drama search6|Actor search4|Director search0|Add to Collection taps0","search breakdown shows every search and Add to Collection taps, even unused ones");
+ assert([...document.querySelectorAll("#searchRanks li")].map(li=>li.textContent).join("|")==="Drama search6|Actor search4|Director search0|Add to Collection taps0|Spotlight adds0|Top 10 adds0|Recommended for you adds0","search breakdown shows every search and Add to Collection taps, even unused ones");
  assert(document.querySelectorAll("#dailyRows .sparkBar").length===7,"seven days of bars");
  (document.querySelector('#analyticsRange [data-range="30"]') as any).click();
  assert(document.querySelectorAll("#dailyRows .sparkBar").length===30&&$("peopleRangeLabel").textContent==="People · 30 days"&&$("peopleRange").textContent==="80","range switch");

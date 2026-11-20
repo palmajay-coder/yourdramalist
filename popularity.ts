@@ -98,7 +98,7 @@ export function createPopularity(deps: {db?: Db; record?: typeof recordAnalytics
       const groups = new Map<string, Set<string>>();
       for (const [scope, set] of scopes) {
         if (!scope.startsWith("catalog.selected:")) continue;
-        const parts = scope.split(":"), key = parts[1] === "weekly" ? "weekly" : parts[2];
+        const parts = scope.split(":"), key = parts[1] === "weekly" || parts[1] === "recs" ? parts[1] : parts[2];
         let group = groups.get(key); if (!group) groups.set(key, group = new Set());
         for (const v of set) group.add(v);
       }

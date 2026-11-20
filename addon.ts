@@ -124,6 +124,26 @@ async function recsNamesFor(config:AddonConfig):Promise<Record<number,string>>{
  try{const data:any=await Promise.race([recommendationsFor(config.user),new Promise(r=>{timer=setTimeout(()=>r(null),5000)})]);return Object.fromEntries((data?.rows||[]).map((row:any,i:number)=>[i,row.seed.title]))}
  catch{return {}}finally{clearTimeout(timer)}
 }
+/** The analytics categories one Nuvio link counts toward: its catalogs and its features. */
+export function analyticsScopes(config:StoredAddonConfig){
+ const scopes:string[]=[];
+ for(const entry of config.entries){
+  if(entry.weekly)scopes.push(`catalog.selected:weekly:${entry.weekly.slot}`);
+  else if(entry.explore)scopes.push(`catalog.selected:explore:${entry.explore.category}:${entry.explore.country||'all'}`);
+  else if(entry.special)scopes.push(`catalog.selected:spotlight:${entry.special.id}:${entry.special.country||'all'}`);
+  else if(entry.top10)scopes.push(`catalog.selected:top10:${entry.top10.id}:${entry.top10.country||'KR'}`);
+  else if(entry.recs)scopes.push(`catalog.selected:recs:${entry.recs.slot}`);
+  else if(entry.person)scopes.push('feature.selected:'+(entry.mode==='director'?'director-filmography':'actor-filmography'));
+  else if(entry.watchlist)scopes.push('feature.selected:'+(entry.watchlistAll?'community-combined-watchlist':'community-watchlist'));
+  else if(!entry.personal)scopes.push('feature.selected:community-public-list');
+  if(entry.filter)scopes.push('feature.selected:filtered-catalog');
+ }
+ const prefs=config.preferences as any;
+ scopes.push('feature.selected:'+(prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl'));
+ scopes.push('feature.selected:'+(config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb'));
+ for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)scopes.push('feature.selected:'+category);}
+ return scopes;
+}
 export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={},recsNames:Record<number,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:(e.recs?(recsNames[e.recs.slot]?'Because you watched '+recsNames[e.recs.slot]:'Because you watched…'):e.special?.id==='monthly'?spotlightName(monthlySpotlight(Date.now(),e.special.country as any),e.special.country as any):localizedCatalogName(e,language,personNames))+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
@@ -293,19 +313,7 @@ export async function handleAddon(req:Request){
    // Val Town rejects request paths near 14,500 characters, so refuse links Nuvio could not load.
    if(token.length>MAX_MANIFEST_TOKEN)return diagnose('configuration',400,'token-too-large');
    // Each person counts once per category: the catalogs and features in this link, and their device type.
-   const scopes:string[]=[];
-   for(const entry of config.entries){
-    if(entry.weekly)scopes.push(`catalog.selected:weekly:${entry.weekly.slot}`);
-    else if(entry.explore)scopes.push(`catalog.selected:explore:${entry.explore.category}:${entry.explore.country||'all'}`);
-    else if(entry.person)scopes.push('feature.selected:'+(entry.mode==='director'?'director-filmography':'actor-filmography'));
-    else if(entry.watchlist)scopes.push('feature.selected:'+(entry.watchlistAll?'community-combined-watchlist':'community-watchlist'));
-    else if(!entry.personal)scopes.push('feature.selected:community-public-list');
-    if(entry.filter)scopes.push('feature.selected:filtered-catalog');
-   }
-   const prefs=config.preferences as any;
-   scopes.push('feature.selected:'+(prefs.metadataProvider==='tmdb'?'metadata-tmdb':'metadata-mdl'));
-   scopes.push('feature.selected:'+(config.posterPlus?'posters-poster-plus':config.betterPosters?'posters-betterposters':(config as any).rpdb?'posters-rpdb':prefs.posters?'posters-easyposters':'posters-tmdb'));
-   for(const [enabled,category] of [[prefs.reviews,'reviews'],[prefs.hideUnreleased,'hide-unreleased'],[prefs.hideCompleted,'hide-completed']] as [boolean,string][]){if(enabled)scopes.push('feature.selected:'+category);}
+   const scopes=analyticsScopes(config);
    await popularity.recordManifest(req,scopes);
    const manifestOrigin=u.origin==='https://yourdramalist.palmajay.workers.dev'?'https://yourdramalist.net':u.origin;
    return Response.json({url:manifestOrigin+'/addon/'+token+'/manifest.json'},{headers});

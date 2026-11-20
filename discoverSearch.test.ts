@@ -241,8 +241,9 @@ await test("Top 10 K-Dramas and K-Movies sit right under This Week's Picks, abov
  (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
  const ten=(kind:string)=>Array.from({length:10},(_,i)=>({kind,id:i+1,name:kind+" "+(i+1),date:"2026-10-01",poster:"https://image.tmdb.org/t/p/w780/"+kind+i+".jpg"}));
  const mount=async(top10:any)=>{
-  const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>([["ydl-v3-user","Jaesan"]]);
-  const fetcher=async(url:string)=>{const u=String(url);
+  const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>([["ydl-v3-user","Jaesan"]]),sent:any[]=[];
+  const fetcher=async(url:string,options:any={})=>{const u=String(url);
+   if(u==="/api/analytics/catalog-add"){sent.push(JSON.parse(options.body));return Response.json({ok:true})}
    if(u.startsWith("/api/catalogs/top10"))return Response.json(top10);
    if(u.startsWith("/api/recommendations"))return Response.json({rows:[{seed:{title:"The Glory",slug:"1"},items:ten("rec")}]});
    if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog:{id:"w",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0},items:ten("w")}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
@@ -251,10 +252,10 @@ await test("Top 10 K-Dramas and K-Movies sit right under This Week's Picks, abov
   new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
   for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,10));if(document.querySelector(".top10Section:not([hidden]) .catalogShelf")&&document.querySelector(".recsSection:not([hidden]) .catalogShelf"))break;}
   await new Promise(r=>setTimeout(r,30));
-  return {document,saved};
+  return {document,saved,sent};
  };
  try{
-  const {document,saved}=await mount({date:"2026-11-20",rows:[{catalog:{kind:"top10",id:"tv",url:"ydl-top10:tv",name:"Top 10 K-Dramas Today",type:"series"},items:ten("tv")},{catalog:{kind:"top10",id:"movie",url:"ydl-top10:movie",name:"Top 10 K-Movies Today",type:"movie"},items:ten("movie")}]});
+  const {document,saved,sent}=await mount({date:"2026-11-20",rows:[{catalog:{kind:"top10",id:"tv",url:"ydl-top10:tv",name:"Top 10 K-Dramas Today",type:"series"},items:ten("tv")},{catalog:{kind:"top10",id:"movie",url:"ydl-top10:movie",name:"Top 10 K-Movies Today",type:"movie"},items:ten("movie")}]});
   const sections=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
   const weekly=sections.findIndex((x:any)=>x.textContent.includes("This Week: Romance"));
   const order=sections.map((x:any)=>x.className||"weekly");
@@ -267,6 +268,7 @@ await test("Top 10 K-Dramas and K-Movies sit right under This Week's Picks, abov
   top.querySelector(".catalogAdd").click();
   const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
   assert(selection.some((x:any)=>x.kind==="top10"&&x.url==="ydl-top10:tv"&&x.name==="Top 10 K-Dramas Today"),"Add puts it in Your Selection");
+  assert(sent.some((x:any)=>x.source==="top10")&&!sent.some((x:any)=>x.source==="community-public-list"),"the Add counts as a Top 10 add: "+JSON.stringify(sent));
   const empty=await mount({date:"2026-11-20",rows:[]});
   assert(!empty.document.querySelector(".top10Section"),"no list means no section");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}

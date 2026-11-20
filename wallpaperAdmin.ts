@@ -40,7 +40,7 @@ const number=new Intl.NumberFormat();
 function dailyDate(delta){const now=new Date(),local=new Date(Date.UTC(Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',year:'numeric'}).format(now)),Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'numeric'}).format(now))-1,Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',day:'numeric'}).format(now))-delta));return local.toISOString().slice(0,10)}
 const featureLabels=${JSON.stringify(analyticsLabels)};
 const featureGroups={catalogs:['community-watchlist','community-public-list','community-combined-watchlist','actor-filmography','director-filmography','filtered-catalog'],settings:['metadata-mdl','metadata-tmdb','reviews','hide-unreleased','hide-completed'],posters:['posters-tmdb','posters-easyposters','posters-betterposters','posters-poster-plus','posters-rpdb']};
-const searchSources=[['discover-actor-filmography','Actor search'],['discover-director-filmography','Director search'],['discover-drama-related','Drama search'],['add-to-collection','Add to Collection taps']];
+const searchSources=[['discover-actor-filmography','Actor search'],['discover-director-filmography','Director search'],['discover-drama-related','Drama search'],['add-to-collection','Add to Collection taps'],['spotlight','Spotlight adds'],['top10','Top 10 adds'],['recommended','Recommended for you adds']];
 let analytics={},analyticsRange=7,featureGroup='catalogs',allCatalogs=false;const openCatalogs=new Set();
 function rankRow(label,count){const item=document.createElement('li'),name=document.createElement('span'),value=document.createElement('strong');name.textContent=label;value.textContent=number.format(count);item.append(name,value);return item}
 function emptyRow(){const item=document.createElement('li');item.className='quiet';item.textContent='No data yet';return item}
@@ -60,9 +60,10 @@ function renderAnalytics(){
  // Discover catalogs: country versions are combined; click a row to see the split by country.
  const groups=new Map();
  for(const [category,count,label=category] of scoped('catalog.selected:')){
-  const weekly=category.startsWith('weekly:'),key=weekly?'weekly':category.split(':')[1];
-  const name=weekly?'This week’s picks':String(label).replace(/^MyDramaList’s /,'').replace(/ \\([^)]*\\)$/,'');
-  const part=weekly?String(label).replace(/^This week’s picks · /,'Row '):(String(label).match(/\\(([^)]*)\\)$/)||[])[1]||'All countries';
+  // This week's picks and Because you watched combine their rows; the others combine their country versions.
+  const rows=category.startsWith('weekly:')?'weekly':category.startsWith('recs:')?'recs':'',key=rows||category.split(':')[1];
+  const name=rows==='weekly'?'This week’s picks':rows==='recs'?'Because you watched':String(label).replace(/^MyDramaList’s /,'').replace(/ \\([^)]*\\)$/,'');
+  const part=rows?String(label).replace(/^(This week’s picks|Because you watched) · /,'').replace(/^(\\d)$/,'Row $1'):(String(label).match(/\\(([^)]*)\\)$/)||[])[1]||'All countries';
   const group=groups.get(key)||{key,name,count:Number((range.groups||{})[key])||0,parts:new Map()};group.parts.set(part,count);groups.set(key,group);
  }
  const ranked=[...groups.values()].sort((a,b)=>b.count-a.count),catalogList=$('catalogRanks');catalogList.replaceChildren();
