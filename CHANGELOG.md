@@ -2,7 +2,7 @@
 
 ## Website updates since 1.1.30
 
-- (Test site) Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today" at the very bottom of Discover, with big rank numbers beside the posters. Ranked by TMDB popularity (dramas airing now, films from the last six months), refreshed daily, and available as Nuvio catalogs.
+- (Test site) Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today" right under This Week's Picks on Discover, with big rank numbers beside the posters. Ranked by TMDB popularity (dramas airing now, films from the last six months), refreshed daily, and available as Nuvio catalogs.
 - "Because you watched" rows sit under a "Recommended for you" heading, and now appear as soon as a username is connected (on Connect or by a lookup in Lists), without restarting the app.
 - Usage count for Add to Collection: people who tap it (one scrambled code per person per day, like the other counts), shown on the admin page under Search. The privacy page says so.
 - "Watch this while they play GTA 6": a limited-time, hand-picked catalog of 20 easy, funny dramas and movies. It is the first list on Discover, under a "Spotlight" heading with a countdown, can be added to Nuvio, and disappears at midnight Pacific on January 1, 2027.

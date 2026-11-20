@@ -174,6 +174,17 @@ export function installExploreUI() {
       if (!button.isConnected) buttons.delete(url);
     }
   }
+  // The top of Discover always reads: Spotlight, This Week's Picks, Top 10, Recommended for you, then
+  // Catalogs by Country. Each section calls this when it appears, whichever loads first.
+  function arrange(parent2) {
+    let anchor = null;
+    for (const section of [specialSection, weeklySection, top10Section, recsSection]) {
+      if (!section || section.parentNode !== parent2) continue;
+      if (anchor) { if (anchor.nextElementSibling !== section) anchor.after(section); }
+      else if (parent2.firstElementChild !== section) parent2.prepend(section);
+      anchor = section;
+    }
+  }
   function mountWeekly(parent2, country, isOutdated) {
     const weekly = document.createElement("section"), heading = document.createElement("h2");
     heading.className = "catalogSectionTitle";
@@ -187,10 +198,8 @@ export function installExploreUI() {
     weeklySection = weekly;
     weeklyCountry = country;
     // The limited-time catalog stays the very first list; Weekly Picks comes right after it.
-    if (specialSection?.isConnected) specialSection.after(weekly);
-    else parent2.prepend(weekly);
-    // "Recommended for you" always sits directly under Weekly Picks, whichever loaded first.
-    if (recsSection?.isConnected) weekly.after(recsSection);
+    parent2.prepend(weekly);
+    arrange(parent2);
     const outdated = () => !weekly.isConnected || isOutdated();
     const weeklyRows = document.createElement("div");
     weekly.append(weeklyRows);
@@ -265,7 +274,7 @@ export function installExploreUI() {
       return;
     }
     if (recsSection && recsUser === connectedUser) {
-      if (weeklySection?.isConnected && recsSection.previousElementSibling !== weeklySection) weeklySection.after(recsSection);
+      if (recsSection.isConnected) arrange(parent2);
       return;
     }
     recsSection?.remove();
@@ -275,8 +284,8 @@ export function installExploreUI() {
     section.hidden = true;
     recsSection = section;
     recsUser = connectedUser;
-    if (weeklySection?.isConnected) weeklySection.after(section);
-    else parent2.prepend(section);
+    parent2.prepend(section);
+    arrange(parent2);
     const user = connectedUser;
     fetch("/api/recommendations?username=" + encodeURIComponent(user), { signal: AbortSignal.timeout(45e3) })
       .then(response => response.ok ? response.json() : null)
@@ -308,7 +317,7 @@ export function installExploreUI() {
   // with a countdown to its end. It removes itself when the countdown runs out or the server says it ended.
   function mountSpecial(parent2) {
     if (specialSection) {
-      if (specialSection.isConnected && parent2.firstElementChild !== specialSection) parent2.prepend(specialSection);
+      if (specialSection.isConnected) arrange(parent2);
       return;
     }
     const section = document.createElement("section");
@@ -316,6 +325,7 @@ export function installExploreUI() {
     section.hidden = true;
     specialSection = section;
     parent2.prepend(section);
+    arrange(parent2);
     const end = () => {
       clearInterval(specialClock);
       section.remove();
@@ -359,18 +369,19 @@ export function installExploreUI() {
         if (specialSection === section) { specialSection = null; section.remove(); }
       });
   }
-  // Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today": the very last section on Discover,
+  // Netflix-style "Top 10 K-Dramas Today" and "Top 10 K-Movies Today", right under This Week's Picks,
   // ranked by TMDB popularity and refreshed daily. Nothing shows if there is no list.
   function mountTop10(parent2) {
     if (top10Section) {
-      if (top10Section.isConnected && parent2.lastElementChild !== top10Section) parent2.append(top10Section);
+      if (top10Section.isConnected) arrange(parent2);
       return;
     }
     const section = document.createElement("section");
     section.className = "top10Section";
     section.hidden = true;
     top10Section = section;
-    parent2.append(section);
+    parent2.prepend(section);
+    arrange(parent2);
     fetch("/api/catalogs/top10", { signal: AbortSignal.timeout(45e3) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {
@@ -383,7 +394,7 @@ export function installExploreUI() {
         }
         for (const row of rows) shelf(row.catalog, section).fill(row.items.slice(0, 10), { ranked: true });
         section.hidden = false;
-        if (section.parentNode && section.parentNode.lastElementChild !== section) section.parentNode.append(section);
+        if (section.parentNode) arrange(section.parentNode);
         sync();
       })
       .catch(() => {
@@ -411,6 +422,7 @@ export function installExploreUI() {
       pruneButtons();
       mountWeekly(parent2, selectedCountry, () => !parent2.isConnected);
     }
+    mountTop10(parent2);
     mountRecs(parent2, () => !parent2.isConnected);
     const more = document.createElement("section");
     more.className = "catalogMore";
@@ -492,7 +504,6 @@ export function installExploreUI() {
     credit2.className = "catalogArtworkCredit";
     credit2.textContent = copy.catalogArtworkCredit;
     more.append(credit2);
-    mountTop10(parent2);
     sync();
   }
   let openFilters;
