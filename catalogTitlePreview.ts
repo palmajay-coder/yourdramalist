@@ -88,6 +88,8 @@ export function installCatalogTitlePreview() {
     };
     if (mdlUrl) showActions();
     body.append(actions, element("h3", "", "Story"), tagline, synopsis, facts);
+    const loadingDetails = createLoadingBear("Loading details...");
+    body.append(loadingDetails);
     content.replaceChildren(header, body);
 
     showAndroidDialog(dialog);
@@ -227,6 +229,8 @@ export function installCatalogTitlePreview() {
       score.textContent = copy.catalogRatingUnavailable;
       if (!synopsis.textContent) synopsis.textContent = copy.catalogDetailsUnavailable;
       synopsis.hidden = false;
+    } finally {
+      loadingDetails.remove();
     }
   };
 }
