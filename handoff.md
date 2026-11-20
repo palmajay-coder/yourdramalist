@@ -33,6 +33,17 @@
 ## Approved designs
 - **Loading indicator** (`loadingBear.ts`, name kept for compatibility): a 24px blue spinner centered above 18px muted text, 8px gap, with a fade-in and reduced-motion support. It always shows in the exact center of the screen (site-wide standard, `position:fixed`), wherever the caller inserts it. It's shared by search ("Searching for …"), title previews ("Loading details...") and filmographies ("Loading filmography..."). The owner approved it: no bear, no skeletons, no side-by-side layout unless asked. A title preview must open right away, with the indicator inside it, and the indicator must be removed when loading finishes or fails.
 
+## Personal and special catalogs
+- **Because you watched** (`recommendations.ts`, `/api/recommendations`): up to three rows of 30 for a connected MyDramaList username, under Weekly Picks and as Nuvio catalogs (`recs`, slots 0-2).
+  - **Picks:** seeds are what the user is watching, then completed titles scored 8+. They rotate three further every Monday.
+  - **Fill order:** TMDB recommendations, similar titles, shared keywords, then same genres and country.
+  - **Left out:** anything on the watchlist.
+  - **Storage:** saved per user per week in `recs:v2`.
+- **Spotlight** (`specialCatalog.ts`, `/api/catalogs/special`): "Watch this while they play GTA 6", 20 hand-picked titles.
+  - **Placement:** the first list on Discover, with a countdown, and as Nuvio kind `special`.
+  - **End:** it ends at midnight Pacific on January 1, 2027.
+  - **Matching:** titles are matched on TMDB by name, year and country, with matches saved in `special:v1`. Swap titles in `SPECIAL.titles`.
+
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
 - The container can't reach TMDB, yourdramalist.net or workers.dev. Check visual changes locally with `wrangler dev --local` and Playwright.
