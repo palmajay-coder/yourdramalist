@@ -831,6 +831,9 @@ function kuryanaWatchlist(username) {
           country: KURYANA_COUNTRY_CODES[entry?.country] || "",
           type: entry?.type || null,
           year: Number.isInteger(year) && year > 1800 ? year : null,
+          // The owner's own score (0 when unrated) and progress, used to choose "Because you watched" titles.
+          score: Number(entry?.score) > 0 && Number(entry.score) <= 10 ? Number(entry.score) : 0,
+          episodesSeen: Number.isInteger(Number(entry?.episodes_seen)) && Number(entry.episodes_seen) > 0 ? Number(entry.episodes_seen) : 0,
         });
       }
       sections[index + 1] = items;

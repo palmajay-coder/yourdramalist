@@ -35,7 +35,7 @@ export function installExploreUI() {
   }
   sortLabel.className = "catalogSortLabel";
   let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
-  let weeklySection, weeklyCountry, catalogSection;
+  let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "";
   const buttons = new Map();
   let workers = 0;
   const jobs = [];
@@ -240,6 +240,49 @@ export function installExploreUI() {
     }
     weeklyLoad();
   }
+  // "Because you watched …": up to three personal rows for a connected MyDramaList username, directly under
+  // Weekly Picks. They change every Monday with Weekly Picks. Nothing shows until they are ready, and nothing
+  // shows when there are none.
+  function mountRecs(parent2, isOutdated) {
+    if (!connectedUser) {
+      recsSection?.remove();
+      recsSection = null;
+      recsUser = "";
+      return;
+    }
+    if (recsSection && recsUser === connectedUser) {
+      if (weeklySection?.isConnected && recsSection.previousElementSibling !== weeklySection) weeklySection.after(recsSection);
+      return;
+    }
+    recsSection?.remove();
+    pruneButtons();
+    const section = document.createElement("section");
+    section.className = "recsSection";
+    section.hidden = true;
+    recsSection = section;
+    recsUser = connectedUser;
+    if (weeklySection?.isConnected) weeklySection.after(section);
+    else parent2.prepend(section);
+    const user = connectedUser;
+    fetch("/api/recommendations?username=" + encodeURIComponent(user), { signal: AbortSignal.timeout(45e3) })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        // No rows: the section stays hidden. A failed request is tried again the next time Discover opens.
+        if (recsSection !== section || isOutdated()) return;
+        if (!Array.isArray(data?.rows) || !data.rows.length) {
+          if (!data) recsUser = "";
+          return;
+        }
+        data.rows.slice(0, 3).forEach((row, slot) => {
+          if (!row?.seed?.title || !Array.isArray(row.items) || !row.items.length) return;
+          const catalog = { kind: "recs", slot, url: "ydl-recs:" + slot, type: "series", name: "Because you watched " + row.seed.title, description: "Titles like " + row.seed.title + ", picked from your MyDramaList watchlist. They change every Monday." };
+          shelf(catalog, section).fill(row.items);
+        });
+        section.hidden = !section.childElementCount;
+        sync();
+      })
+      .catch(() => { if (recsSection === section) recsUser = ""; });
+  }
   function render3() {
     const parent2 = $("androidCatalogs");
     const id = ++renderId;
@@ -260,6 +303,7 @@ export function installExploreUI() {
       pruneButtons();
       mountWeekly(parent2, selectedCountry, () => !parent2.isConnected);
     }
+    mountRecs(parent2, () => !parent2.isConnected);
     const more = document.createElement("section");
     more.className = "catalogMore";
     const moreHeading = document.createElement("h2");

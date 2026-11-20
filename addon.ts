@@ -12,13 +12,14 @@ import {Ee,X,G,K,Je,Te,hiddenTitleKey} from './addonCore.ts';
 import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
+import {recommendationsFor} from './recommendations.ts';
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
 import {normalizeShelfFilter,shelfFilterLabel,shelfFilterKey,shelfNeedsFacts,applyShelfFilter,type ShelfFilter} from './shelfFilters.ts';
 import {getTitleFacts} from './titleFacts.ts';
 import {popularity,visitorAddress} from './popularity.ts';
 import {firstReviewAsk} from './reviewDedupe.ts';
 import {loadPersonalCatalog,personalCatalogId} from './personalCatalogs.ts';
-type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
+type Entry={id:string;name:string;type:'series'|'movie';personal?:true;filter?:ShelfFilter;filterLabel?:string;watchlist?:string;watchlistStatus?:string;watchlistAll?:boolean;weekly?:{country:string;slot:number};recs?:{slot:number};explore?:{category:string;country:string};person?:string;mode?:'actor'|'director'};
 type ConfigIssue = 'catalog-count' | 'catalog-entry' | 'duplicate-catalog' | 'preferences';
 class InvalidConfig extends Error {
  constructor(readonly issue: ConfigIssue) { super(issue); }
@@ -45,6 +46,8 @@ export function normalizeAddon(body:any){
    if(!personalCatalogId.test(ref))throw new InvalidConfig('catalog-entry');
    return{id:ref,name,type:'series',personal:true};
   }
+  // "Because you watched …": one of up to three personal rows, built from the install's MyDramaList username.
+  if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return{id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}};}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return{id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}};}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return withFilter({id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}},item.filter);}
   if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
@@ -104,7 +107,14 @@ async function personNamesFor(config:AddonConfig):Promise<Record<string,string>>
  }));
  return names;
 }
-export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:localizedCatalogName(e,language,personNames)+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
+// This week's "Because you watched" titles for the install's rows (best effort: a slow lookup keeps the plain name).
+async function recsNamesFor(config:AddonConfig):Promise<Record<number,string>>{
+ if(!config.user||!(config.entries as any[]).some(e=>e.recs))return {};
+ let timer:ReturnType<typeof setTimeout>|undefined;
+ try{const data:any=await Promise.race([recommendationsFor(config.user),new Promise(r=>{timer=setTimeout(()=>r(null),5000)})]);return Object.fromEntries((data?.rows||[]).map((row:any,i:number)=>[i,row.seed.title]))}
+ catch{return {}}finally{clearTimeout(timer)}
+}
+export function makeManifest(config:StoredAddonConfig,personNames:Record<string,string>={},recsNames:Record<number,string>={}){const language=config.preferences.metadataProvider==='tmdb'?config.preferences.tmdbLanguage:'en-US';const id=config.setupId?'community.yourdramalist.v3.'+config.setupId:'community.yourdramalist.v3';return{id,version:APP_VERSION,name:'YourDramaList',description:'Your drama lists, ratings and reviews for Nuvio.',logo:ADDON_ICON_URL,types:['series','movie'],resources:['catalog',{name:'meta',types:['series','movie'],idPrefixes:['mdl:']},...(config.preferences.reviews?[{name:'stream',types:['series','movie'],idPrefixes:['tt']}]:[])],catalogs:config.entries.map((e,i)=>({id:'ydl_'+i,type:e.type,name:(e.recs?(recsNames[e.recs.slot]?'Because you watched '+recsNames[e.recs.slot]:'Because you watched…'):localizedCatalogName(e,language,personNames))+(e.filterLabel?': '+e.filterLabel:''),extra:[{name:'skip',isRequired:false}]})),behaviorHints:{configurable:false}};}
 const runtimeConfig=(config:AddonConfig)=>({user:config.user,flags:(config.preferences.reviews?'r':'')+(config.preferences.hideUnreleased?'u':'')+(config.preferences.hideCompleted&&config.user?'h':''),erdb:config.preferences.posters?{tmdbKey:config.keys.tmdb,mdblistKey:config.keys.mdblist,ratings:config.preferences.ratings.join(',')}:null});
 // Which of the owner's public watchlist sections holds a title, e.g. "Plan to Watch". Uses the same 5-minute cache as the catalogs.
 const STATUS_LABELS:Record<string,string>={1:'Currently Watching',2:'Completed',3:'Plan to Watch',4:'On Hold',5:'Dropped',6:'Undecided'};
@@ -126,6 +136,13 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(plusPattern)return {...meta,poster:posterPlusImageUrl(plusPattern,meta)};
   if(rpdbKey)return {...meta,poster:rpdbPosterUrl(rpdbKey,meta.id)};
   return meta;
+ }
+ if(entry.recs){
+  // Everything on the owner's watchlist and anything unreleased is already left out of these rows.
+  const data=await ((deps as any).recs||recommendationsFor)(config.user);
+  const items=data?.rows?.[entry.recs.slot]?.items||[];
+  const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);
+  return{metas:tmdbMetadata&&deps.standardArtwork?await deps.standardArtwork(page,artworkMetadata):page};
  }
  if(entry.weekly){
   const data=await (deps as any).weekly?.(entry.weekly.country)??await collections.weekly(entry.weekly.country);
@@ -275,7 +292,7 @@ export async function handleAddon(req:Request){
  if(req.method!=='GET'&&req.method!=='HEAD')return fail('method',405);
  const parts=u.pathname.split('/').filter(Boolean);if(parts[0]!=='addon'||parts.length<3)return fail('path',404);
  let config:StoredAddonConfig;try{config=await tokens().open(parts[1]);}catch{return fail('configuration',404);}
- if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config,await personNamesFor(config)),{headers});
+ if(parts[2]==='manifest.json'&&parts.length===3)return Response.json(makeManifest(config,await personNamesFor(config),await recsNamesFor(config)),{headers});
  if(!await catalogLimiter.acquire())return fail('busy',429);
  try{
   if(parts[2]==='meta'&&parts.length===5){const id=decodeURIComponent(parts[4].replace(/\.json$/,''));if(!id.startsWith('mdl:'))return Response.json({meta:null},{headers});const meta=await mdlTitleMeta(parts[3],id.slice(4));return Response.json({meta},{headers});}

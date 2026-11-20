@@ -103,6 +103,44 @@ await test("a Weekly Picks title keeps the shelf's poster when its preview opens
   assert(preview.querySelector(".catalogTitleArtwork").getAttribute("src")===shelfPoster,"the preview keeps the shelf's poster: "+preview.querySelector(".catalogTitleArtwork").getAttribute("src"));
  }finally{globalThis.setInterval=realInterval;(globalThis as any).Image=realImage;for(const id of timers)clearInterval(id);}
 });
+await test("\"Because you watched\" shelves sit under Weekly Picks for a connected username, and Add selects the row",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text();
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const catalog={id:"weekly-kr-1",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0};
+ const realInterval=globalThis.setInterval,timers:number[]=[];
+ (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
+ const mount=async(user:string|null)=>{
+  const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>();if(user)saved.set("ydl-v3-user",user);
+  const asked:string[]=[];
+  const fetcher=async(url:string)=>{const u=String(url);asked.push(u);
+   if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog,items:[{kind:"tv",id:1,name:"Love A",date:"2024-01-01",poster:"https://image.tmdb.org/t/p/w780/a.jpg"}]}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
+   if(u.startsWith("/api/recommendations"))return Response.json({week:"2026-11-16",nextRefresh:new Date(Date.now()+864e5).toISOString(),rows:[
+    {seed:{title:"The Glory",slug:"1-the-glory"},items:[{kind:"tv",id:7,name:"Mouse",date:"2021-03-03",poster:"https://image.tmdb.org/t/p/w780/m.jpg"}]},
+    {seed:{title:"Move to Heaven",slug:"2-move"},items:[{kind:"tv",id:8,name:"Our Blues",date:"2022-04-09",poster:"https://image.tmdb.org/t/p/w780/o.jpg"}]}]});
+   return Response.json({collections:[],items:[]});
+  };
+  new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,{getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)},{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,10));if(document.querySelector(".recsSection:not([hidden]) .catalogShelf")||(!user&&document.querySelector(".catalogPoster")))break;}
+  await new Promise(r=>setTimeout(r,30));
+  return {document,saved,asked};
+ };
+ try{
+  const {document,saved,asked}=await mount("Jaesan");
+  assert(asked.some(u=>u==="/api/recommendations?username=Jaesan"),"the rows are fetched for the connected username");
+  const section=document.querySelector(".recsSection") as any;
+  const headings=[...section.querySelectorAll(".catalogShelf h3")].map((h:any)=>h.textContent);
+  assert(headings.join(" | ")==="Because you watched The Glory | Because you watched Move to Heaven","each row is named after its title: "+headings.join(" | "));
+  const weekly=[...document.querySelectorAll("#androidCatalogs > section")] as any[];
+  assert(weekly.indexOf(section)===weekly.findIndex((s:any)=>s.textContent.includes("This Week: Romance"))+1,"the rows sit directly under Weekly Picks");
+  assert(section.textContent.includes("Mouse")&&section.textContent.includes("Our Blues"),"the rows show their titles");
+  const add=section.querySelector(".catalogAdd") as any;add.click();
+  const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
+  assert(selection.some((x:any)=>x.kind==="recs"&&x.slot===0&&x.url==="ydl-recs:0"&&x.name==="Because you watched The Glory"),"Add puts the row in Your Selection: "+JSON.stringify(selection));
+  assert(add.textContent==="✓Added","the button turns green Added");
+  const anonymous=await mount(null);
+  assert(!anonymous.asked.some(u=>u.startsWith("/api/recommendations"))&&!anonymous.document.querySelector(".recsSection"),"without a username there are no recommendation rows");
+ }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
+});
 await test("Weekly Picks keeps Add and Added and still selects the whole shelf",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

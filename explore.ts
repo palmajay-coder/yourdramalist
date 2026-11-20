@@ -21,7 +21,7 @@ export function exploreCatalog(category:string,country=""){
  return {kind:"explore",url:id,catalogId:id,category,country,profile:"TMDB",name:k[1]+(country?" ("+c[1]+")":""),sourceUrl:"https://mydramalist.com/"+path,types:[k[3]],catalogEndpoint:"/api/mdl/explore?category="+category+"&country="+country,description:"",posters:[] as string[]};
 }
 export function userListName(list:any){
- if(list.kind==="user-collection")return list.name;
+ if(list.kind==="user-collection"||list.kind==="recs")return list.name;
  // Filtered catalogs keep their base name in originalName and add ": filter" once; custom lists then drop the word "list".
  const label=list.filterLabel?": "+String(list.filterLabel):"";
  if(list.kind==="watchlist"||list.kind==="filmography"||list.kind==="explore"||list.kind==="weekly"){

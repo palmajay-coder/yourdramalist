@@ -6,12 +6,23 @@ import {normalizeShelfFilter} from "./shelfFilters.ts";
 import {pacificDate} from "./pacificTime.ts";
 
 type Storage={load:()=>Promise<any>;save:(value:any)=>Promise<any>};
-export function createCollectionService(storage:Storage|undefined,keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now,posterStorage?:Storage){
+export function createCollectionService(storage:Storage|undefined,keyFor:()=>string|undefined,fetcher:typeof fetch=fetch,now=Date.now,posterStorage?:Storage,idStorage?:Storage){
  const cache=new Map<string,any>(),pending=new Map<string,Promise<any>>();
  // Weekly Picks posters: each title's English and textless TMDB posters, kept in their own small store so
  // they never push the weekly shelves out of the main cache. The page picks one at random on every load.
  const posterCache=new Map<string,{posters:string[];expires:number}>();
  let posterReady:Promise<void>|undefined,posterSaving=Promise.resolve();
+ // TMDB to IMDb id lookups for Nuvio catalogs (Weekly Picks and personal recommendations), in their own
+ // store so many users' recommendation rows never push the weekly shelves out of the main cache.
+ const idCache=new Map<string,{imdb:string;expires:number}>();
+ let idReady:Promise<void>|undefined,idSaving=Promise.resolve();
+ async function idInit(){idReady??=(async()=>{try{const data=idStorage?await bounded(idStorage.load()):null;if(Array.isArray(data))for(const [k,v]of data.slice(-3000))if(typeof v?.imdb==="string")idCache.set(k,v)}catch{}})();await idReady;}
+ async function imdbId(kind:string,id:string|number){
+  await idInit();const key=kind+":"+id,hit=idCache.get(key);if(hit&&hit.expires>now())return hit.imdb;
+  const ids=await request(kind+"/"+id+"/external_ids");const imdb=/^tt\d+$/.test(ids?.imdb_id||"")?ids.imdb_id:"";
+  idCache.delete(key);idCache.set(key,{imdb,expires:now()+(imdb?30:3)*86400000});while(idCache.size>3000)idCache.delete(idCache.keys().next().value!);
+  return imdb;
+ }
  let ready:Promise<void>|undefined,saving=Promise.resolve(),active=0,requests=0,start=now(),cooldown=0;
  const queue:Array<()=>void>=[];
  async function bounded<T>(p:Promise<T>){let timer;try{return await Promise.race([p,new Promise<undefined>(r=>timer=setTimeout(r,1000))])}finally{clearTimeout(timer)}}
@@ -115,9 +126,11 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
   }finally{clearTimeout(timer)}
  }
  async function metas(items:any[],base:string,ratings:boolean){
-  const result:any[]=Array(items.length);let cursor=0;
-  async function worker(){while(cursor<items.length){const i=cursor++,item=items[i];try{const ids=await memo("imdb:"+item.kind+":"+item.id,30*86400000,()=>request(item.kind+"/"+item.id+"/external_ids"));if(!/^tt\d+$/.test(ids.imdb_id||""))continue;result[i]={id:ids.imdb_id,type:item.kind==="tv"?"series":"movie",name:item.name,poster:ratings?base+"/poster/"+ids.imdb_id+".jpg":item.poster,posterShape:"poster",releaseInfo:item.date.slice(0,4),description:item.overview};}catch{}}}
-  await Promise.all([worker(),worker(),worker()]);return result.filter(Boolean).filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i);
+  const result:any[]=Array(items.length);let cursor=0,changed=false;
+  async function worker(){while(cursor<items.length){const i=cursor++,item=items[i];try{const imdb=await imdbId(item.kind,item.id);if(!imdb)continue;changed=true;const ids={imdb_id:imdb};result[i]={id:ids.imdb_id,type:item.kind==="tv"?"series":"movie",name:item.name,poster:ratings?base+"/poster/"+ids.imdb_id+".jpg":item.poster,posterShape:"poster",releaseInfo:item.date.slice(0,4),description:item.overview};}catch{}}}
+  await Promise.all([worker(),worker(),worker()]);
+  if(changed&&idStorage){const rows=[...idCache];idSaving=idSaving.catch(()=>{}).then(()=>idStorage.save(rows));await bounded(idSaving).catch(()=>{})}
+  return result.filter(Boolean).filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i);
  }
  async function posterInit(){posterReady??=(async()=>{try{const data=posterStorage?await bounded(posterStorage.load()):null;if(Array.isArray(data))for(const [k,v]of data.slice(-600))if(Array.isArray(v?.posters))posterCache.set(k,v)}catch{}})();await posterReady;}
  /** Up to six English or textless portrait posters for a TMDB title, best voted first, cached for 30 days. */
@@ -159,9 +172,11 @@ export function createCollectionService(storage:Storage|undefined,keyFor:()=>str
    return {...item,poster:posters[(offset+slot)%posters.length]};
   })}))};
  }
- return{weekly,artwork,metas,standardArtwork,posterChoices,withPosterChoices};
+ /** A TMDB request through the shared limits (key, three at a time, 120 a minute, timeouts, size cap). */
+ async function tmdb(path:string,params:Record<string,string>={}){return request(path,params)}
+ return{weekly,artwork,metas,standardArtwork,posterChoices,withPosterChoices,tmdb};
 }
-export const collections=createCollectionService({load:()=>blob.getJSON("catalog-collections:v1"),save:v=>blob.setJSON("catalog-collections:v1",v)},()=>Deno.env.get("TMDB_API_KEY"),fetch,Date.now,{load:()=>blob.getJSON("poster-choices:v1"),save:v=>blob.setJSON("poster-choices:v1",v)});
+export const collections=createCollectionService({load:()=>blob.getJSON("catalog-collections:v1"),save:v=>blob.setJSON("catalog-collections:v1",v)},()=>Deno.env.get("TMDB_API_KEY"),fetch,Date.now,{load:()=>blob.getJSON("poster-choices:v1"),save:v=>blob.setJSON("poster-choices:v1",v)},{load:()=>blob.getJSON("tmdb-imdb:v1"),save:v=>blob.setJSON("tmdb-imdb:v1",v)});
 const explore=createExploreService({load:()=>blob.getJSON("explore:v1"),save:v=>blob.setJSON("explore:v1",v)});
 export async function handleCollections(req:Request){
  if(req.method!=="GET")return new Response("Method not allowed",{status:405,headers:{Allow:"GET"}});
