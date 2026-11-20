@@ -54,7 +54,7 @@ export function installPeopleUI() {
     return filmographies.get(key);
   }
   /** Adds or removes a person's filmography in Your Selection; report() shows progress or problems. */
-  async function toggleFilmography(person, button, report, stale = () => false) {
+  async function toggleFilmography(person, button, report, stale = () => false, filter = null) {
     const selected = selectedFilmography(person.id);
     if (selected) {
       toggleList(selected);
@@ -70,7 +70,7 @@ export function installPeopleUI() {
         return;
       }
       if (!selectedFilmography(person.id)) {
-        toggleList({ ...result.list, posters: [], analyticsSource: "discover-" + mode + "-filmography" });
+        toggleList(withPersonFilter({ ...result.list, posters: [], analyticsSource: "discover-" + mode + "-filmography" }, filter));
       }
       report("");
     } catch {
@@ -80,6 +80,12 @@ export function installPeopleUI() {
     }
   }
 
+  // A filmography's sort and Movies/Shows choice travel with it into Nuvio, the same way Discover rows do.
+  function withPersonFilter(list, filter) {
+    const base = String(list.url).replace(/\?.*$/, ""), f = filter ? normalizeShelfFilter(filter) : null;
+    const { filter: _old, filterLabel: _label, ...rest } = list;
+    return f ? { ...rest, url: base + "?ydlf=" + shelfFilterKey(f), filter: f, filterLabel: "" } : { ...rest, url: base };
+  }
   // Tapping an actor or director opens their titles; tapping a title opens the full drama preview.
   let titlesView;
   function buildTitlesView() {
@@ -106,7 +112,79 @@ export function installPeopleUI() {
     const add = document.createElement("button");
     add.type = "button";
     add.className = "catalogAdd discoverAddPill";
-    header.append(back, photo, heading, add);
+    // Filter icon right of Add: All / Movies / Shows and a sort, like Discover's filters.
+    const filterButton = document.createElement("button");
+    filterButton.type = "button";
+    filterButton.className = "personTitlesFilter";
+    filterButton.setAttribute("aria-label", "Sort and filter titles");
+    filterButton.setAttribute("aria-haspopup", "dialog");
+    filterButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg><span class="personTitlesFilterDot" hidden></span>';
+    header.append(back, photo, heading, add, filterButton);
+    const sheet = document.createElement("dialog");
+    sheet.className = "androidDiscoverFilters personFilters";
+    sheet.setAttribute("aria-label", "Sort and filter titles");
+    const media = document.createElement("fieldset");
+    media.setAttribute("aria-label", copy.catalogMediaType);
+    for (const [value, text] of [["", "All"], ["movie", copy.catalogMovies], ["drama", copy.catalogShows]]) {
+      const row = document.createElement("label");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "personMediaType";
+      radio.value = value;
+      const caption = document.createElement("span");
+      caption.textContent = text;
+      row.append(radio, caption);
+      radio.onchange = () => setFilter({ ...view.filter, type: value || undefined });
+      media.append(row);
+    }
+    const fields = document.createElement("div");
+    fields.className = "androidCatalogFilters";
+    const sortLabel = document.createElement("label");
+    sortLabel.textContent = copy.catalogSort;
+    sortLabel.htmlFor = "personSort";
+    const sortSelect = document.createElement("select");
+    sortSelect.id = "personSort";
+    // MyDramaList lists credits newest first; a filmography has no ratings to sort by.
+    for (const [value, text] of [["", copy.catalogSortDefault], ["oldest", copy.shelfSortOldest], ["az", copy.shelfSortAz]]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = text;
+      sortSelect.append(option);
+    }
+    sortSelect.onchange = () => setFilter({ ...view.filter, sort: sortSelect.value || undefined });
+    const sortField = document.createElement("div");
+    sortField.append(sortLabel, sortSelect);
+    fields.append(sortField);
+    sheet.append(media, fields);
+    document.body.append(sheet);
+    sheet.addEventListener("click", (event) => {
+      if (event.target !== sheet) return;
+      const bounds = sheet.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) sheet.close();
+    });
+    filterButton.onclick = () => {
+      if (sheet.open) return;
+      const bounds = filterButton.getBoundingClientRect();
+      sheet.style.top = Math.max(8, bounds.bottom + 6) + "px";
+      showControls();
+      showAndroidDialog(sheet);
+    };
+    function showControls() {
+      for (const radio of media.querySelectorAll("input")) radio.checked = radio.value === (view.filter?.type || "");
+      for (const option of sortSelect.querySelectorAll("option")) option.toggleAttribute("selected", option.value === (view.filter?.sort || ""));
+      try { sortSelect.value = view.filter?.sort || ""; } catch {}
+      const on = !!view.filter;
+      filterButton.querySelector(".personTitlesFilterDot").hidden = !on;
+      filterButton.setAttribute("aria-pressed", String(on));
+    }
+    // A new choice repaints the titles and, when the filmography is already added, updates it in Your Selection.
+    function setFilter(raw) {
+      view.filter = normalizeShelfFilter(raw);
+      showControls();
+      paintTitles(view);
+      const selected = view.person && selectedFilmography(view.person.id);
+      if (selected) replaceSelected(selected, withPersonFilter(selected, view.filter));
+    }
     const body = document.createElement("div");
     body.className = "androidWatchlistBody";
     const status = document.createElement("div");
@@ -118,12 +196,14 @@ export function installPeopleUI() {
     dialog.append(header, body);
     dialog.setAttribute("aria-labelledby", name.id);
     document.body.append(dialog);
-    const view = {dialog, photo, name, subtitle, add, body, status, grid, person: null, token: 0};
+    const view = {dialog, photo, name, subtitle, add, body, status, grid, person: null, token: 0, filter: null, credits: [], showControls};
     dialog.addEventListener("close", () => {
       if (dialog.open) return;
       view.token++;
       if (view.person) compactButtons.get(view.person.id)?.delete(add);
       view.person = null;
+      view.credits = [];
+      if (sheet.open) sheet.close();
       grid.replaceChildren();
       view.opener?.focus?.();
     });
@@ -153,6 +233,13 @@ export function installPeopleUI() {
     button.onclick = () => showCatalogTitle({name: credit.name, url: credit.url, year: credit.year, type: credit.type, poster: credit.poster});
     return button;
   }
+  function paintTitles(view) {
+    const credits = view.credits || [];
+    const shown = view.filter ? applyShelfFilter(credits, view.filter) : credits;
+    const total = credits.length + (credits.length === 1 ? " title" : " titles");
+    view.subtitle.textContent = credits.length ? (shown.length === credits.length ? total : shown.length + " of " + total) : "";
+    if (credits.length) view.grid.replaceChildren(...shown.map(titleCard));
+  }
   async function openPersonTitles(person, opener) {
     titlesView ??= buildTitlesView();
     const view = titlesView;
@@ -164,8 +251,13 @@ export function installPeopleUI() {
     if (person.poster) view.photo.src = person.poster;
     view.subtitle.textContent = "";
     view.add.setAttribute("aria-label", "Add or remove filmography for " + (person.displayName || person.name));
+    // An added filmography opens with its saved sort and Movies/Shows choice.
+    const savedFilter = selectedFilmography(person.id)?.filter;
+    view.filter = savedFilter ? normalizeShelfFilter(savedFilter) : null;
+    view.credits = [];
+    view.showControls();
     view.add.onclick = () => toggleFilmography(person, view.add, message => { view.status.textContent = message; },
-      () => token !== view.token);
+      () => token !== view.token, view.filter);
     watchButton(person.id, view.add);
     paintFilmography(view.add, !!selectedFilmography(person.id));
     view.grid.replaceChildren(createLoadingBear("Loading filmography..."));
@@ -177,8 +269,8 @@ export function installPeopleUI() {
       if (token !== view.token) return;
       const credits = result.items || [];
       view.status.textContent = credits.length ? "" : "No filmography credits found.";
-      view.subtitle.textContent = credits.length ? credits.length + (credits.length === 1 ? " title" : " titles") : "";
-      view.grid.replaceChildren(...credits.map(titleCard));
+      view.credits = credits;
+      paintTitles(view);
     } catch {
       if (token !== view.token) return;
       view.status.textContent = copy.popularUnavailable + " ";
@@ -191,9 +283,11 @@ export function installPeopleUI() {
     }
   }
   function selectedFilmography(personId) {
-    return state.selection.find(({ url }) =>
-      url === "ydl-filmography:actor:" + personId || url === "ydl-filmography:director:" + personId
-    );
+    // A sorted filmography's address ends in ?ydlf=…; the person is the part before it.
+    return state.selection.find(({ url }) => {
+      const base = String(url).replace(/\?.*$/, "");
+      return base === "ydl-filmography:actor:" + personId || base === "ydl-filmography:director:" + personId;
+    });
   }
   function compactPerson(person) {
     const requestId = listRequest;

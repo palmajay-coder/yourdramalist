@@ -430,6 +430,33 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  assert(preview.open&&preview.classList.contains("discoverTitlePreview")&&preview.textContent.includes("A goblin story.")&&preview.querySelector(".discoverCollectionAction"),"a title opens the full preview with Add to Collection");
  preview.close();
  assert(view.open,"closing the preview returns to the titles");
+ // Sort and Movies/Shows sit in a filter icon right of Added.
+ const headerButtons=[...view.querySelectorAll(".androidWatchlistHeader > button")] as any[];
+ const filterIcon=view.querySelector(".personTitlesFilter") as any;
+ assert(headerButtons[headerButtons.length-1]===filterIcon&&headerButtons[headerButtons.length-2]===headerAdd,"the filter icon is right of Add");
+ filterIcon.click();
+ const sheet=document.querySelector(".personFilters") as any;
+ assert(sheet.open&&sheet.querySelectorAll('input[name="personMediaType"]').length===3,"the icon opens All, Movies and Shows with a sort");
+ const sortMenu=sheet.querySelector("#personSort") as any;
+ assert(![...sortMenu.querySelectorAll("option")].some((o:any)=>o.value==="rating"),"no rating sort for credits");
+ for(const o of sortMenu.querySelectorAll("option"))o.removeAttribute("selected");
+ sortMenu.querySelector('option[value="oldest"]').setAttribute("selected","");try{sortMenu.value="oldest"}catch{}
+ sortMenu.onchange();
+ const names=()=>[...view.querySelectorAll(".androidWatchlistTitle strong")].map((x:any)=>x.textContent).join(",");
+ assert(names()==="Coffee Prince,Goblin","oldest first: "+names());
+ let stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
+ assert(stored?.filter?.sort==="oldest"&&stored.url.startsWith("ydl-filmography:actor:440?ydlf=")&&headerAdd.textContent==="✓Added"&&rowAdd.textContent==="✓Added","an added filmography keeps the new sort and stays Added: "+JSON.stringify(stored));
+ assert(!filterIcon.querySelector(".personTitlesFilterDot").hidden,"the icon shows a dot while a filter is on");
+ const movies=sheet.querySelector('input[name="personMediaType"][value="movie"]') as any;movies.checked=true;movies.onchange();
+ assert(view.querySelectorAll(".androidWatchlistTitle").length===0&&view.textContent.includes("0 of 2 titles"),"Movies leaves out the dramas and the count says so");
+ stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
+ assert(stored.filter.type==="movie"&&stored.filter.sort==="oldest","both choices are saved");
+ const all=sheet.querySelector('input[name="personMediaType"][value=""]') as any;all.checked=true;all.onchange();
+ sortMenu.querySelector('option[value="oldest"]').removeAttribute("selected");sortMenu.querySelector('option[value=""]').setAttribute("selected","");try{sortMenu.value=""}catch{}
+ sortMenu.onchange();
+ stored=JSON.parse(saved.get("ydl-v3-selection")||"[]").find((x:any)=>String(x.url).startsWith("ydl-filmography:actor:440"));
+ assert(stored.url==="ydl-filmography:actor:440"&&!stored.filter&&names()==="Goblin,Coffee Prince"&&filterIcon.querySelector(".personTitlesFilterDot").hidden,"clearing both goes back to MyDramaList order and the plain address");
+ sheet.close();
  (view.querySelector(".androidWatchlistHeader button") as any).click();
  assert(!view.open,"Back closes the titles");
 });

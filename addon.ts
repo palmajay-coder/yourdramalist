@@ -60,7 +60,7 @@ export function normalizeAddon(body:any){
   if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}},item.filter);}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return withFilter({id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}},item.filter);}
   if(item.kind==='explore'){const catalog=exploreCatalog(item.category,item.country||'');return withFilter({id:catalog.url,name,type:catalog.types[0],explore:{category:item.category,country:item.country||''}},item.filter);}
-  if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return{id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'};}
+  if(item.kind==='filmography'){const person=personUrl(item.personUrl);if(!person||!['actor','director'].includes(item.mode))throw new InvalidConfig('catalog-entry');return withFilter({id:'person:'+item.mode+':'+person.split('/').pop(),person,mode:item.mode,name,type:'series'},item.filter);}
   const source=String(item.url||'');let id='';
   if(/^d\.[1-5]\.[a-zA-Z0-9_-]{1,60}$/.test(source))id=source;
   else{let u:URL;try{u=new URL(source)}catch{throw new InvalidConfig('catalog-entry')};if(!['mydramalist.com','www.mydramalist.com'].includes(u.hostname)||!['https:','http:'].includes(u.protocol))throw new InvalidConfig('catalog-entry');const watchlist=u.pathname.match(/^\/dramalist\/([a-zA-Z0-9_-]{1,60})(?:\/([a-z_]+))?\/?$/);if(watchlist){const username=watchlist[1].toLowerCase();const status=watchlist[2];if(status&&!WATCHLIST_CARDS.some(([key])=>key===status))throw new InvalidConfig('catalog-entry');return withFilter({id:'watchlist:'+username+(status?':'+status:''),name,type:'series',watchlist:username,...(status?{watchlistStatus:status}:{watchlistAll:true})},item.filter);}const match=u.pathname.match(/^\/list\/([a-zA-Z0-9]{4,20})\/?$/);if(match)id=match[1];else throw new InvalidConfig('catalog-entry');}
@@ -83,7 +83,7 @@ export function selectionFromConfig(config:AddonConfig){
   if(e.recs)return{kind:'recs',slot:e.recs.slot,url:'ydl-recs:'+e.recs.slot,name:e.name,type:'series',...filtered};
   if(e.weekly)return{...weeklyCatalog(e.weekly.country,e.weekly.slot),kind:'weekly',country:e.weekly.country,slot:e.weekly.slot,...filtered};
   if(e.explore)return{...exploreCatalog(e.explore.category,e.explore.country),name:e.name,...filtered};
-  if(e.person)return{kind:'filmography',mode:e.mode,personUrl:e.person,url:e.person,name:e.name};
+  if(e.person){const id=e.person.match(/\/people\/(\d+)-/)?.[1]||e.person.split('/').pop(),url='ydl-filmography:'+e.mode+':'+id;return{kind:'filmography',mode:e.mode,personUrl:e.person,personId:id,url:e.filter?url+'?ydlf='+shelfFilterKey(e.filter):url,name:e.name,...filtered};}
   if(e.watchlist)return{kind:'watchlist',url:'https://mydramalist.com/dramalist/'+e.watchlist+(e.watchlistStatus?'/'+e.watchlistStatus:''),name:e.name,...filtered};
   const base=e.filter?e.id.replace(/:f[^:]*$/,''):e.id;
   return{url:/^d\.[1-5]\./.test(base)?base:'https://mydramalist.com/list/'+base,name:e.name,...filtered};
@@ -251,7 +251,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   pool=Object.values(sections).flat().filter((item:any)=>item.slug&&!seen.has(item.slug)&&seen.add(item.slug));
  }
  else pool=(await deps.source(entry.id)).items;
- if(entry.filter&&!entry.person){
+ if(entry.filter){
   // Same rules as the setup page preview. Genres come from saved TMDB lookups.
   const facts=shelfNeedsFacts(entry.filter,pool)?await ((deps as any).facts??getTitleFacts)(pool.slice(0,1000).map((x:any)=>({slug:x.slug,title:x.title,year:x.year,type:x.type,country:x.country})),{budgetMs:12000}).catch(()=>({})):{};
   pool=applyShelfFilter(pool,entry.filter,facts);

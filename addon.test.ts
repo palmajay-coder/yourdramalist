@@ -233,4 +233,16 @@ await test('a sorted or Movies/Shows-filtered Spotlight, Weekly Picks or Because
  const again=normalizeAddon({user:c.user,preferences:c.preferences,catalogs:selectionFromConfig(c)});
  assert(JSON.stringify(again.entries)===JSON.stringify(c.entries),'Configure keeps the filters');
 });
+await test('a sorted or Movies-only filmography keeps that in Nuvio and after Configure',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Ann Hui’s Filmography',kind:'filmography',mode:'director',personUrl:'https://mydramalist.com/people/2185-ann-hui',filter:{type:'movie',sort:'oldest'}}]});
+ const entry=c.entries[0] as any;
+ assert(entry.person==='https://mydramalist.com/people/2185-ann-hui'&&entry.filter.type==='movie'&&entry.filter.sort==='oldest','the filter is kept');
+ const credits=[{id:'1',name:'Elegies',url:'https://mydramalist.com/1-elegies',year:2023,type:'Movie'},{id:'2',name:'A Show',url:'https://mydramalist.com/2-a-show',year:2019,type:'Drama'},{id:'3',name:'A Simple Life',url:'https://mydramalist.com/3-a-simple-life',year:2012,type:'Movie'}];
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),people:async()=>Response.json({items:credits}),map:async(items:any[])=>items.map((x:any)=>({id:'tt'+x.slug.split('-')[0],type:'movie',name:x.title,poster:'https://image.tmdb.org/t/p/w500/p.jpg'})),weeklyMetas:async()=>[]} as any;
+ const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas.map((m:any)=>m.name).join(',');
+ assert(metas==='A Simple Life,Elegies','movies only, oldest first: '+metas);
+ const back=selectionFromConfig(c)[0] as any;
+ assert(back.url.startsWith('ydl-filmography:director:2185?ydlf=')&&back.personId==='2185'&&back.filter.sort==='oldest','Configure gives the page its own address back: '+back.url);
+ assert(JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure round trip');
+});
 console.log(JSON.stringify({passed}));
