@@ -164,6 +164,26 @@ export function spotlightName(list: {name: string; plainName?: string}, country?
   return country ? (list.plainName || list.name) + " (" + COUNTRY_NAMES[country] + ")" : list.name;
 }
 
+/**
+ * "Dramas With a Satisfying Ending": what the + search shows for "satisfying ending", "happy ending" and the like.
+ * Hand-picked from fan roundups (Screen Rant, KbizoOm, Startefacts) and MyDramaList happy-ending lists, leaving
+ * out endings those sources call divisive or sad; then topped up with TMDB titles tagged "happy ending".
+ * Not a Spotlight list: it never ends and is not on Discover.
+ */
+export const ENDINGS: Spotlight = {
+  id: "endings",
+  name: "Dramas With a Satisfying Ending",
+  until: "2100-01-01T00:00:00.000Z",
+  theme: {keywords: ["happy ending"], genre: "18"},
+  titles: [
+    tv("Bon Appétit, Your Majesty", 2025, "KR", ["Bon Appetit, Your Majesty", "The Tyrant's Chef"]), tv("Hometown Cha-Cha-Cha", 2021), tv("Healer", 2014),
+    tv("Move to Heaven", 2021), tv("Weightlifting Fairy Kim Bok-joo", 2016, "KR", ["Weightlifting Fairy Kim Bok Joo"]), tv("Misaeng", 2014, "KR", ["Misaeng: Incomplete Life"]),
+    tv("Go Back Couple", 2017), tv("Itaewon Class", 2020), tv("Signal", 2016), tv("Because This Is My First Life", 2017), tv("Fight for My Way", 2017),
+    tv("Another Miss Oh", 2016, "KR", ["Another Oh Hae-young"]), tv("It's Okay to Not Be Okay", 2020), tv("Flower of Evil", 2020), tv("Tomorrow", 2022),
+    tv("The King in Love", 2017, "KR", ["The King Loves"]), tv("Fall in Love", 2021, "CN"), tv("Love and Redemption", 2020, "CN"),
+  ],
+};
+
 /** The current month's list: its name, titles and end (midnight Pacific on the 1st of next month). */
 /** With a country that has its own holiday that month, its holiday list (no hand-picks, filled by theme). */
 export function monthlySpotlight(time: number, country?: Country): Spotlight {
@@ -181,7 +201,10 @@ export function activeSpotlights(time: number, gta: Spotlight = GTA6, country?: 
 const LANGUAGE: Record<string, string> = {KR: "ko", JP: "ja", CN: "zh", TW: "zh", TH: "th"};
 const DAY = 86400000;
 
-export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record<string, string>) => Promise<any>; now?: () => number; storage?: Storage; lists?: (time: number, country?: Country) => Spotlight[]}) {
+export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record<string, string>) => Promise<any>; now?: () => number; storage?: Storage; lists?: (time: number, country?: Country) => Spotlight[];
+  /** Without a country, top up from these countries together (the endings list); Spotlight leaves this out. */ fillCountries?: Country[];
+  /** How many titles a topped-up list holds (15 for Spotlight). */ fullList?: number}) {
+  const fullList = deps.fullList || FULL_LIST;
   const now = deps.now || Date.now, listsAt = deps.lists || ((time: number, country?: Country) => activeSpotlights(time, GTA6, country));
   const cache = new Map<string, {item: SpecialItem | null; expires: number}>();
   // Top-ups per list, month and country, kept a week so a country's list stays the same from day to day.
@@ -250,16 +273,16 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
   }
 
   /** The country's best-rated titles on the list's theme, leaving out titles already on the list. */
-  async function topUp(theme: Theme, country: Country, have: SpecialItem[], count: number): Promise<SpecialItem[]> {
+  async function topUp(theme: Theme, countries: Country[], have: SpecialItem[], count: number): Promise<SpecialItem[]> {
     const keywords = (await Promise.all((theme.keywords || []).map(name => keywordId(name).catch(() => null)))).filter(Boolean).join("|");
     if (!keywords && !theme.genre) return [];
     const today = new Date(now()).toISOString().slice(0, 10), seen = new Set(have.map(item => item.kind + ":" + item.id));
     const find = async (kind: "tv" | "movie", votes: number, average: number, by: "keywords" | "genre", sort = "vote_average.desc") => {
-      const params: Record<string, string> = {with_origin_country: country, include_adult: "false", language: "en-US", sort_by: sort, "vote_count.gte": String(votes), "vote_average.gte": String(average), without_genres: "16,99,10763,10764,10767", [kind === "tv" ? "first_air_date.lte" : "primary_release_date.lte"]: today, page: "1"};
+      const params: Record<string, string> = {with_origin_country: countries.join("|"), include_adult: "false", language: "en-US", sort_by: sort, "vote_count.gte": String(votes), "vote_average.gte": String(average), without_genres: "16,99,10763,10764,10767", [kind === "tv" ? "first_air_date.lte" : "primary_release_date.lte"]: today, page: "1"};
       if (by === "keywords") params.with_keywords = keywords; else params.with_genres = theme.genre!;
       const data = await deps.tmdb("discover/" + kind, params);
       return (Array.isArray(data?.results) ? data.results : [])
-        .filter((r: any) => !r.adult && posterUrl(r.poster_path) && (kind !== "tv" || (Array.isArray(r.origin_country) && r.origin_country.includes(country))))
+        .filter((r: any) => !r.adult && posterUrl(r.poster_path) && (kind !== "tv" || (Array.isArray(r.origin_country) && r.origin_country.some((c: string) => countries.includes(c as Country)))))
         .map((r: any): SpecialItem => ({kind, id: Number(r.id), name: String(r.name || r.title || "").trim(), poster: posterUrl(r.poster_path)!, overview: String(r.overview || ""), date: String(r.first_air_date || r.release_date || ""), score: Number(r.vote_average) || 0}))
         .filter((item: SpecialItem) => item.name);
     };
@@ -290,20 +313,21 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
       const result = await resolve(picks);
       changed ||= result.changed;
       let items = result.items;
-      if (country && list.theme && items.length < FULL_LIST) {
-        const key = "v2:" + list.id + ":" + list.name + ":" + country, hit = fills.get(key);
+      const fillFrom = country ? [country] : deps.fillCountries;
+      if (fillFrom?.length && list.theme && items.length < fullList) {
+        const key = "v2:" + list.id + ":" + list.name + ":" + fillFrom.join("|"), hit = fills.get(key);
         let extra = hit && hit.expires > now() ? hit.items : null;
         if (!extra) {
           try {
-            extra = await topUp(list.theme, country, items, FULL_LIST - items.length);
+            extra = await topUp(list.theme, fillFrom, items, fullList - items.length);
             // A full list is kept a week; a short one is tried again the next day.
-            fills.set(key, {items: extra, expires: now() + (items.length + extra.length >= FULL_LIST ? 7 : 1) * DAY}); changed = true;
-            console.log(JSON.stringify({specialFill: list.name, country, picks: items.length, added: extra.length}));
+            fills.set(key, {items: extra, expires: now() + (items.length + extra.length >= fullList ? 7 : 1) * DAY}); changed = true;
+            console.log(JSON.stringify({specialFill: list.name, country: fillFrom.join("|"), picks: items.length, added: extra.length}));
           }
           catch { extra = hit?.items || []; }
         }
         const seen = new Set(items.map(item => item.kind + ":" + item.id));
-        items = [...items, ...extra.filter(item => !seen.has(item.kind + ":" + item.id))].slice(0, FULL_LIST);
+        items = [...items, ...extra.filter(item => !seen.has(item.kind + ":" + item.id))].slice(0, fullList);
       }
       if (country ? items.length < MIN_LIST : !items.length) continue;
       const url = "ydl-special:" + list.id + (country ? ":" + country : "");
@@ -327,11 +351,21 @@ export async function specialCatalog(country?: Country) {
   return shared.current(country);
 }
 
-/** GET /api/catalogs/special for the Discover Spotlight, with each title's usual TMDB poster. */
+let endings: ReturnType<typeof createSpecialCatalog> | undefined;
+/** "Dramas With a Satisfying Ending": the hand-picked titles, then TMDB's "happy ending" titles from all five countries, 30 in all. */
+export async function endingsCatalog() {
+  const {collections} = await import("./collectionService.ts");
+  endings ??= createSpecialCatalog({tmdb: collections.tmdb, lists: () => [ENDINGS], fillCountries: ["KR", "CN", "JP", "TW", "TH"], fullList: 30,
+    storage: {load: () => blob.getJSON("special-endings:v1"), save: value => blob.setJSON("special-endings:v1", value)}});
+  return endings.current();
+}
+
+/** GET /api/catalogs/special for the Discover Spotlight, with each title's usual TMDB poster; ?list=endings for the search's endings row. */
 export async function handleSpecialCatalog(req: Request) {
   if (req.method !== "GET") return new Response("Method not allowed", {status: 405, headers: {Allow: "GET"}});
   const headers = {"cache-control": "no-store"};
   try {
+    if (new URL(req.url).searchParams.get("list") === "endings") return Response.json(await endingsCatalog(), {headers});
     // ?country= takes Discover's filter value ("3" = South Korea); without it every country's picks show (Nuvio's original lists).
     const value = new URL(req.url).searchParams.get("country");
     if (value !== null && !SPOTLIGHT_COUNTRIES[value]) return Response.json({error: "Choose a country."}, {status: 400, headers});

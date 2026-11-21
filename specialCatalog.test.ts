@@ -1,5 +1,5 @@
 // Spotlight: GTA 6 until the winter list, a holiday or seasonal list for every month, matching and caching.
-import {createSpecialCatalog, activeSpotlights, monthlySpotlight, spotlightName, GTA6, MONTHLY, HOLIDAYS} from "./specialCatalog.ts";
+import {createSpecialCatalog, activeSpotlights, monthlySpotlight, spotlightName, GTA6, MONTHLY, HOLIDAYS, ENDINGS} from "./specialCatalog.ts";
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
 async function test(name: string, fn: () => unknown) { await fn(); passed++; console.log("PASS " + name); }
@@ -150,5 +150,25 @@ await test("every running list has a theme for topping up", () => {
   for (const time of [Date.UTC(2026, 10, 20), ...Array.from({length: 12}, (_, m) => Date.UTC(2027, m, 15))]) {
     for (const country of [undefined, "KR", "JP", "CN", "TW", "TH"] as any[]) for (const list of activeSpotlights(time, GTA6, country)) ok(list.theme && (list.theme.genre || list.theme.keywords?.length), list.name + " has a theme");
   }
+});
+await test("Dramas With a Satisfying Ending: 18 hand-picked titles, topped up from all five countries to 30, never on Discover", async () => {
+  ok(ENDINGS.id === "endings" && ENDINGS.titles.length === 18 && new Set(ENDINGS.titles.map(t => t.title)).size === 18, "18 different titles");
+  ok(!ENDINGS.titles.some(t => ["Twenty-Five Twenty-One", "Cheese in the Trap", "Uncontrollably Fond", "Youth of May"].includes(t.title)), "divisive and sad endings stay out");
+  for (const time of [Date.UTC(2026, 10, 20), Date.UTC(2027, 5, 1)]) ok(!activeSpotlights(time).some(l => l.id === "endings"), "not a Spotlight list");
+  const asked: Record<string, string>[] = [];
+  const tmdb = async (path: string, params: Record<string, string> = {}) => {
+    if (path === "search/keyword") return {results: [{id: 4344, name: params.query}]};
+    if (path.startsWith("discover/")) {
+      asked.push(params);
+      const kind = path.slice(9);
+      return {results: Array.from({length: 20}, (_, i) => ({id: (kind === "tv" ? 3000 : 4000) + i, name: "E" + i, title: "E" + i, origin_country: [["KR", "CN", "JP", "TW", "TH"][i % 5]], poster_path: "/e.jpg", vote_average: 9 - i / 10, overview: ""}))};
+    }
+    return {results: []};
+  };
+  const lists = () => [{...ENDINGS, titles: [{title: "Nowhere", year: 2020, country: "KR" as const, kind: "tv" as const}]}];
+  const catalog = createSpecialCatalog({tmdb, now: () => NOW, lists, fillCountries: ["KR", "CN", "JP", "TW", "TH"], fullList: 30});
+  const data = await catalog.current();
+  ok(asked.length && asked.every(p => p.with_origin_country === "KR|CN|JP|TW|TH" && p.with_keywords === "4344"), "the top-up asks for all five countries' happy endings");
+  ok(data.lists.length === 1 && data.lists[0].items.length === 30 && data.lists[0].catalog.url === "ydl-special:endings" && data.lists[0].catalog.name === "Dramas With a Satisfying Ending", "a full list of 30: " + data.lists[0]?.items.length);
 });
 console.log(JSON.stringify({passed}));

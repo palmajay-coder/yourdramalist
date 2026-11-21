@@ -266,4 +266,17 @@ await test('one person can have several filmography catalogs, one per sort or Mo
  assert(new Set(c.entries.map((e:any)=>e.id)).size===4,'four separate catalogs');
  assert(makeManifest(c).catalogs.map((x:any)=>x.name).join(' | ')==='Son Ye Jin’s Filmography | Son Ye Jin’s Top 10 Dramas | Son Ye Jin’s Top 10 Movies | Son Ye Jin’s Latest','each has its own Nuvio name: '+makeManifest(c).catalogs.map((x:any)=>x.name).join(' | '));
 });
+await test('Dramas With a Satisfying Ending can be added to Nuvio from the search',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Dramas With a Satisfying Ending',kind:'special',id:'endings',url:'ydl-special:endings'}]});
+ const entry=c.entries[0] as any;
+ assert(entry.id==='ydl-special:endings'&&entry.special.id==='endings'&&makeManifest(c).catalogs[0].name==='Dramas With a Satisfying Ending','normalized with its name: '+makeManifest(c).catalogs[0].name);
+ const asked:string[]=[];
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),endings:async()=>{asked.push('endings');return{lists:[{catalog:{id:'endings'},items:[{kind:'tv',id:7,name:'Healer'}]}]}},special:async()=>{asked.push('spotlight');return{lists:[]}},weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any;
+ const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas;
+ assert(metas.length===1&&metas[0].name==='Healer'&&asked.join()==='endings','loads from the endings list');
+ const back=selectionFromConfig(c)[0] as any;
+ assert(back.url==='ydl-special:endings'&&back.name==='Dramas With a Satisfying Ending'&&JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure round trip');
+ const {validAnalytics}=await import('./analyticsApi.ts');
+ assert(validAnalytics('catalog.added','theme-search')&&validAnalytics('catalog.selected','spotlight:endings:all')&&analyticsScopes(c).includes('catalog.selected:spotlight:endings:all'),'counted as its own catalog and add source');
+});
 console.log(JSON.stringify({passed}));

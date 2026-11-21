@@ -464,6 +464,38 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  (view.querySelector(".androidWatchlistHeader button") as any).click();
  assert(!view.open,"Back closes the titles");
 });
+await test("searching for a satisfying ending shows that list on top, ready to add",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const saved=new Map<string,string>([["ydl-v3-started","1"]]);const sent:any[]=[];const asked:string[]=[];
+ const storage={getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)};
+ const fetcher=async(url:string,options:any={})=>{const u=String(url);asked.push(u);
+  if(u==="/api/analytics/catalog-add"){sent.push(JSON.parse(options.body));return Response.json({ok:true})}
+  if(u.startsWith("/api/catalogs/special?list=endings"))return Response.json({lists:[{catalog:{kind:"special",id:"endings",url:"ydl-special:endings",name:"Dramas With a Satisfying Ending"},items:[{kind:"tv",id:1,name:"Healer",date:"2014-12-08",poster:"https://image.tmdb.org/t/p/w780/h.jpg"},{kind:"tv",id:2,name:"Signal",date:"2016-01-22",poster:"https://image.tmdb.org/t/p/w780/s.jpg"}]}]});
+  if(u.startsWith("/api/mdl/people-search"))return Response.json({query:"x",page:1,titles:[],people:[],hasNextPage:false});
+  return Response.json({collections:[],items:[]});
+ };
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,{href:"https://test/setup/lists",origin:"https://test",pathname:"/setup/lists",search:"",hostname:"test"},{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ const tick=(ms=40)=>new Promise(r=>setTimeout(r,ms));
+ const run=async(text:string)=>{(document.getElementById("quickSearchInput") as HTMLInputElement).value=text;(document.querySelector(".quickSearch form") as any).dispatchEvent(new window.Event("submit",{cancelable:true}));await tick();};
+ (document.querySelector(".androidNavAdd") as any).click();
+ await run("satisfying ending dramas");
+ const row=document.querySelector(".quickSearchTheme") as any;
+ assert(row&&!row.hidden&&row.querySelector("h3").textContent==="Dramas With a Satisfying Ending","the row shows for the phrase");
+ assert([...row.querySelectorAll(".catalogPoster strong")].map((x:any)=>x.textContent).join(",")==="Healer,Signal","with its titles");
+ assert(row.compareDocumentPosition(document.querySelector(".quickSearchResults"))&4,"above the normal results");
+ assert(!/No matches/.test((document.querySelector(".quickSearchStatus") as any).textContent),"no \"No matches\" message above the row");
+ const add=row.querySelector(".discoverAddPill") as any;
+ assert(add.textContent==="+Add","an Add button");
+ add.click();await tick();
+ const selection=JSON.parse(saved.get("ydl-v3-selection")||"[]");
+ assert(selection.some((x:any)=>x.url==="ydl-special:endings"&&x.kind==="special")&&add.textContent==="✓Added","Add puts it in Your Selection");
+ assert(sent.some((x:any)=>x.source==="theme-search"),"counted as a theme search add: "+JSON.stringify(sent));
+ await run("happy endings");
+ assert(!(document.querySelector(".quickSearchTheme") as any).hidden,"other wordings work too");
+ await run("Goblin");
+ assert((document.querySelector(".quickSearchTheme") as any).hidden,"a name search shows no row");
+});
 await test("the green + opens a full-screen search that shows results on the same screen and keeps recent searches",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

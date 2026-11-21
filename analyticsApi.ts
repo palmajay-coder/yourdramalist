@@ -23,11 +23,11 @@ const CATALOG_CATEGORIES = new Set([
   "weekly:0", "weekly:1",
   ...["gta6", "monthly"].flatMap(id => ["all", ...DISCOVER_COUNTRIES].map(country => `spotlight:${id}:${country}`)),
   ...["tv", "movie"].flatMap(id => DISCOVER_COUNTRIES.map(country => `top10:${id}:${country}`)),
-  "recs:0", "recs:1", "recs:2",
+  "recs:0", "recs:1", "recs:2", "spotlight:endings:all",
   "explore:top-shows:all", "explore:popular-shows:all", "explore:newest-shows:all", "explore:upcoming-shows:all", "explore:airing-shows:all", "explore:variety-shows:all", "explore:top-movies:all", "explore:popular-movies:all", "explore:newest-movies:all", "explore:upcoming-movies:all",
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
-const ADD_SOURCES = new Set(["popular-this-month","discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks","add-to-collection","spotlight","top10","recommended"]);
+const ADD_SOURCES = new Set(["popular-this-month","discover-drama-related","discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","featured-list","weekly-picks","add-to-collection","spotlight","top10","recommended","theme-search"]);
 export const POSTER_VERIFY_CATEGORIES = new Set([
   "unknown:invalid-input", "unknown:invalid-configuration", "unknown:request-limit", "unknown:request-size", "unknown:request-origin", "unknown:request-format", "unknown:request-method",
   ...["ratings", "better", "posterplus", "rpdb"].flatMap(provider => [
@@ -186,7 +186,7 @@ export const analyticsLabels:Record<string,string>={
   "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs", "configure-opened":"Opened Configure in Nuvio/Stremio",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
   "recs:0":"Because you watched · Row 1", "recs:1":"Because you watched · Row 2", "recs:2":"Because you watched · Row 3",
-  spotlight:"Spotlight adds", top10:"Top 10 adds", recommended:"Recommended for you adds",
+  spotlight:"Spotlight adds", top10:"Top 10 adds", recommended:"Recommended for you adds", "theme-search":"Satisfying Endings adds", "spotlight:endings:all":"Satisfying Endings",
   "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation", "token-too-large":"Install link too long",
 };
 export function analyticsCategoryLabel(category:string){

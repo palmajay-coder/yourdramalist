@@ -58,7 +58,10 @@ export function installQuickSearch() {
   const status = element("p", "quickSearchStatus");
   status.setAttribute("role", "status");
   const list = element("div", "quickSearchResults");
-  body.append(recentView, status, list);
+  // "Satisfying ending" searches get a theme row above the normal results.
+  const themeRow = element("article", "catalogShelf quickSearchTheme");
+  themeRow.hidden = true;
+  body.append(recentView, status, themeRow, list);
   dialog.append(form, body);
   // The only search in the app: titles go into the person's own collections, people add a filmography.
   const where = {list: () => list, status: () => status};
@@ -67,7 +70,69 @@ export function installQuickSearch() {
   let returnFocus = null;
   let timer = 0;
   let shown = "";
+  const ENDINGS_QUERY = /\b(satisf\w*|happy|good|great|best|perfect)\s+end(ing|ings)?\b/i;
+  const endingsList = { kind: "special", id: "endings", url: "ydl-special:endings", name: "Dramas With a Satisfying Ending", type: "series" };
+  let themeRequest = 0;
+  function paintThemeAdd(button) {
+    const added = state.selection.some(item => item.url === endingsList.url);
+    const icon = element("span", "discoverAddIcon", added ? "✓" : "+");
+    icon.setAttribute("aria-hidden", "true");
+    button.replaceChildren(icon, document.createTextNode(added ? "Added" : "Add"));
+    button.classList.toggle("is-added", added);
+    button.setAttribute("aria-pressed", String(added));
+  }
+  function hideTheme() {
+    themeRequest++;
+    themeRow.hidden = true;
+    themeRow.replaceChildren();
+  }
+  async function showTheme() {
+    const request = ++themeRequest;
+    const head = element("div", "catalogShelfHead");
+    const title = element("h3", "", endingsList.name);
+    const add = element("button", "catalogAdd discoverAddPill");
+    add.type = "button";
+    add.setAttribute("aria-label", "Add or remove " + endingsList.name);
+    paintThemeAdd(add);
+    add.onclick = () => { toggleList({ ...endingsList }); paintThemeAdd(add); };
+    const info = element("div"), actions = element("div", "catalogRowActions");
+    info.append(title);
+    actions.append(add);
+    head.append(info, actions);
+    const track = element("div", "catalogShelfTrack");
+    track.setAttribute("aria-label", endingsList.name);
+    const waiting = element("p", "catalogShelfStatus", "Finding dramas with a satisfying ending…");
+    themeRow.replaceChildren(head, waiting);
+    themeRow.hidden = false;
+    try {
+      const response = await fetch("/api/catalogs/special?list=endings", { signal: AbortSignal.timeout(45e3) });
+      const data = response.ok ? await response.json() : null;
+      if (request !== themeRequest) return;
+      const items = data?.lists?.[0]?.items || [];
+      if (!items.length) { hideTheme(); return; }
+      for (const item of items) {
+        const button = element("button", "catalogPoster");
+        button.type = "button";
+        button.setAttribute("aria-label", copy.catalogTitlePreview + ": " + item.name);
+        if (item.poster) {
+          const img = element("img");
+          img.src = item.poster;
+          img.alt = "";
+          img.loading = "lazy";
+          img.referrerPolicy = "no-referrer";
+          button.append(img);
+        }
+        button.append(element("strong", "", item.name), element("small", "", String(item.date || "").slice(0, 4)));
+        button.onclick = () => showCatalogTitle(item);
+        track.append(button);
+      }
+      themeRow.replaceChildren(head, track);
+    } catch {
+      if (request === themeRequest) hideTheme();
+    }
+  }
   function showRecent() {
+    hideTheme();
     clearTimeout(timer);
     shown = "";
     listRequest++;
@@ -153,8 +218,11 @@ export function installQuickSearch() {
     recentView.hidden = true;
     // Discover's search shows the loading bear in the results area right away.
     status.textContent = "";
-    if (/^https?:/i.test(text)) peopleUI.fromUrl(text, "actor", where);
-    else peopleUI.search(text, 1, "actor", where);
+    if (ENDINGS_QUERY.test(text)) showTheme();
+    else hideTheme();
+    const done = /^https?:/i.test(text) ? peopleUI.fromUrl(text, "actor", where) : peopleUI.search(text, 1, "actor", where);
+    // With the satisfying-ending row showing, an empty name search shouldn't say "No matches".
+    if (!themeRow.hidden) Promise.resolve(done).then(() => { if (shown === text && !themeRow.hidden && !list.childElementCount) status.textContent = ""; }, () => {});
   }
   function submit(query) {
     input.value = String(query || "").trim();
