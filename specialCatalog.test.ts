@@ -1,5 +1,5 @@
 // Spotlight: GTA 6 until the winter list, a holiday or seasonal list for every month, matching and caching.
-import {createSpecialCatalog, activeSpotlights, monthlySpotlight, spotlightName, GTA6, MONTHLY, HOLIDAYS, ENDINGS} from "./specialCatalog.ts";
+import {createSpecialCatalog, activeSpotlights, monthlySpotlight, spotlightName, GTA6, MONTHLY, HOLIDAYS, ENDINGS, TROPES, tropeById} from "./specialCatalog.ts";
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
 async function test(name: string, fn: () => unknown) { await fn(); passed++; console.log("PASS " + name); }
@@ -169,6 +169,42 @@ await test("Dramas With a Satisfying Ending: 18 hand-picked titles, topped up fr
   const catalog = createSpecialCatalog({tmdb, now: () => NOW, lists, fillCountries: ["KR", "CN", "JP", "TW", "TH"], fullList: 30});
   const data = await catalog.current();
   ok(asked.length && asked.every(p => p.with_origin_country === "KR|CN|JP|TW|TH" && p.with_keywords === "4344"), "the top-up asks for all five countries' happy endings");
-  ok(data.lists.length === 1 && data.lists[0].items.length === 30 && data.lists[0].catalog.url === "ydl-special:endings" && data.lists[0].catalog.name === "Dramas With a Satisfying Ending", "a full list of 30: " + data.lists[0]?.items.length);
+  ok(data.lists.length === 1 && data.lists[0].items.length === 30 && data.lists[0].catalog.url === "ydl-special:endings" && data.lists[0].catalog.name === "Satisfying Endings", "a full list of 30: " + data.lists[0]?.items.length);
+});
+await test("trope search: each trope answers the phrases fans use, and nothing else", () => {
+  const says: Record<string, string[]> = {
+    "endings": ["satisfying ending dramas", "happy ending kdrama", "best endings"],
+    "sad-ending": ["sad ending", "tragic ending dramas", "tearjerker", "dramas that make you cry", "melodrama"],
+    "enemies-to-lovers": ["enemies to lovers kdrama", "enemies-to-friends-to-lovers", "rivals to lovers", "hate to love"],
+    "contract-marriage": ["contract marriage", "fake dating", "fake relationship cdrama", "arranged marriage", "marriage of convenience"],
+    "office-romance": ["office romance", "workplace romance", "boss and secretary", "ceo romance"],
+    "second-lead": ["second lead syndrome", "SLS dramas", "second male lead"],
+    "revenge": ["revenge drama", "vengeance"],
+    "time-travel": ["time travel", "time slip kdrama", "regression", "regressor", "rebirth", "reborn"],
+    "body-swap": ["body swap", "soul swap", "gender swap", "transmigration"],
+    "slow-burn": ["slow burn romance", "slow-burn"],
+    "childhood-friends": ["childhood friends to lovers", "friends to lovers", "childhood sweethearts"],
+    "rich-poor": ["chaebol romance", "rich man poor woman", "cinderella story", "candy girl"],
+    "reincarnation": ["reincarnation", "past life romance", "reincarnated"],
+    "childhood-connection": ["childhood connection", "met as kids", "we've met before"],
+  };
+  ok(new Set(TROPES.map(t => t.id)).size === TROPES.length && TROPES.length === 14, "14 tropes, unique ids");
+  for (const [id, phrases] of Object.entries(says)) {
+    const t = tropeById(id)!;
+    ok(t, "trope " + id);
+    for (const phrase of phrases) ok(t.pattern.test(phrase), id + " should match " + phrase);
+  }
+  for (const query of ["Goblin", "Lee Min Ho", "Business Proposal", "Crash Landing on You", "Son Ye Jin"]) {
+    ok(!TROPES.some(t => t.pattern.test(query)), "no trope for " + query + ": " + TROPES.filter(t => t.pattern.test(query)).map(t => t.id));
+  }
+  ok(!tropeById("endings")!.pattern.test("sad ending") && !tropeById("sad-ending")!.pattern.test("happy ending"), "happy and sad endings stay apart");
+  ok(TROPES.filter(t => t.id !== "endings").every(t => !t.theme?.genre), "no genre fallback for tropes");
+  ok(tropeById("childhood-connection")!.titles.length === 8 && tropeById("childhood-friends")!.titles.map(t => t.title).join() === "Love Next Door,Welcome to Samdal-ri", "hand-picked titles where fans' favorites are known");
+});
+
+await test("a trope row with fewer than five titles does not show", async () => {
+  const tmdb = async (path: string, params: Record<string, string> = {}) => path === "search/keyword" ? {results: [{id: 9, name: params.query}]} : path.startsWith("discover/") ? {results: [{id: 1, name: "Only", origin_country: ["KR"], poster_path: "/a.jpg", vote_average: 8}]} : {results: []};
+  const catalog = createSpecialCatalog({tmdb, now: () => NOW, lists: () => [tropeById("slow-burn")!], fillCountries: ["KR", "CN", "JP", "TW", "TH"], fullList: 30, minList: 5});
+  ok((await catalog.current()).lists.length === 0, "too short to show");
 });
 console.log(JSON.stringify({passed}));

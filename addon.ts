@@ -13,7 +13,7 @@ import {APP_VERSION} from './text.ts';
 import {ADDON_ICON_URL} from './addonIcon.ts';
 import {localizedCatalogName} from './catalogLabels.ts';
 import {recommendationsFor} from './recommendations.ts';
-import {specialCatalog,endingsCatalog,GTA6,ENDINGS,monthlySpotlight,spotlightName} from './specialCatalog.ts';
+import {specialCatalog,tropeCatalog,tropeById,GTA6,monthlySpotlight,spotlightName} from './specialCatalog.ts';
 import {top10,top10Catalog} from './top10.ts';
 const SPOTLIGHT_CODES=['KR','JP','CN','TW','TH'];
 import {recordAnalytics,recordErrorLog} from './analyticsApi.ts';
@@ -55,7 +55,7 @@ export function normalizeAddon(body:any){
   // A limited-time, hand-picked catalog ("Watch this while they play GTA 6").
   // The setup page sends the catalog's address (ydl-special:<id>, plus :<country> when Discover was filtered to one
   // country, for example ydl-special:monthly:JP); its id is accepted too. Without a country every country's picks show.
-  if(item.kind==='special'){const [special,country]=(typeof item.url==='string'&&item.url.startsWith('ydl-special:')?item.url.slice(12).replace(/\?.*$/,''):String(item.id||'')).split(':');if(!['gta6','monthly','endings'].includes(special)||(country!==undefined&&!SPOTLIGHT_CODES.includes(country)))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-special:'+special+(country?':'+country:''),name:special==='gta6'?spotlightName(GTA6,country as any):special==='endings'?ENDINGS.name:'Spotlight of the month',type:'series',special:{id:special,...(country?{country}:{})}},item.filter);}
+  if(item.kind==='special'){const [special,country]=(typeof item.url==='string'&&item.url.startsWith('ydl-special:')?item.url.slice(12).replace(/\?.*$/,''):String(item.id||'')).split(':');if(!(['gta6','monthly'].includes(special)||tropeById(special))||(country!==undefined&&!SPOTLIGHT_CODES.includes(country)))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-special:'+special+(country?':'+country:''),name:special==='gta6'?spotlightName(GTA6,country as any):tropeById(special)?tropeById(special)!.name:'Spotlight of the month',type:'series',special:{id:special,...(country?{country}:{})}},item.filter);}
   // "Because you watched …": one of up to three personal rows, built from the install's MyDramaList username.
   if(item.kind==='recs'){if(!user||![0,1,2].includes(item.slot))throw new InvalidConfig('catalog-entry');return withFilter({id:'ydl-recs:'+item.slot,name:'Because you watched…',type:'series',recs:{slot:item.slot}},item.filter);}
   if(item.kind==='weekly'){const c=weeklyCatalog(item.country,item.slot);return withFilter({id:c.url,name:c.name,type:'series',weekly:{country:item.country,slot:item.slot}},item.filter);}
@@ -81,7 +81,7 @@ export function selectionFromConfig(config:AddonConfig){
   const filtered=e.filter?{filter:e.filter,filterLabel:e.filterLabel,originalName:e.name}:{};
   if(e.personal)return{kind:'user-collection',url:'ydl-personal:'+e.id,name:e.name};
   if(e.top10)return{...top10Catalog(e.top10.id,(e.top10.country||'KR') as any)};
-  if(e.special){const country=e.special.country as any,list=e.special.id==='gta6'?GTA6:e.special.id==='endings'?ENDINGS:monthlySpotlight(Date.now(),country),url='ydl-special:'+e.special.id+(country?':'+country:'');return{kind:'special',id:e.special.id,url:e.filter?url+'?ydlf='+shelfFilterKey(e.filter):url,name:spotlightName(list,country),type:'series',...filtered};}
+  if(e.special){const country=e.special.country as any,list=e.special.id==='gta6'?GTA6:tropeById(e.special.id)||monthlySpotlight(Date.now(),country),url='ydl-special:'+e.special.id+(country?':'+country:'');return{kind:'special',id:e.special.id,url:e.filter?url+'?ydlf='+shelfFilterKey(e.filter):url,name:spotlightName(list,country),type:'series',...filtered};}
   if(e.recs)return{kind:'recs',slot:e.recs.slot,url:'ydl-recs:'+e.recs.slot,name:e.name,type:'series',...filtered};
   if(e.weekly)return{...weeklyCatalog(e.weekly.country,e.weekly.slot),kind:'weekly',country:e.weekly.country,slot:e.weekly.slot,...filtered};
   if(e.explore)return{...exploreCatalog(e.explore.category,e.explore.country),name:e.name,...filtered};
@@ -203,7 +203,8 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  if(entry.special){
   // GTA 6, or the month's list (which changes by itself on the 1st). An ended list has no titles.
   // The search's "satisfying ending" list has its own catalog; the others are Spotlight's.
-  const data=entry.special.id==='endings'?await ((deps as any).endings||endingsCatalog)():await ((deps as any).special||specialCatalog)(entry.special.country);
+  const trope=tropeById(entry.special.id);
+  const data=trope?await ((entry.special.id==='endings'&&(deps as any).endings)||(deps as any).trope||tropeCatalog)(entry.special.id):await ((deps as any).special||specialCatalog)(entry.special.country);
   const found=data?.lists?.find((list:any)=>list.catalog?.id===entry.special!.id)?.items||[];
   const items=entry.filter?applyShelfFilter(tmdbShelfItems(found),entry.filter):found;
   const metas=await ((deps as any).weeklyMetas||collections.metas)(items,base,config.preferences.posters);const page=metas.slice(skip,skip+NUVIO_PAGE).map(applyExternalPoster);

@@ -24,7 +24,7 @@ import {handleWallpaper} from "./wallpaperApi.ts";
 import {handleExplore} from "./exploreApi.ts";
 import {handleCollections} from "./collectionService.ts";
 import {handleRecommendations} from "./recommendations.ts";
-import {handleSpecialCatalog} from "./specialCatalog.ts";
+import {handleSpecialCatalog,TROPES} from "./specialCatalog.ts";
 import {handleTop10} from "./top10.ts";
 import {guidePage,robotsTxt,sitemapXml} from "./guidePage.ts";
 import {COUNTRIES,CATEGORIES,exploreCatalog,userListName} from "./explore.ts";
@@ -482,7 +482,7 @@ $('continue').disabled=!state.selection.length;$('mobileContinue').disabled=!sta
   }
 };row.append(title,remove);root.append(row)}}}
 $('clearSelection').onclick=()=>{state.selection=[];renderSelection();document.querySelectorAll('#listItems input[type=checkbox]').forEach(c=>{c.checked=false});exploreUI.sync();peopleUI.sync();communityUI.sync()};
-function catalogAddSource(list){if(["discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","weekly-picks"].includes(list.analyticsSource))return list.analyticsSource;if(list.kind==='weekly')return'weekly-picks';if(list.kind==='explore')return'discover-catalog';if(list.kind==='filmography')return list.mode==='director'?'discover-director-filmography':'discover-actor-filmography';if(list.kind==='watchlist')return'community-watchlist';if(list.kind==='special')return list.id==='endings'||String(list.url||'').startsWith('ydl-special:endings')?'theme-search':'spotlight';if(list.kind==='top10')return'top10';if(list.kind==='recs')return'recommended';return'community-public-list'}
+function catalogAddSource(list){if(["discover-actor-filmography","discover-director-filmography","discover-catalog","community-watchlist","community-public-list","community-direct-list","weekly-picks"].includes(list.analyticsSource))return list.analyticsSource;if(list.kind==='weekly')return'weekly-picks';if(list.kind==='explore')return'discover-catalog';if(list.kind==='filmography')return list.mode==='director'?'discover-director-filmography':'discover-actor-filmography';if(list.kind==='watchlist')return'community-watchlist';if(list.kind==='special')return TROPE_IDS.includes(String(list.id||String(list.url||'').replace(/^ydl-special:/,'').split(/[:?]/)[0]))?'theme-search':'spotlight';if(list.kind==='top10')return'top10';if(list.kind==='recs')return'recommended';return'community-public-list'}
 function recordCatalogAddition(list){fetch('/api/analytics/catalog-add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source:catalogAddSource(list)}),keepalive:true}).catch(()=>{})}
 function removeCatalog(url){const list=state.selection.find(item=>item.url===url);if(list)toggleList(list)}
 function toggleList(l){const exists=state.selection.some(x=>x.url===l.url);if(!exists&&state.selection.length>=MAX_CATALOGS){notices.show(copy.catalogLimitReached.replace('{max}',MAX_CATALOGS),copy.catalogLimitTitle);document.querySelectorAll('#listItems input[type=checkbox]').forEach(c=>{c.checked=state.selection.some(x=>x.url===c.dataset.url)});exploreUI.sync();peopleUI.sync();communityUI.sync();return}state.selection=exists?state.selection.filter(x=>x.url!==l.url):[...state.selection,l];if(!exists&&l.kind!=='user-collection')recordCatalogAddition(l);localStorage.setItem(selectionKey,JSON.stringify(state.selection));renderSelection();document.querySelectorAll('#listItems input[type=checkbox]').forEach(c=>{c.checked=state.selection.some(x=>x.url===c.dataset.url)});exploreUI.sync();peopleUI.sync();communityUI.sync()}
@@ -589,6 +589,7 @@ const showCatalogTitle=(${installCatalogTitlePreview.toString()})();
 const exploreUI=(${installExploreUI.toString()})();
 const peopleUI = (${installPeopleUI.toString()})();
 const FILTER_COUNTRIES=${JSON.stringify(FILTER_COUNTRIES)},FILTER_GENRES=${JSON.stringify(FILTER_GENRES)};
+const TROPES=${JSON.stringify(TROPES.map(t=>({id:t.id,name:t.name,pattern:t.pattern.source,flags:t.pattern.flags}))).replace(/</g,'\\u003c')},TROPE_IDS=TROPES.map(t=>t.id);
 const shelfCountry=${shelfCountry.toString()},normalizeShelfFilter=${normalizeShelfFilter.toString()},applyShelfFilter=${applyShelfFilter.toString()},tmdbShelfItems=${tmdbShelfItems.toString()},filmographyName=${filmographyName.toString()},filmographyTop=${filmographyTop.toString()},shelfFilterLabel=${shelfFilterLabel.toString()},shelfFilterKey=${shelfFilterKey.toString()},shelfNeedsFacts=${shelfNeedsFacts.toString()};
 const communityUI=(${installCommunityShelves.toString()})();
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));

@@ -59,7 +59,7 @@ export function installQuickSearch() {
   status.setAttribute("role", "status");
   const list = element("div", "quickSearchResults");
   // "Satisfying ending" searches get a theme row above the normal results.
-  const themeRow = element("article", "catalogShelf quickSearchTheme");
+  const themeRow = element("div", "quickSearchTheme");
   themeRow.hidden = true;
   body.append(recentView, status, themeRow, list);
   dialog.append(form, body);
@@ -70,11 +70,12 @@ export function installQuickSearch() {
   let returnFocus = null;
   let timer = 0;
   let shown = "";
-  const ENDINGS_QUERY = /\b(satisf\w*|happy|good|great|best|perfect)\s+end(ing|ings)?\b/i;
-  const endingsList = { kind: "special", id: "endings", url: "ydl-special:endings", name: "Dramas With a Satisfying Ending", type: "series" };
+  // Trope rows: every trope whose fan phrases match the query ("enemies to lovers", "second lead syndrome")
+  // gets a row above the normal results. TROPES comes from the server with each pattern as text.
+  const tropes = (typeof TROPES !== "undefined" ? TROPES : []).map(t => ({ ...t, regex: new RegExp(t.pattern, t.flags) }));
   let themeRequest = 0;
-  function paintThemeAdd(button) {
-    const added = state.selection.some(item => item.url === endingsList.url);
+  function paintThemeAdd(button, url) {
+    const added = state.selection.some(item => item.url === url);
     const icon = element("span", "discoverAddIcon", added ? "✓" : "+");
     icon.setAttribute("aria-hidden", "true");
     button.replaceChildren(icon, document.createTextNode(added ? "Added" : "Add"));
@@ -86,50 +87,62 @@ export function installQuickSearch() {
     themeRow.hidden = true;
     themeRow.replaceChildren();
   }
-  async function showTheme() {
-    const request = ++themeRequest;
+  function tropeRow(trope, request) {
+    const catalog = { kind: "special", id: trope.id, url: "ydl-special:" + trope.id, name: trope.name, type: "series" };
+    const card = element("article", "catalogShelf");
     const head = element("div", "catalogShelfHead");
-    const title = element("h3", "", endingsList.name);
+    const info = element("div"), actions = element("div", "catalogRowActions");
+    const title = element("h3", "", trope.name);
     const add = element("button", "catalogAdd discoverAddPill");
     add.type = "button";
-    add.setAttribute("aria-label", "Add or remove " + endingsList.name);
-    paintThemeAdd(add);
-    add.onclick = () => { toggleList({ ...endingsList }); paintThemeAdd(add); };
-    const info = element("div"), actions = element("div", "catalogRowActions");
+    add.setAttribute("aria-label", "Add or remove " + trope.name);
+    paintThemeAdd(add, catalog.url);
+    add.onclick = () => { toggleList({ ...catalog }); paintThemeAdd(add, catalog.url); };
     info.append(title);
     actions.append(add);
     head.append(info, actions);
     const track = element("div", "catalogShelfTrack");
-    track.setAttribute("aria-label", endingsList.name);
-    const waiting = element("p", "catalogShelfStatus", "Finding dramas with a satisfying ending…");
-    themeRow.replaceChildren(head, waiting);
-    themeRow.hidden = false;
-    try {
-      const response = await fetch("/api/catalogs/special?list=endings", { signal: AbortSignal.timeout(45e3) });
-      const data = response.ok ? await response.json() : null;
-      if (request !== themeRequest) return;
-      const items = data?.lists?.[0]?.items || [];
-      if (!items.length) { hideTheme(); return; }
-      for (const item of items) {
-        const button = element("button", "catalogPoster");
-        button.type = "button";
-        button.setAttribute("aria-label", copy.catalogTitlePreview + ": " + item.name);
-        if (item.poster) {
-          const img = element("img");
-          img.src = item.poster;
-          img.alt = "";
-          img.loading = "lazy";
-          img.referrerPolicy = "no-referrer";
-          button.append(img);
+    track.setAttribute("aria-label", trope.name);
+    const waiting = element("p", "catalogShelfStatus", "Finding " + trope.name + "…");
+    card.append(head, waiting);
+    (async () => {
+      try {
+        const response = await fetch("/api/catalogs/special?list=" + encodeURIComponent(trope.id), { signal: AbortSignal.timeout(45e3) });
+        const data = response.ok ? await response.json() : null;
+        if (request !== themeRequest) return;
+        const items = data?.lists?.[0]?.items || [];
+        // Too few titles: the row leaves quietly.
+        if (!items.length) { card.remove(); if (!themeRow.childElementCount) themeRow.hidden = true; return; }
+        for (const item of items) {
+          const button = element("button", "catalogPoster");
+          button.type = "button";
+          button.setAttribute("aria-label", copy.catalogTitlePreview + ": " + item.name);
+          if (item.poster) {
+            const img = element("img");
+            img.src = item.poster;
+            img.alt = "";
+            img.loading = "lazy";
+            img.referrerPolicy = "no-referrer";
+            button.append(img);
+          }
+          button.append(element("strong", "", item.name), element("small", "", String(item.date || "").slice(0, 4)));
+          button.onclick = () => showCatalogTitle(item);
+          track.append(button);
         }
-        button.append(element("strong", "", item.name), element("small", "", String(item.date || "").slice(0, 4)));
-        button.onclick = () => showCatalogTitle(item);
-        track.append(button);
+        card.replaceChildren(head, track);
+      } catch {
+        if (request === themeRequest) { card.remove(); if (!themeRow.childElementCount) themeRow.hidden = true; }
       }
-      themeRow.replaceChildren(head, track);
-    } catch {
-      if (request === themeRequest) hideTheme();
-    }
+    })();
+    return card;
+  }
+  function showTropes(text) {
+    const matched = tropes.filter(t => t.regex.test(text));
+    if (!matched.length) { hideTheme(); return false; }
+    const request = ++themeRequest;
+    themeRow.replaceChildren(...matched.map(t => tropeRow(t, request)));
+    themeRow.hidden = false;
+    return true;
   }
   function showRecent() {
     hideTheme();
@@ -218,10 +231,9 @@ export function installQuickSearch() {
     recentView.hidden = true;
     // Discover's search shows the loading bear in the results area right away.
     status.textContent = "";
-    if (ENDINGS_QUERY.test(text)) showTheme();
-    else hideTheme();
+    showTropes(text);
     const done = /^https?:/i.test(text) ? peopleUI.fromUrl(text, "actor", where) : peopleUI.search(text, 1, "actor", where);
-    // With the satisfying-ending row showing, an empty name search shouldn't say "No matches".
+    // With trope rows showing, an empty name search shouldn't say "No matches".
     if (!themeRow.hidden) Promise.resolve(done).then(() => { if (shown === text && !themeRow.hidden && !list.childElementCount) status.textContent = ""; }, () => {});
   }
   function submit(query) {

@@ -269,14 +269,27 @@ await test('one person can have several filmography catalogs, one per sort or Mo
 await test('Dramas With a Satisfying Ending can be added to Nuvio from the search',async()=>{
  const c=normalizeAddon({...body,catalogs:[{name:'Dramas With a Satisfying Ending',kind:'special',id:'endings',url:'ydl-special:endings'}]});
  const entry=c.entries[0] as any;
- assert(entry.id==='ydl-special:endings'&&entry.special.id==='endings'&&makeManifest(c).catalogs[0].name==='Dramas With a Satisfying Ending','normalized with its name: '+makeManifest(c).catalogs[0].name);
+ assert(entry.id==='ydl-special:endings'&&entry.special.id==='endings'&&makeManifest(c).catalogs[0].name==='Satisfying Endings','normalized with its name: '+makeManifest(c).catalogs[0].name);
  const asked:string[]=[];
  const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),endings:async()=>{asked.push('endings');return{lists:[{catalog:{id:'endings'},items:[{kind:'tv',id:7,name:'Healer'}]}]}},special:async()=>{asked.push('spotlight');return{lists:[]}},weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any;
  const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas;
  assert(metas.length===1&&metas[0].name==='Healer'&&asked.join()==='endings','loads from the endings list');
  const back=selectionFromConfig(c)[0] as any;
- assert(back.url==='ydl-special:endings'&&back.name==='Dramas With a Satisfying Ending'&&JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure round trip');
+ assert(back.url==='ydl-special:endings'&&back.name==='Satisfying Endings'&&JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries),'Configure round trip');
  const {validAnalytics}=await import('./analyticsApi.ts');
  assert(validAnalytics('catalog.added','theme-search')&&validAnalytics('catalog.selected','spotlight:endings:all')&&analyticsScopes(c).includes('catalog.selected:spotlight:endings:all'),'counted as its own catalog and add source');
+});
+await test('every trope row can be added to Nuvio (Revenge Dramas)',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Revenge Dramas',kind:'special',url:'ydl-special:revenge'}]});
+ assert(makeManifest(c).catalogs[0].name==='Revenge Dramas','named from the trope');
+ const asked:string[]=[];
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),trope:async(id:string)=>{asked.push(id);return{lists:[{catalog:{id},items:[{kind:'tv',id:9,name:'The Glory'}]}]}},weeklyMetas:async(items:any[])=>items.map(x=>({id:'tt'+x.id,type:'series',name:x.name}))} as any;
+ const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas;
+ assert(metas[0]?.name==='The Glory'&&asked.join()==='revenge','loads that trope');
+ assert(JSON.stringify(normalizeAddon({...body,catalogs:selectionFromConfig(c)}).entries)===JSON.stringify(c.entries)&&(selectionFromConfig(c)[0] as any).name==='Revenge Dramas','Configure round trip');
+ let refused=false;try{normalizeAddon({...body,catalogs:[{name:'X',kind:'special',url:'ydl-special:made-up'}]})}catch{refused=true}
+ assert(refused,'an unknown trope is refused');
+ const {validAnalytics,analyticsCategoryLabel}=await import('./analyticsApi.ts');
+ assert(validAnalytics('catalog.selected','spotlight:second-lead:all')&&analyticsCategoryLabel('spotlight:second-lead:all')==='Second Lead Syndrome','each trope is counted with its name');
 });
 console.log(JSON.stringify({passed}));

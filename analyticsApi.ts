@@ -3,6 +3,7 @@ import {pacificDate,pacificMidnight} from "./pacificTime.ts";
 import {canEdit} from "./wallpaper.ts";
 import {CATEGORIES,COUNTRIES} from "./explore.ts";
 import {THEMES,themesForWeek,weekWindow} from "./collections.ts";
+import {TROPES} from "./specialCatalog.ts";
 import {SETUP_ERRORS,POSTER_ERRORS,POSTER_PROVIDERS,type ErrorKind} from "./errorGuide.ts";
 
 export type AnalyticsMetric = "manifest.generated" | "manifest.error" | "feature.selected" | "catalog.selected" | "catalog.added" | "poster.verify.error" | "people.generated" | "popular.catalog" | "popular.person" | "weekly.people";
@@ -23,7 +24,7 @@ const CATALOG_CATEGORIES = new Set([
   "weekly:0", "weekly:1",
   ...["gta6", "monthly"].flatMap(id => ["all", ...DISCOVER_COUNTRIES].map(country => `spotlight:${id}:${country}`)),
   ...["tv", "movie"].flatMap(id => DISCOVER_COUNTRIES.map(country => `top10:${id}:${country}`)),
-  "recs:0", "recs:1", "recs:2", "spotlight:endings:all",
+  "recs:0", "recs:1", "recs:2", ...TROPES.map(t => `spotlight:${t.id}:all`),
   "explore:top-shows:all", "explore:popular-shows:all", "explore:newest-shows:all", "explore:upcoming-shows:all", "explore:airing-shows:all", "explore:variety-shows:all", "explore:top-movies:all", "explore:popular-movies:all", "explore:newest-movies:all", "explore:upcoming-movies:all",
   ...["1", "2", "3", "5", "6"].flatMap(country => ["top-shows", "popular-shows", "newest-shows", "upcoming-shows", "airing-shows", "variety-shows", "top-movies", "popular-movies", "newest-movies", "upcoming-movies"].map(category => `explore:${category}:${country}`)),
 ]);
@@ -186,11 +187,14 @@ export const analyticsLabels:Record<string,string>={
   "posters-tmdb":"TMDB posters", "posters-easyposters":"EasyPosters", "posters-betterposters":"BetterPosters", "posters-poster-plus":"Poster+", "posters-rpdb":"RPDB", "filtered-catalog":"Filtered catalogs", "configure-opened":"Opened Configure in Nuvio/Stremio",
   "weekly:0":"This week’s picks · 1", "weekly:1":"This week’s picks · 2",
   "recs:0":"Because you watched · Row 1", "recs:1":"Because you watched · Row 2", "recs:2":"Because you watched · Row 3",
-  spotlight:"Spotlight adds", top10:"Top 10 adds", recommended:"Recommended for you adds", "theme-search":"Satisfying Endings adds", "spotlight:endings:all":"Satisfying Endings",
+  spotlight:"Spotlight adds", top10:"Top 10 adds", recommended:"Recommended for you adds", "theme-search":"Trope search adds",
   "method":"Invalid request method", "origin":"Origin validation", "format":"Request format", "rate-limit":"Request limit", "request-too-large":"Request too large", "invalid-request-body":"Invalid request body", "catalog-count":"Catalog count", "preferences":"Invalid preferences", "catalog-entry":"Invalid catalog entry", "duplicate-catalog":"Duplicate catalog", "manifest-generation":"Manifest generation", "token-too-large":"Install link too long",
 };
 export function analyticsCategoryLabel(category:string){
   if(analyticsLabels[category])return analyticsLabels[category];
+  // Trope rows from the + search, by their row name.
+  const trope=category.match(/^spotlight:([a-z-]+):all$/)&&TROPES.find(t=>category===`spotlight:${t.id}:all`);
+  if(trope)return trope.name;
   if(category.includes(":")){
     const [provider,issue]=category.split(":");
     const providerName:Record<string,string>={ratings:"EasyPosters",better:"BetterPosters",posterplus:"Poster+",rpdb:"RPDB",unknown:"Other"};

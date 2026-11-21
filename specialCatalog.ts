@@ -170,9 +170,11 @@ export function spotlightName(list: {name: string; plainName?: string}, country?
  * out endings those sources call divisive or sad; then topped up with TMDB titles tagged "happy ending".
  * Not a Spotlight list: it never ends and is not on Discover.
  */
-export const ENDINGS: Spotlight = {
+export type Trope = Spotlight & {pattern: RegExp};
+export const ENDINGS: Trope = {
   id: "endings",
-  name: "Dramas With a Satisfying Ending",
+  name: "Satisfying Endings",
+  pattern: /\b(satisf\w*|happy|good|great|best|perfect)\s+end(ing|ings)?\b/i,
   until: "2100-01-01T00:00:00.000Z",
   theme: {keywords: ["happy ending"], genre: "18"},
   titles: [
@@ -183,6 +185,45 @@ export const ENDINGS: Spotlight = {
     tv("The King in Love", 2017, "KR", ["The King Loves"]), tv("Fall in Love", 2021, "CN"), tv("Love and Redemption", 2020, "CN"),
   ],
 };
+
+/**
+ * Trope search: what people type in the + search ("enemies to lovers", "second lead syndrome") and the row it brings
+ * up, named with the label fans use. Phrases come from fan glossaries and trope roundups (KDramaLove's 180 clichés,
+ * DRAMA MOOD, txdonut, Screen Rant, Tatler, Soompi, Pinkvilla, manhwa trope guides). Titles are TMDB's matching tags
+ * (best rated, all five countries) with no genre fallback, so a row never fills with unrelated dramas; hand-picked
+ * titles lead a row where fans' favorites are known. A row with fewer than five titles is not shown.
+ */
+const never = "2100-01-01T00:00:00.000Z";
+const trope = (id: string, name: string, pattern: RegExp, keywords: string[], titles: Pick[] = []): Trope => ({id, name, pattern, until: never, theme: {keywords}, titles});
+export const TROPES: Trope[] = [
+  ENDINGS,
+  trope("sad-ending", "Tearjerkers", /\b(sad|tragic|bittersweet|heartbreaking)\s+end(ing|ings)?\b|\btear[\s-]?jerkers?\b|\bmelodramas?\b|\bmakes?\s+(you|me)\s+cry\b/i,
+    ["tragedy", "tragic love", "terminal illness", "sad ending"]),
+  trope("enemies-to-lovers", "Enemies to Lovers", /\b(enem(y|ies)|rivals?)[\s-]+to[\s-]+(friends[\s-]+to[\s-]+)?lovers?\b|\bhate[\s-]+to[\s-]+love\b/i,
+    ["enemies to lovers", "love-hate relationship", "rivalry"]),
+  trope("contract-marriage", "Contract Marriage", /\b(contract|fake|pretend|arranged)\s+(marriage|relationship|dating|boyfriend|girlfriend|wife|husband|couple)\b|\bmarriage\s+of\s+convenience\b/i,
+    ["contract marriage", "fake relationship", "marriage of convenience", "arranged marriage"]),
+  trope("office-romance", "Office Romance", /\b(office|workplace)\s+romance\b|\bboss\s+(and|&|x)\s+secretary\b|\bceo\s+romance\b/i,
+    ["office romance", "workplace romance"]),
+  trope("second-lead", "Second Lead Syndrome", /\bsecond[\s-]+(male\s+|female\s+)?lead\b|\bsls\b/i,
+    ["love triangle", "unrequited love"]),
+  trope("revenge", "Revenge Dramas", /\brevenge\b|\bvengeance\b/i, ["revenge"]),
+  trope("time-travel", "Time Slip and Regression", /\btime[\s-]+(travel\w*|slip|loop)\b|\bregress(ion|or|ors)\b|\breborn\b|\brebirth\b|\bsecond\s+chance\b/i,
+    ["time travel", "time loop", "second chance"]),
+  trope("body-swap", "Body Swap", /\b(body|soul|gender)[\s-]+swap\w*\b|\btransmigrat\w*\b/i, ["body swap"]),
+  trope("slow-burn", "Slow Burn", /\bslow[\s-]+burn\b/i, ["slow burn"]),
+  trope("childhood-friends", "Childhood Friends to Lovers", /\bchildhood\s+(friends?|sweethearts?|love)\b|\bfriends[\s-]+to[\s-]+lovers?\b/i,
+    ["childhood friends", "childhood sweetheart", "friends to lovers"],
+    [tv("Love Next Door", 2024), tv("Welcome to Samdal-ri", 2023)]),
+  trope("rich-poor", "Chaebol Romance", /\bchaebol\w*\b|\brich\s+(man|guy|boy)\s+poor\s+(woman|girl)\b|\bcinderella\s+(story|romance)\b|\bcandy\s+girl\b/i,
+    ["rich man poor woman", "chaebol", "cinderella", "class differences"]),
+  trope("reincarnation", "Reincarnation", /\breincarnat\w*\b|\bpast\s+li(fe|ves)\b/i, ["reincarnation", "past life"]),
+  trope("childhood-connection", "Childhood Connection", /\bchildhood\s+connections?\b|\bmet\s+as\s+(kids|children)\b|\bfated\s+childhood\b|\bwe'?ve\s+met\s+before\b/i,
+    ["childhood friends", "childhood sweetheart"],
+    [tv("Healer", 2014), tv("It's Okay to Not Be Okay", 2020), tv("What's Wrong with Secretary Kim", 2018, "KR", ["Why Secretary Kim"]), tv("While You Were Sleeping", 2017),
+     tv("Tomorrow", 2022), tv("Lovely Runner", 2024), tv("Just Between Lovers", 2017, "KR", ["Rain or Shine"]), tv("Serendipity's Embrace", 2024)]),
+];
+export const tropeById = (id: string) => TROPES.find(t => t.id === id);
 
 /** The current month's list: its name, titles and end (midnight Pacific on the 1st of next month). */
 /** With a country that has its own holiday that month, its holiday list (no hand-picks, filled by theme). */
@@ -203,7 +244,8 @@ const DAY = 86400000;
 
 export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record<string, string>) => Promise<any>; now?: () => number; storage?: Storage; lists?: (time: number, country?: Country) => Spotlight[];
   /** Without a country, top up from these countries together (the endings list); Spotlight leaves this out. */ fillCountries?: Country[];
-  /** How many titles a topped-up list holds (15 for Spotlight). */ fullList?: number}) {
+  /** How many titles a topped-up list holds (15 for Spotlight). */ fullList?: number;
+  /** Fewest titles a list without a country needs to show (1 for Spotlight; 5 for trope rows). */ minList?: number}) {
   const fullList = deps.fullList || FULL_LIST;
   const now = deps.now || Date.now, listsAt = deps.lists || ((time: number, country?: Country) => activeSpotlights(time, GTA6, country));
   const cache = new Map<string, {item: SpecialItem | null; expires: number}>();
@@ -329,7 +371,7 @@ export function createSpecialCatalog(deps: {tmdb: (path: string, params?: Record
         const seen = new Set(items.map(item => item.kind + ":" + item.id));
         items = [...items, ...extra.filter(item => !seen.has(item.kind + ":" + item.id))].slice(0, fullList);
       }
-      if (country ? items.length < MIN_LIST : !items.length) continue;
+      if (country ? items.length < MIN_LIST : items.length < (deps.minList || 1)) continue;
       const url = "ydl-special:" + list.id + (country ? ":" + country : "");
       lists.push({catalog: {kind: "special", id: list.id, url, name: spotlightName(list, country), type: "series", until: list.until, ...(country ? {country} : {})}, items});
     }
@@ -351,21 +393,29 @@ export async function specialCatalog(country?: Country) {
   return shared.current(country);
 }
 
-let endings: ReturnType<typeof createSpecialCatalog> | undefined;
-/** "Dramas With a Satisfying Ending": the hand-picked titles, then TMDB's "happy ending" titles from all five countries, 30 in all. */
-export async function endingsCatalog() {
+const tropeCatalogs = new Map<string, ReturnType<typeof createSpecialCatalog>>();
+/** One trope row: its hand-picked titles, then TMDB's matching titles from all five countries, 30 in all. */
+export async function tropeCatalog(id: string) {
+  const list = tropeById(id);
+  if (!list) return {lists: []};
   const {collections} = await import("./collectionService.ts");
-  endings ??= createSpecialCatalog({tmdb: collections.tmdb, lists: () => [ENDINGS], fillCountries: ["KR", "CN", "JP", "TW", "TH"], fullList: 30,
-    storage: {load: () => blob.getJSON("special-endings:v1"), save: value => blob.setJSON("special-endings:v1", value)}});
-  return endings.current();
+  // Satisfying Endings keeps the store it had before the other tropes were added.
+  const key = id === "endings" ? "special-endings:v1" : "special-trope-" + id + ":v1";
+  if (!tropeCatalogs.has(id)) tropeCatalogs.set(id, createSpecialCatalog({tmdb: collections.tmdb, lists: () => [list], fillCountries: ["KR", "CN", "JP", "TW", "TH"], fullList: 30, minList: 5,
+    storage: {load: () => blob.getJSON(key), save: value => blob.setJSON(key, value)}}));
+  return tropeCatalogs.get(id)!.current();
 }
+/** Satisfying Endings (kept for callers from before the other tropes). */
+export const endingsCatalog = () => tropeCatalog("endings");
 
 /** GET /api/catalogs/special for the Discover Spotlight, with each title's usual TMDB poster; ?list=endings for the search's endings row. */
 export async function handleSpecialCatalog(req: Request) {
   if (req.method !== "GET") return new Response("Method not allowed", {status: 405, headers: {Allow: "GET"}});
   const headers = {"cache-control": "no-store"};
   try {
-    if (new URL(req.url).searchParams.get("list") === "endings") return Response.json(await endingsCatalog(), {headers});
+    // ?list=<trope id> for the + search's trope rows.
+    const listId = new URL(req.url).searchParams.get("list");
+    if (listId !== null) return tropeById(listId) ? Response.json(await tropeCatalog(listId), {headers}) : Response.json({error: "Choose a list."}, {status: 400, headers});
     // ?country= takes Discover's filter value ("3" = South Korea); without it every country's picks show (Nuvio's original lists).
     const value = new URL(req.url).searchParams.get("country");
     if (value !== null && !SPOTLIGHT_COUNTRIES[value]) return Response.json({error: "Choose a country."}, {status: 400, headers});

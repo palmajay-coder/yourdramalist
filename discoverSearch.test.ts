@@ -471,7 +471,7 @@ await test("searching for a satisfying ending shows that list on top, ready to a
  const storage={getItem:(k:string)=>saved.get(k)??null,setItem:(k:string,v:string)=>saved.set(k,v),removeItem:(k:string)=>saved.delete(k)};
  const fetcher=async(url:string,options:any={})=>{const u=String(url);asked.push(u);
   if(u==="/api/analytics/catalog-add"){sent.push(JSON.parse(options.body));return Response.json({ok:true})}
-  if(u.startsWith("/api/catalogs/special?list=endings"))return Response.json({lists:[{catalog:{kind:"special",id:"endings",url:"ydl-special:endings",name:"Dramas With a Satisfying Ending"},items:[{kind:"tv",id:1,name:"Healer",date:"2014-12-08",poster:"https://image.tmdb.org/t/p/w780/h.jpg"},{kind:"tv",id:2,name:"Signal",date:"2016-01-22",poster:"https://image.tmdb.org/t/p/w780/s.jpg"}]}]});
+  if(u.startsWith("/api/catalogs/special?list="))return Response.json({lists:[{catalog:{kind:"special",id:u.split("=")[1],url:"ydl-special:"+u.split("=")[1]},items:[{kind:"tv",id:1,name:"Healer",date:"2014-12-08",poster:"https://image.tmdb.org/t/p/w780/h.jpg"},{kind:"tv",id:2,name:"Signal",date:"2016-01-22",poster:"https://image.tmdb.org/t/p/w780/s.jpg"}]}]});
   if(u.startsWith("/api/mdl/people-search"))return Response.json({query:"x",page:1,titles:[],people:[],hasNextPage:false});
   return Response.json({collections:[],items:[]});
  };
@@ -481,7 +481,7 @@ await test("searching for a satisfying ending shows that list on top, ready to a
  (document.querySelector(".androidNavAdd") as any).click();
  await run("satisfying ending dramas");
  const row=document.querySelector(".quickSearchTheme") as any;
- assert(row&&!row.hidden&&row.querySelector("h3").textContent==="Dramas With a Satisfying Ending","the row shows for the phrase");
+ assert(row&&!row.hidden&&row.querySelector("h3").textContent==="Satisfying Endings","the row shows for the phrase");
  assert([...row.querySelectorAll(".catalogPoster strong")].map((x:any)=>x.textContent).join(",")==="Healer,Signal","with its titles");
  assert(row.compareDocumentPosition(document.querySelector(".quickSearchResults"))&4,"above the normal results");
  assert(!/No matches/.test((document.querySelector(".quickSearchStatus") as any).textContent),"no \"No matches\" message above the row");
@@ -493,6 +493,14 @@ await test("searching for a satisfying ending shows that list on top, ready to a
  assert(sent.some((x:any)=>x.source==="theme-search"),"counted as a theme search add: "+JSON.stringify(sent));
  await run("happy endings");
  assert(!(document.querySelector(".quickSearchTheme") as any).hidden,"other wordings work too");
+ const rowNames=()=>[...document.querySelectorAll(".quickSearchTheme h3")].map((h:any)=>h.textContent).join(" | ");
+ await run("enemies to lovers kdrama");
+ assert(rowNames()==="Enemies to Lovers"&&asked.some(u=>u==="/api/catalogs/special?list=enemies-to-lovers"),"another trope gets its own row: "+rowNames());
+ await run("sad ending");
+ assert(rowNames()==="Tearjerkers","a sad ending is not a satisfying one: "+rowNames());
+ const sls=(await run("second lead syndrome"),document.querySelector(".quickSearchTheme .discoverAddPill") as any);
+ sls.click();await tick();
+ assert(JSON.parse(saved.get("ydl-v3-selection")||"[]").some((x:any)=>x.url==="ydl-special:second-lead"&&x.name==="Second Lead Syndrome"),"Add saves that trope");
  await run("Goblin");
  assert((document.querySelector(".quickSearchTheme") as any).hidden,"a name search shows no row");
 });
