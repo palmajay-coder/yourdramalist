@@ -292,4 +292,8 @@ await test('every trope row can be added to Nuvio (Revenge Dramas)',async()=>{
  const {validAnalytics,analyticsCategoryLabel}=await import('./analyticsApi.ts');
  assert(validAnalytics('catalog.selected','spotlight:second-lead:all')&&analyticsCategoryLabel('spotlight:second-lead:all')==='Second Lead Syndrome','each trope is counted with its name');
 });
+await test('filmography names never carry the native name, even from older setups',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Son Ye Jin (손예진)’s Filmography',kind:'filmography',mode:'actor',personUrl:'https://mydramalist.com/people/1-son-ye-jin',personName:'Son Ye Jin (손예진)',filter:{sort:'rating'}}]});
+ assert(makeManifest(c).catalogs[0].name==='Son Ye Jin’s Top 10 All Time','plain name: '+makeManifest(c).catalogs[0].name);
+});
 console.log(JSON.stringify({passed}));

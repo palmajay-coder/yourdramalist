@@ -40,7 +40,7 @@ export function extractPerson(html:string,expected:string){
   // MDL provides years here, not exact release dates. Preserve MDL order within a year.
   filmographies[mode]=[...unique.values()].sort((a,b)=>(b.year??-1)-(a.year??-1));
  }
- return {id,name,nativeName,displayName:name+(nativeName?' ('+nativeName+')':''),nationality,born,biography,poster,url:canonical!,filmographies,sections};
+ return {id,name,nativeName,displayName:name,nationality,born,biography,poster,url:canonical!,filmographies,sections};
 }
 export type Person=ReturnType<typeof extractPerson>;
 export function personSummary(person:Person){const {filmographies,sections,...summary}=person;return {...summary,actorCount:filmographies.actor.length,directorCount:filmographies.director.length};}
@@ -94,7 +94,7 @@ export function personFromKuryana(data:any,expected:string){
  }
  const nationality=clean(String(data?.nationality||''))||null;const born=clean(String(data?.born||''))||null;
  const biography=String(data?.about||'').trim()||null;
- return {id,name,nativeName,displayName:name+(nativeName?' ('+nativeName+')':''),nationality,born,biography,poster:remoteImage(data?.image),url:expected,filmographies,sections};
+ return {id,name,nativeName,displayName:name,nationality,born,biography,poster:remoteImage(data?.image),url:expected,filmographies,sections};
 }
 export function peopleSearchFromKuryana(data:any,page:number){
  const people:{id:string;name:string;url:string;poster:string|null;nationality:string|null;biography:string|null}[]=[];const seen=new Set<string>();

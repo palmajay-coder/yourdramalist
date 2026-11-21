@@ -86,7 +86,7 @@ export function installPeopleUI() {
     const base = String(list.url).replace(/\?.*$/, ""), f = filter ? normalizeShelfFilter(filter) : null;
     const { filter: _old, filterLabel: _label, ...rest } = list;
     // The name follows the choice, Netflix style ("Son Ye Jin’s Top 10 All Time"); no filter keeps "…’s Filmography".
-    const person = list.personDisplayName || list.personName;
+    const person = list.personName || list.personDisplayName;
     const name = person && typeof filmographyName === "function" ? filmographyName(person, f) : rest.name;
     return f ? { ...rest, name, url: base + "?ydlf=" + shelfFilterKey(f), filter: f, filterLabel: "" } : { ...rest, name, url: base };
   }
