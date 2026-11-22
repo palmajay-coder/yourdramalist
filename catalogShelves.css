@@ -588,6 +588,11 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedMap{display:block;width:min(100%,340px,42vh);height:auto;margin:4px auto 2px;overflow:visible}
 .wrappedMap .isLand{fill:#ffffff40}
 .wrappedMap .isHit{fill:#4ea1ff}
+/* The country line is now three or four lines (expression, two titles, a remark, the count), so this slide gives the map less height. */
+.wrappedSlide.isAsia .wrappedMap{width:min(100%,300px,32vh)}
+.wrappedSlide.isAsia .wrappedLine{font-size:17px;line-height:1.4}
+.wrappedSlide.isAsia .wrappedLine em{font-style:italic;color:#fff}
+@media (max-height:680px){.wrappedSlide.isAsia .wrappedMap{width:min(100%,260px,26vh)}.wrappedSlide.isAsia .wrappedHuge{font-size:52px}}
 .wrappedMapRing{fill:none;stroke:#fff;stroke-width:.55;transform-box:fill-box;transform-origin:center}
 .wrappedSlide.isActive .wrappedMap .isHit{animation:wrappedMapLight .8s .3s ease both}
 .wrappedSlide.isActive .wrappedMapRing{animation:wrappedMapRing 1.8s .6s ease-out infinite}
