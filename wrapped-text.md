@@ -25,7 +25,7 @@ How to edit:
 
 ## 1. Opening
 opening.headline: You've watched the dramas. Now here's the drama.
-opening.line: Here's everything you've completed so far from the beginning to now.
+opening.line: Here's everything you've completed so far from then to 2026.
 
 ## 2. Completed
 completed.story: That's a whole lot of drama.
