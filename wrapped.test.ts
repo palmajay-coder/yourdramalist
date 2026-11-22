@@ -133,6 +133,19 @@ await test("a movie's lead actors fill the #1 subtitle", async () => {
   ok(/Starring Star One and Star Two\./.test(currentText(m.document)), "two names: " + currentText(m.document));
 });
 
+await test("the last slide offers Share and Save image, and says so when the card can't be made", async () => {
+  const m = mount({user: "jaesan"});
+  m.click("stats"); await tick(60);
+  (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
+  const d = story(m.document);
+  for (let i = 0; i < 9; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  const buttons = [...d.querySelectorAll(".wrappedStage button")].map((b: any) => b.textContent);
+  ok(buttons.join("|") === "Share|Save image|Replay|Close", "buttons: " + buttons);
+  (d.querySelector(".wrappedStage button") as any).click(); await tick();
+  ok(/couldn't be made|Making your card|Saved/.test(d.querySelector(".wrappedShareNote").textContent), "a status line, never a silent failure: " + d.querySelector(".wrappedShareNote").textContent);
+  ok(slideKinds(m.document) === 10 && /Your recap, in one card/.test(currentText(m.document)), "tapping a button doesn't change slides");
+});
+
 await test("the Discover banner: shows when ready, × hides it for a year, comes back with more completed titles", async () => {
   // The test DOM shares one window between mounts, so each case mounts, checks, and is done before the next.
   const banner = (m: any) => m.document.querySelector(".wrappedBanner") as any;

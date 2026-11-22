@@ -503,6 +503,8 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedCardPoster img{width:100%;height:100%;object-fit:cover}
 .wrappedCardLines{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:15px;font-weight:700;text-align:left}
 .wrappedActions{display:flex;gap:10px;margin-top:18px}
+.wrappedShareNote{min-height:1.2em;margin:8px 0 0;font-size:14px;color:#ffffffc0}
+.wrappedActions+.wrappedShareNote+.wrappedActions{margin-top:6px}
 .wrappedActions button{min-width:110px;padding:11px 16px;border-radius:12px;font-weight:800}
 .wrappedSlide.isActive .wrappedRise{animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
 .wrappedSlide.isActive .wrappedPop{animation:wrappedPop .7s cubic-bezier(.2,.9,.25,1.2) both}

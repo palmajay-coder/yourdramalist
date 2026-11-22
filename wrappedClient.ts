@@ -87,6 +87,100 @@ export function installWrapped() {
     const primary = rules[0] || { name: "The Drama Fan", line: "Dramas and movies are part of your everyday. " + c + " titles completed and counting." };
     return { name: primary.name, line: primary.line };
   }
+  // The share card: a 1080x1920 picture drawn in the page (no server), for stories and posts. Pictures that fail to
+  // load are skipped, so the card always comes out.
+  const loadPicture = src => new Promise(resolve => {
+    if (!src || typeof Image !== "function") { resolve(null); return; }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+  function cardRows(data, type, genres) {
+    const rows = [["Completed", String(data.statusCounts.completed)]];
+    if (genres[0]) rows.push(["Top genre", genres[0].genre]);
+    if (data.actors?.[0]) rows.push(["Most-watched actor", data.actors[0].name]);
+    if (data.countries?.length) rows.push([data.countries.length > 1 ? "Top countries" : "Top country", data.countries.slice(0, 3).map(x => x.country).join(", ")]);
+    if (type) rows.push(["Drama type", type.name]);
+    return rows;
+  }
+  async function drawCard(data, type, genres, withPictures = true) {
+    const W = 1080, H = 1920;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const g = canvas.getContext?.("2d");
+    if (!g) return null;
+    const font = (size, weight = 800) => weight + " " + size + "px Lato, system-ui, sans-serif";
+    const bg = g.createLinearGradient(0, 0, W * 0.4, H);
+    bg.addColorStop(0, "#3a1566"); bg.addColorStop(0.45, "#173f93"); bg.addColorStop(1, "#0d0f14");
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    const [hero, ...posters] = withPictures ? await Promise.all([loadPicture(data.art?.card?.backdrop || data.hero?.backdrop), ...(data.topRated || []).slice(0, 3).map(t => loadPicture(t.poster))]) : [null, null, null, null];
+    if (hero) {
+      // The backdrop fades out into the background on its own layer, so there is no seam.
+      const layer = document.createElement("canvas");
+      layer.width = W; layer.height = 900;
+      const l = layer.getContext("2d");
+      const scale = Math.max(W / hero.width, 900 / hero.height);
+      l.drawImage(hero, (W - hero.width * scale) / 2, (900 - hero.height * scale) / 2, hero.width * scale, hero.height * scale);
+      l.globalCompositeOperation = "destination-in";
+      const mask = l.createLinearGradient(0, 0, 0, 900);
+      mask.addColorStop(0, "#000"); mask.addColorStop(0.55, "#000000b3"); mask.addColorStop(1, "#00000000");
+      l.fillStyle = mask; l.fillRect(0, 0, W, 900);
+      g.globalAlpha = 0.6; g.drawImage(layer, 0, 0); g.globalAlpha = 1;
+    }
+    g.textAlign = "center"; g.fillStyle = "#fff";
+    g.font = font(38, 900); g.globalAlpha = 0.85; g.fillText("MYDRAMALIST WRAPPED", W / 2, 150); g.globalAlpha = 1;
+    g.font = font(84, 900); g.fillText("@" + data.username, W / 2, 260);
+    g.font = font(42, 700); g.globalAlpha = 0.8; g.fillText("All time", W / 2, 325); g.globalAlpha = 1;
+    const hours = data.viewingTime?.hours;
+    g.font = font(210, 900); g.fillText(hours ? fmt.format(hours) : String(data.statusCounts.completed), W / 2, 570);
+    g.font = font(52, 700); g.globalAlpha = 0.9; g.fillText(hours ? "hours watched" : "titles completed", W / 2, 645); g.globalAlpha = 1;
+    // Three posters in a row.
+    const pw = 270, ph = 405, gap = 40, left = (W - (pw * 3 + gap * 2)) / 2;
+    posters.forEach((img, i) => {
+      const x = left + i * (pw + gap), y = 730;
+      g.save();
+      g.beginPath(); g.roundRect ? g.roundRect(x, y, pw, ph, 20) : g.rect(x, y, pw, ph); g.clip();
+      g.fillStyle = "#ffffff22"; g.fillRect(x, y, pw, ph);
+      if (img) { const sc = Math.max(pw / img.width, ph / img.height); g.drawImage(img, x + (pw - img.width * sc) / 2, y + (ph - img.height * sc) / 2, img.width * sc, img.height * sc); }
+      g.restore();
+    });
+    // The facts, label over value.
+    g.textAlign = "left";
+    let y = 1275;
+    for (const [label, value] of cardRows(data, type, genres)) {
+      g.font = font(30, 700); g.globalAlpha = 0.65; g.fillText(label.toUpperCase(), 90, y); g.globalAlpha = 1;
+      let size = 54; g.font = font(size);
+      while (g.measureText(value).width > W - 180 && size > 30) { size -= 2; g.font = font(size); }
+      g.fillText(value, 90, y + 58);
+      y += 122;
+    }
+    g.textAlign = "center"; g.font = font(30, 700); g.globalAlpha = 0.6; g.fillText("yourdramalist.net", W / 2, 1880); g.globalAlpha = 1;
+    return new Promise(resolve => { try { canvas.toBlob(blob => resolve(blob), "image/png"); } catch { resolve(null); } });
+  }
+  // Share through the phone's own share sheet (Instagram, Facebook, TikTok and so on); save the picture if it can't open.
+  async function shareCard(data, type, genres, note) {
+    note.textContent = "Making your card…";
+    let blob = await drawCard(data, type, genres);
+    if (!blob) blob = await drawCard(data, type, genres, false); // a picture blocked the canvas: draw without pictures
+    if (!blob) { note.textContent = "Your card couldn't be made. Please try again."; return; }
+    const file = new File([blob], "my-drama-wrapped.png", { type: "image/png" });
+    try {
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: "My MyDramaList Wrapped" }); note.textContent = ""; return; }
+    } catch (error) { if (error?.name === "AbortError") { note.textContent = ""; return; } }
+    const link = el("a"); link.href = URL.createObjectURL(blob); link.download = "my-drama-wrapped.png";
+    document.body.append(link); link.click(); link.remove();
+    note.textContent = "Saved to your device. Post it from your gallery.";
+  }
+  async function saveCard(data, type, genres, note) {
+    note.textContent = "Making your card…";
+    const blob = (await drawCard(data, type, genres)) || (await drawCard(data, type, genres, false));
+    if (!blob) { note.textContent = "Your card couldn't be made. Please try again."; return; }
+    const link = el("a"); link.href = URL.createObjectURL(blob); link.download = "my-drama-wrapped.png";
+    document.body.append(link); link.click(); link.remove();
+    note.textContent = "Saved to your device.";
+  }
   function build(data) {
     const out = [];
     const c = data.statusCounts.completed;
@@ -199,11 +293,15 @@ export function installWrapped() {
       if (data.countries?.length) lines.append(el("li", "", data.countries.slice(0, 3).map(x => x.country + " " + x.count).join(" · ")));
       if (type) lines.append(el("li", "", "Drama type: " + type.name));
       card.append(el("p", "wrappedCardBrand", "YourDramaList"), el("p", "wrappedCardUser", "@" + data.username + " · all time"), top, lines);
+      const note = el("p", "wrappedShareNote"); note.setAttribute("role", "status");
+      const share = el("button", "primary", "Share"); share.type = "button"; share.onclick = () => shareCard(data, type, genres, note);
+      const save = el("button", "secondary", "Save image"); save.type = "button"; save.onclick = () => saveCard(data, type, genres, note);
       const actions = el("div", "wrappedActions");
+      actions.append(share, save);
       const replay = el("button", "secondary", "Replay"); replay.type = "button"; replay.dataset.wrappedAction = "replay";
       const done = el("button", "primary", "Close"); done.type = "button"; done.dataset.wrappedAction = "close";
-      actions.append(replay, done);
-      out.push({ node: withArt(slide("isCard", el("h2", "wrappedTitle wrappedHeadline", "Your recap, in one card."), card, actions), data.art?.card) });
+      const more = el("div", "wrappedActions"); more.append(replay, done);
+      out.push({ node: withArt(slide("isCard", el("h2", "wrappedTitle wrappedHeadline", "Your recap, in one card."), card, actions, note, more), data.art?.card) });
     }
     return out;
   }
