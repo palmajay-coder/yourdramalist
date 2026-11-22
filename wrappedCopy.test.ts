@@ -57,7 +57,7 @@ await test("every genre has its own line, with a fallback for the rest", () => {
 await test("eras use one line under the big decade, which the slide fills in", () => {
   const line = "Dramas from this decade **dominated** your watchlists.";
   for (const decade of ["1960s", "2000s", "2020s"]) ok(say({decades: [{decade, count: 9}, {decade: decade === "2000s" ? "1990s" : "2000s", count: 3}]}).eras === line, decade);
-  ok(say({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]}).eras === line, "tie");
+  ok(say({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]}).eras === "Dramas from these decades **dominated** your watchlists equally.", "tie");
   ok(say({decades: [{decade: "2000s", count: 9}]}).eras === null, "one decade: no line");
 });
 
