@@ -24,6 +24,8 @@ const sample = (extra: Record<string, unknown> = {}) => ({
   actors: [{id: 1, name: "Moon Lee", profile: null, count: 4, titles: []}, {id: 2, name: "Yukari Ôshima", profile: null, count: 3, titles: []}],
   hero: {slug: "1475-3-iron", title: "3-Iron", year: 2004, reason: "newly-completed", detectedAt: "2026-11-22T17:00:00Z", backdrop: "https://image.tmdb.org/t/p/w1280/b.jpg", poster: null},
   coverage: {completed: 79, matched: 75, unmatched: 4, pending: 0},
+  art: {time: {title: "Cure", backdrop: "https://image.tmdb.org/t/p/w1280/cure.jpg"}, genres: {title: "Pulse", backdrop: "https://image.tmdb.org/t/p/w1280/pulse.jpg"}, countries: null, actors: null,
+    top: {title: "Title 1", backdrop: "https://image.tmdb.org/t/p/w1280/t1.jpg"}, ratings: null, card: null},
   ...extra,
 });
 
@@ -61,20 +63,21 @@ await test("View My Wrapped on Stats opens eight story slides from the same stat
   button.click(); await tick();
   const d = story(document);
   ok(d.open && slideKinds(document) === 8, "eight slides: " + slideKinds(document));
-  ok(/@jaesan, here's your drama story so far/.test(currentText(document)) && /Recently completed: 3-Iron/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img"), "opening slide with the backdrop");
+  ok(/@jaesan, here's everything you've watched/.test(currentText(document)) && !/stor(y|ies)/i.test(currentText(document)) && /Recently completed: 3-Iron/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img"), "opening slide with the backdrop");
   const stage = d.querySelector(".wrappedStage");
   stage.dispatchEvent(new window.Event("click", {bubbles: true}));
   ok(/Time well spent/.test(currentText(document)), "a tap goes forward");
+  ok(d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/cure.jpg" && d.querySelector(".wrappedArtCaption")?.textContent === "Cure", "each slide has its own backdrop, named");
   await tick(1300);
   ok(d.querySelector(".wrappedBig").textContent === "388.8" && /16.2 days, across 79 completed titles/.test(currentText(document)), "hours count up to the real number");
   const key = (k: string) => d.dispatchEvent(Object.assign(new window.Event("keydown", {bubbles: true}), {key: k}));
   key("ArrowLeft");
-  ok(/here's your drama story/.test(currentText(document)), "← goes back");
+  ok(/here's everything you've watched/.test(currentText(document)), "← goes back");
   for (let i = 0; i < 7; i++) key("ArrowRight");
-  ok(/Your story in one card/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
+  ok(/Your recap in one card/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
   ok(d.querySelector(".wrappedHint").hidden, "no tap hint on the last slide");
   (d.querySelector('[data-wrapped-action="replay"]') as any).click();
-  ok(/here's your drama story/.test(currentText(document)), "Replay starts over");
+  ok(/here's everything you've watched/.test(currentText(document)), "Replay starts over");
   (d.querySelector(".wrappedClose") as any).click();
   ok(!d.open, "× closes");
 });
@@ -87,7 +90,9 @@ await test("slides without data are left out, and ratings only state supported f
   const d = story(document);
   const key = (k: string) => d.dispatchEvent(Object.assign(new (d.ownerDocument.defaultView as any).Event("keydown", {bubbles: true}), {key: k}));
   for (let i = 0; i < 4; i++) key("ArrowRight");
-  ok(/Your rating personality/.test(currentText(document)) && /perfect 10 to 34 titles/.test(currentText(document)) && /Kindest to Hong Kong/.test(currentText(document)), "rating facts: " + currentText(document));
+  await tick(1300);
+  ok(story(document).querySelector(".wrappedBig")?.textContent === "8.89", "the average keeps two decimals: " + story(document).querySelector(".wrappedBig")?.textContent);
+  ok(/Your rating personality/.test(currentText(document)) && /perfect 10 to 34 titles/.test(currentText(document)) && /Titles from Hong Kong were your favorite. Titles from China were not./.test(currentText(document)), "rating facts: " + currentText(document));
 });
 
 await test("the ready card: once a year, ask first, never when not ready or not connected", async () => {

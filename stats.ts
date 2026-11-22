@@ -129,6 +129,28 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
       actorCount.set(person.id, row);
     }
   }
+  // Backdrops for the Wrapped slides: one fitting, best-rated title per slide, never the same picture twice.
+  const genreList = [...genreCount].map(([genre, count]) => ({genre, count})).sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre));
+  const actorList = [...actorCount.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const withArt = completed.filter(item => meta[item.slug]?.backdrop).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+  const used = new Set<string>();
+  const pick = (test: (item: Entry) => boolean) => {
+    const item = withArt.find(i => !used.has(meta[i.slug].backdrop!) && test(i)) || withArt.find(i => !used.has(meta[i.slug].backdrop!));
+    if (!item) return null;
+    used.add(meta[item.slug].backdrop!);
+    return {title: item.title, backdrop: meta[item.slug].backdrop!};
+  };
+  if (hero && meta[hero.slug]?.backdrop) used.add(meta[hero.slug].backdrop!);
+  const topGenre = genreList.find(g => g.genre !== "Drama")?.genre;
+  const art = {
+    top: pick(i => i.slug === [...scored].sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))[0]?.slug),
+    genres: pick(i => !!topGenre && meta[i.slug].genres.includes(topGenre)),
+    countries: pick(i => countryOf(i) === countries[0]?.country),
+    actors: pick(i => !!actorList[0] && meta[i.slug].cast.some(c => c.id === actorList[0].id)),
+    time: pick(() => true),
+    ratings: pick(i => i.score === 10),
+    card: pick(() => true),
+  };
   const coverage = {completed: completed.length, matched: matched.length, unmatched: completed.filter(item => meta[item.slug] && !meta[item.slug].matched).length, pending: extra.pending || 0};
 
   return {
@@ -139,8 +161,9 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
     ratings: {rated: scored.length, unrated: completed.length - scored.length, average, distribution, byCountry, minCountrySample: MIN_COUNTRY_SAMPLE,
       highestCountry: comparable.length >= 2 ? comparable[0] : null, lowestCountry: comparable.length >= 2 ? comparable[comparable.length - 1] : null},
     countries, decades, unknownYear: completed.filter(i => !i.year).length, topRated,
-    genres: [...genreCount].map(([genre, count]) => ({genre, count})).sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre)).slice(0, 8),
-    actors: [...actorCount.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, 10),
+    genres: genreList.slice(0, 8),
+    actors: actorList.slice(0, 10),
+    art,
     hero: hero ? {...hero, backdrop: meta[hero.slug]?.backdrop || null, poster: meta[hero.slug]?.poster || null} : null,
     coverage,
   };

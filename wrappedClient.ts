@@ -30,13 +30,14 @@ export function installWrapped() {
 
   // A number that counts up to its value (or just shows it, with reduced motion).
   function countUp(node, value, decimals = 0) {
-    const final = decimals ? fmt.format(value) : Math.round(value).toLocaleString("en-US");
+    const format = decimals ? new Intl.NumberFormat("en-US", { maximumFractionDigits: decimals }) : null;
+    const final = format ? format.format(value) : Math.round(value).toLocaleString("en-US");
     if (reduced() || !value) { node.textContent = final; return; }
     const started = Date.now(), duration = 1200;
     node.textContent = "0";
     const id = setInterval(() => {
       const t = Math.min(1, (Date.now() - started) / duration), eased = 1 - Math.pow(1 - t, 3);
-      node.textContent = t >= 1 ? final : (decimals ? fmt.format(value * eased) : Math.round(value * eased).toLocaleString("en-US"));
+      node.textContent = t >= 1 ? final : (format ? format.format(value * eased) : Math.round(value * eased).toLocaleString("en-US"));
       if (t >= 1) clearInterval(id);
     }, 40);
     timers.push(id);
@@ -49,6 +50,15 @@ export function installWrapped() {
     img.addEventListener("error", () => img.remove(), { once: true });
     img.src = src;
     return img;
+  }
+  // A slide's backdrop: the artwork of a title that fits it (chosen by the server), named in a small caption.
+  function withArt(box, art) {
+    if (!art?.backdrop) return box;
+    const layer = el("div", "wrappedBackdrop");
+    layer.append(image(art.backdrop));
+    box.prepend(layer);
+    box.append(el("p", "wrappedArtCaption", art.title));
+    return box;
   }
   function slide(theme, ...children) {
     const box = el("section", "wrappedSlide " + theme);
@@ -63,26 +73,25 @@ export function installWrapped() {
     // 1. Opening: the featured title's backdrop.
     {
       const box = slide("isJourney");
-      if (data.hero?.backdrop) { const art = el("div", "wrappedBackdrop"); art.append(image(data.hero.backdrop)); box.append(art); }
-      box.append(el("p", "wrappedKicker", "MyDramaList Wrapped"), el("h2", "wrappedTitle", "@" + data.username + ", here's your drama story so far"),
-        el("p", "wrappedLine", "Every title you've completed, all time."));
+      box.append(el("p", "wrappedKicker", "MyDramaList Wrapped"), el("h2", "wrappedTitle", "@" + data.username + ", here's everything you've watched"),
+        el("p", "wrappedLine", "Every drama and movie you've completed, all time."));
       if (data.hero) box.append(el("p", "wrappedSmall", (data.hero.reason === "newly-completed" ? "Recently completed: " : "Your top-rated: ") + data.hero.title));
-      out.push({ node: box });
+      out.push({ node: withArt(box, data.hero?.backdrop ? { backdrop: data.hero.backdrop, title: data.hero.title } : null) });
     }
     // 2. Time.
     if (data.viewingTime?.hours) {
       const num = el("strong", "wrappedBig");
       const box = slide("isTime", el("p", "wrappedKicker", "Time well spent"), num, el("p", "wrappedLine", "hours of dramas and movies"),
         el("p", "wrappedSmall", "That's " + fmt.format(data.viewingTime.days) + " days, across " + c + " completed titles."));
-      out.push({ node: box, onShow: () => countUp(num, data.viewingTime.hours, 1) });
+      out.push({ node: withArt(box, data.art?.time), onShow: () => countUp(num, data.viewingTime.hours, 1) });
     }
     // 3. Genres ("Drama" fits almost everything, so it's left out, as on Stats).
     const genres = (data.genres || []).filter(g => g.genre !== "Drama");
     if (genres.length) {
       const list = el("ol", "wrappedList");
       genres.slice(1, 5).forEach((g, i) => { const li = el("li", "wrappedRise", g.genre + " · " + g.count); li.style.animationDelay = 0.5 + i * 0.15 + "s"; list.append(li); });
-      out.push({ node: slide("isGenres", el("p", "wrappedKicker", "Your favorite genres"), el("strong", "wrappedHuge wrappedPop", genres[0].genre),
-        el("p", "wrappedLine", genres[0].count + " of your completed titles"), list) });
+      out.push({ node: withArt(slide("isGenres", el("p", "wrappedKicker", "Your favorite genres"), el("strong", "wrappedHuge wrappedPop", genres[0].genre),
+        el("p", "wrappedLine", genres[0].count + " of your completed titles"), list), data.art?.genres) });
     }
     // 4. Countries.
     if ((data.countries || []).length) {
@@ -97,7 +106,7 @@ export function installWrapped() {
         li.append(el("span", "wrappedBarLabel", x.country), track, el("span", "wrappedBarValue", x.count));
         bars.append(li);
       });
-      out.push({ node: slide("isAsia", el("p", "wrappedKicker", "Around Asia"), el("h2", "wrappedTitle", "Most of your stories come from " + top[0].country), bars) });
+      out.push({ node: withArt(slide("isAsia", el("p", "wrappedKicker", "Around Asia"), el("h2", "wrappedTitle", "Most of what you've completed comes from " + top[0].country), bars), data.art?.countries) });
     }
     // 5. Actors.
     if ((data.actors || []).length) {
@@ -110,8 +119,8 @@ export function installWrapped() {
         const face = el("span", "wrappedFace"); if (a.profile) face.append(image(a.profile)); else face.textContent = a.name.charAt(0);
         li.append(face, el("small", "", a.name)); others.append(li);
       });
-      out.push({ node: slide("isFaces", el("p", "wrappedKicker", "Familiar faces"), portrait, el("strong", "wrappedName", first.name),
-        el("p", "wrappedLine", "in " + first.count + " of your completed titles"), others) });
+      out.push({ node: withArt(slide("isFaces", el("p", "wrappedKicker", "Familiar faces"), portrait, el("strong", "wrappedName", first.name),
+        el("p", "wrappedLine", "in " + first.count + " of your completed titles"), others), data.art?.actors) });
     }
     // 6. Top rated.
     if ((data.topRated || []).length) {
@@ -123,7 +132,8 @@ export function installWrapped() {
         const rank = el("span", "rankNumber statsRank", t.rank); rank.setAttribute("aria-hidden", "true"); poster.append(rank);
         li.append(poster, el("small", "", t.title + " · " + t.score)); row.append(li);
       });
-      out.push({ node: slide("isStories", el("p", "wrappedKicker", "Your top rated"), el("h2", "wrappedTitle", data.topRated[0].title + " tops your list"), row) });
+      out.push({ node: withArt(slide("isStories", el("p", "wrappedKicker", "Your top rated"), el("h2", "wrappedTitle", data.topRated[0].title + " tops your list"),
+        el("p", "wrappedLine", "The dramas and movies you scored highest on MyDramaList"), row), data.art?.top) });
     }
     // 7. Ratings: only facts the data supports.
     const r = data.ratings;
@@ -135,9 +145,9 @@ export function installWrapped() {
       const most = [...(r.distribution || [])].sort((a, b) => b.count - a.count)[0];
       if (most && most.score !== 10) facts.append(el("li", "", "Your most common score is " + most.score + "."));
       if (r.highestCountry && r.lowestCountry && r.highestCountry.country !== r.lowestCountry.country) {
-        facts.append(el("li", "", "Kindest to " + r.highestCountry.country + " (" + r.highestCountry.average + "), toughest on " + r.lowestCountry.country + " (" + r.lowestCountry.average + ")."));
+        facts.append(el("li", "", "Titles from " + r.highestCountry.country + " were your favorite. Titles from " + r.lowestCountry.country + " were not."));
       }
-      out.push({ node: slide("isRatings", el("p", "wrappedKicker", "Your rating personality"), num, el("p", "wrappedLine", "your average score, across " + r.rated + " rated titles"), facts),
+      out.push({ node: withArt(slide("isRatings", el("p", "wrappedKicker", "Your rating personality"), num, el("p", "wrappedLine", "your average score, across " + r.rated + " rated titles"), facts), data.art?.ratings),
         onShow: () => countUp(num, r.average, 2) });
     }
     // 8. Summary.
@@ -156,7 +166,7 @@ export function installWrapped() {
       const replay = el("button", "secondary", "Replay"); replay.type = "button"; replay.dataset.wrappedAction = "replay";
       const done = el("button", "primary", "Close"); done.type = "button"; done.dataset.wrappedAction = "close";
       actions.append(replay, done);
-      out.push({ node: slide("isCard", el("p", "wrappedKicker", "Your story in one card"), card, actions) });
+      out.push({ node: withArt(slide("isCard", el("p", "wrappedKicker", "Your recap in one card"), card, actions), data.art?.card) });
     }
     return out;
   }

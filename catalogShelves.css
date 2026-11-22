@@ -452,7 +452,7 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedClose:focus-visible{outline:2px solid #fff}
 .wrappedStage{position:absolute;inset:0;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
 .wrappedHint{position:absolute;z-index:3;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0;text-align:center;color:#ffffffa0;font-size:13px;pointer-events:none}
-.wrappedSlide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:64px 26px 60px;overflow:hidden}
+.wrappedSlide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:safe center;gap:10px;padding:64px 26px 60px;overflow-x:hidden;overflow-y:auto}
 .wrappedSlide.isJourney{background:linear-gradient(160deg,#1b3d78,#0d0f14 75%)}
 .wrappedSlide.isTime{background:linear-gradient(160deg,#2674ec,#14306b 60%,#0d0f14)}
 .wrappedSlide.isGenres{background:linear-gradient(160deg,#5b2a86,#2a1648 60%,#0d0f14)}
@@ -461,9 +461,11 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedSlide.isStories{background:linear-gradient(160deg,#1f2f6b,#101a3d 60%,#0d0f14)}
 .wrappedSlide.isRatings{background:linear-gradient(160deg,#7a2a55,#33122a 60%,#0d0f14)}
 .wrappedSlide.isCard{background:linear-gradient(160deg,#2674ec,#5b2a86 70%,#0d0f14);align-items:center;text-align:center}
-.wrappedBackdrop{position:absolute;inset:0;z-index:0}
-.wrappedBackdrop img{width:100%;height:100%;object-fit:cover;opacity:.55}
-.wrappedBackdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0d0f1440,#0d0f14ee 85%)}
+.wrappedBackdrop{position:fixed;inset:0;z-index:0;pointer-events:none}
+.wrappedBackdrop img{width:100%;height:100%;object-fit:cover;opacity:.5}
+.wrappedBackdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0d0f1466 0%,#0d0f1499 40%,#0d0f14e6 100%)}
+.wrappedArtCaption{position:fixed!important;z-index:2;top:calc(22px + env(safe-area-inset-top,0px));left:14px;right:60px;margin:0;font-size:11px;color:#ffffff99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.wrappedArtCaption::before{content:"Backdrop: "}
 .wrappedSlide.isActive .wrappedBackdrop img{animation:wrappedZoom 14s ease-out forwards}
 .wrappedSlide>*:not(.wrappedBackdrop){position:relative;z-index:1}
 .wrappedKicker{margin:0;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffffffc0}
@@ -484,13 +486,15 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedFaces{margin:16px 0 0;padding:0;list-style:none;display:flex;gap:12px;flex-wrap:wrap}
 .wrappedFaces li{display:grid;justify-items:center;gap:4px;width:64px;text-align:center;font-size:12px}
 .wrappedFace{width:56px;height:56px;border-radius:50%;overflow:hidden;background:#ffffff26;display:grid;place-items:center;font-weight:900}
-.wrappedPosters{margin:16px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
+.wrappedPosters{width:min(100%,420px);margin:14px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px}
 .wrappedPosters li{display:grid;gap:4px;font-size:12px}
-.wrappedPosters li:first-child{grid-column:span 2;grid-row:span 2}
+.wrappedPosters li:first-child{grid-row:span 2}
 .wrappedPoster{position:relative;display:grid;place-items:center;aspect-ratio:2/3;border-radius:8px;overflow:hidden;background:#ffffff1f}
 .wrappedPoster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .wrappedPosterName{padding:6px;font-size:12px;text-align:center}
-.wrappedPosters li:first-child .statsRank{font-size:96px}
+.wrappedPosters li:first-child .statsRank{font-size:72px}
+.wrappedPosters .statsRank{font-size:44px}
+.wrappedPosters small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wrappedFacts{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px;font-size:17px;font-weight:700}
 .wrappedCard{width:min(320px,100%);padding:20px;border-radius:18px;background:#0d0f14d0;border:1px solid #ffffff26;box-shadow:0 20px 60px #0008}
 .wrappedCardBrand{margin:0;font-weight:900;font-size:20px}

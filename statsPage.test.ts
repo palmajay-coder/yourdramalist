@@ -71,7 +71,7 @@ await test("with a username, Stats shows the hero and every section from the API
   ok(genres && !/Drama 36/.test(genres.textContent) && /Thriller 23/.test(genres.textContent), "genres leave out Drama");
   ok(/Moon Lee/.test(text) && /4 titles/.test(text), "most-watched actors");
   ok([...p.querySelectorAll(".statsRank")].map((r: any) => r.textContent).join(",") === "1,2,3,4,5,6,7,8,9,10" && p.querySelector(".statsTopPosterName")?.textContent === "Title 1", "Top 10 with ranks; a missing poster shows the title");
-  ok(/Kindest to Hong Kong \(9.36\) · toughest on China \(8.13\)/.test(text) && /79 rated/.test(text), "how you score");
+  ok(/Titles from Hong Kong were your favorite \(average 9.36\)\. Titles from China were not \(average 8.13\)\./.test(text) && /79 rated/.test(text), "how you score");
   ok(/By release decade/.test(text) && /4 titles couldn't be matched on TMDB/.test(text), "decades and the coverage note");
   ok(!document.querySelector(".androidFilterButton:not([hidden])") || (document.querySelector(".androidFilterButton") as any).hidden, "no filter icon on Stats");
 });

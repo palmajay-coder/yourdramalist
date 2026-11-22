@@ -120,6 +120,13 @@ await test("genres and actors count each title once; actors deduplicate by id; c
   ok(s.actors[0].name === "Son Ye Jin" && s.actors[0].count === 6, "an actor once per title: " + JSON.stringify(s.actors[0]));
   ok(JSON.stringify(s.coverage) === JSON.stringify({completed: 8, matched: 6, unmatched: 1, pending: 1}), "coverage " + JSON.stringify(s.coverage));
   ok(s.topRated[0].poster === "p0", "top rated carries posters where matched");
+  ok(s.art.top === null && s.art.time === null, "no backdrops without TMDB backdrops");
+  const arty: Record<string, TitleMeta> = {};
+  for (const [i, item] of list.lists.completed.items.entries()) arty[item.slug] = {...meta[item.slug] || {v: 1, slug: item.slug, matched: true, genres: [], cast: [], poster: null, at: T0}, matched: true, backdrop: "b" + i, genres: i === 3 ? ["Romance"] : ["Thriller"], cast: i === 2 ? [{id: 9, name: "Star", profile: null}, {id: 9, name: "Star", profile: null}] : [{id: 9, name: "Star", profile: null}]};
+  const art = computeStats(list, arty, heroFrom(list, nextSnapshot(null, list, T0))).art;
+  const pictures = Object.values(art).filter(Boolean).map(a => a!.backdrop);
+  ok(new Set(pictures).size === pictures.length && !pictures.includes("b0"), "every slide gets a different backdrop, and none repeats the hero's: " + JSON.stringify(art));
+  ok(art.top?.title === "Goblin" && art.genres?.title === "Cure" && art.countries?.title === "Good Doctor", "backdrops fit their slide (top rated after the hero, the top genre's and top country's best titles): " + JSON.stringify(art));
 });
 
 function memoryStore() {

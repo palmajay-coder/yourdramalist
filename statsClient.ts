@@ -171,7 +171,7 @@ export function installStats() {
           bars(r.distribution.map(d => ({ label: String(d.score), count: d.count })), r.rated),
           el("p", "statsLegend", r.rated + " rated" + (r.unrated ? " · " + r.unrated + " unrated" : "") + " · average " + r.average));
         if (r.highestCountry && r.lowestCountry && r.highestCountry.country !== r.lowestCountry.country) {
-          scoring.append(el("p", "statsLegend", "Kindest to " + r.highestCountry.country + " (" + r.highestCountry.average + ") · toughest on " + r.lowestCountry.country + " (" + r.lowestCountry.average + ")"));
+          scoring.append(el("p", "statsLegend", "Titles from " + r.highestCountry.country + " were your favorite (average " + r.highestCountry.average + "). Titles from " + r.lowestCountry.country + " were not (average " + r.lowestCountry.average + ")."));
         }
         parts.push(scoring);
       }
