@@ -245,7 +245,7 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
   if(!catalog?.items?.length)return{metas:[]};
   pool=catalog.items;
  }
- else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>({slug:/^tmdb-(tv|movie)-\d+$/.test(x.id)?x.id:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url,...(x.score?{score:x.score}:{})}));}
+ else if(entry.person){const response=await deps.people(new Request('https://internal/api/mdl/filmography?mode='+entry.mode+'&url='+encodeURIComponent(entry.person)));if(!response.ok)throw Error('upstream');const result=await response.json();pool=result.items.map((x:any)=>{const t=String(x.id).match(/^tmdb-(tv|movie)-(\d+)$/);return{slug:t?x.id:x.url.split('/').pop(),title:x.name,type:x.type,year:x.year,image:x.poster,link:x.url,...(x.score?{score:x.score}:{}),...(t?{tmdb:{kind:t[1],id:Number(t[2])}}:{})};});}
  else if(entry.watchlist&&entry.watchlistStatus)pool=await (deps.watchlistCategory??loadWatchlistCategory)(entry.watchlist,entry.watchlistStatus);
  else if(entry.watchlist){
   const sections=await (deps.watchlistSections??loadWatchlist)(entry.watchlist);
@@ -266,7 +266,11 @@ export async function loadCatalog(config:AddonConfig,index:number,skip:number,ba
  // Top Rated filmographies are a Top 10: the ten highest rated titles still showing.
  if(entry.person&&entry.filter?.sort==='rating')pool=filmographyTop(pool);
  const selected=pool.slice(skip,skip+NUVIO_PAGE),metas:any[]=Array(selected.length);
- await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
+ // TMDB credits (most filmographies) get their IMDb id from TMDB by id, as Spotlight and Top 10 do. A title search
+ // misses titles such as Japanese TV films, which were then silently dropped. A failed id lookup still tries the title search.
+ const byTmdb:any[]=await Promise.all(selected.map(async (x:any)=>{if(!x.tmdb)return null;try{const [meta]=await ((deps as any).weeklyMetas||collections.metas)([{kind:x.tmdb.kind,id:x.tmdb.id,name:x.title,poster:x.image,date:String(x.year||''),overview:''}],base,config.preferences.posters);return meta&&/^tt\d+$/.test(meta.id)?meta:null}catch{return null}}));
+ byTmdb.forEach((meta,i)=>{if(!meta)return;if(runtime.erdb&&meta.poster)meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(selected[i].slug||'');metas[i]=meta;});
+ await Promise.all(['series','movie'].map(async type=>{const group=selected.map((item,i)=>({item,i})).filter(x=>K(x.item.type)===type&&!byTmdb[x.i]);if(!group.length)return;const mapped=await deps.map(group.map(x=>x.item),type,runtime.erdb,!!entry.person);mapped.forEach((meta:any,i:number)=>{if(runtime.erdb&&meta?.poster&&/^tt\d+$/.test(meta.id))meta.poster=base+'/poster/'+meta.id+'.jpg?mdl='+encodeURIComponent(group[i].item.slug||'');metas[group[i].i]=meta;});}));
  // Titles with no IMDb id (mostly announced, unreleased dramas) keep a MyDramaList based id. Nuvio asks this
  // add-on for their details through the meta resource. They only appear when a poster can be found.
  const matched=metas.filter((x,i,a)=>x&&(/^tt\d+$/.test(x.id)||/^mdl:\d+-[a-z0-9-]+$/i.test(x.id))&&a.findIndex(y=>y?.id===x.id)===i);

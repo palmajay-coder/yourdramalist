@@ -296,4 +296,18 @@ await test('filmography names never carry the native name, even from older setup
  const c=normalizeAddon({...body,catalogs:[{name:'Son Ye Jin (손예진)’s Filmography',kind:'filmography',mode:'actor',personUrl:'https://mydramalist.com/people/1-son-ye-jin',personName:'Son Ye Jin (손예진)',filter:{sort:'rating'}}]});
  assert(makeManifest(c).catalogs[0].name==='Son Ye Jin’s Top 10 All Time','plain name: '+makeManifest(c).catalogs[0].name);
 });
+await test('Nuvio keeps every title of a Top 10 filmography, mapping TMDB credits by id (Kurosawa Kiyoshi)',async()=>{
+ const c=normalizeAddon({...body,catalogs:[{name:'Kurosawa Kiyoshi’s Filmography',kind:'filmography',mode:'director',personUrl:'https://mydramalist.com/people/7-kurosawa-kiyoshi',personName:'Kurosawa Kiyoshi',filter:{sort:'rating',type:'movie'}}]});
+ const names=['Cure','The Samurai and the Prisoner','Tokyo Sonata','Penance','Séance','Charisma','Bright Future','Doppelgänger','Serpent’s Path','Eyes of the Spider','Pulse'];
+ const credits=names.map((name,i)=>({id:'tmdb-movie-'+(100+i),name,url:'https://www.themoviedb.org/movie/'+(100+i),year:1997+i,type:'Movie',score:9-i/10,poster:'https://image.tmdb.org/t/p/w500/'+i+'.jpg'}));
+ const searched:string[]=[];
+ const deps={source:()=>{throw Error('legacy')},hidden:async()=>new Set(),people:async()=>Response.json({items:credits}),
+  // The title search misses Penance and Séance (as on the live site) and finds Bright Future.
+  map:async(items:any[])=>items.map((x:any)=>{searched.push(x.title);return x.title==='Bright Future'?{id:'tt7777777',type:'movie',name:x.title,poster:'https://image.tmdb.org/t/p/w500/b.jpg'}:{id:'mdl:'+x.slug,type:'movie',name:x.title}}),
+  // TMDB knows every IMDb id except Bright Future's.
+  weeklyMetas:async(items:any[])=>items.filter((x:any)=>x.name!=='Bright Future').map((x:any)=>({id:'tt'+x.id,type:'movie',name:x.name,poster:x.poster}))} as any;
+ const metas=(await loadCatalog(c,0,0,'https://test/addon/token',deps)).metas.map((m:any)=>m.name);
+ assert(metas.join('|')===names.slice(0,10).join('|'),'all ten, in rank order: '+metas.join('|'));
+ assert(searched.join()==='Bright Future','only the title TMDB could not map falls back to the title search: '+searched.join());
+});
 console.log(JSON.stringify({passed}));
