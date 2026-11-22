@@ -73,7 +73,7 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /Every drama and movie you've completed so far\./.test(text()) && !/all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
   d.querySelector(".wrappedStage").dispatchEvent(new window.Event("click", {bubbles: true}));
   await tick(1300);
-  ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /23 dramas and 56 movies, completed\./.test(text()), "a tap goes forward to the completed count: " + text());
+  ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /23 dramas and 56 movies, completed so far\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedLine strong").length === 2, "a tap goes forward to the completed count: " + text());
   const key = (k: string) => d.dispatchEvent(Object.assign(new window.Event("keydown", {bubbles: true}), {key: k}));
   key("ArrowRight"); await tick(1300);
   ok(storyLine() === "Time well spent. Or was it?" && big() === "388.8 hours" && /That's 16 days nonstop\./.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/cure.jpg" && !/Backdrop:/.test(text()), "hours, with its own backdrop: " + big());
@@ -90,11 +90,11 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   key("ArrowRight");
   ok(big() === "Movie 1" && /Your #1 movie/.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie");
   key("ArrowRight"); key("ArrowRight");
-  ok(storyLine() === "Your drama personality revealed." && big() === "The Thriller Addict" && /You live for the twist\. Thriller is in 23 of your completed titles\./.test(text()), "personality: " + text());
+  ok(storyLine() === "Your drama personality revealed." && big() === "The Thriller Addict" && /You live for the twist\. You trust no one/.test(text()) && !/\d/.test(d.querySelector(".wrappedStage .wrappedLine").textContent), "personality: " + text());
   for (let i = 0; i < 12; i++) key("ArrowLeft");
   ok(/Now here's the drama/.test(text()), "← goes back");
   for (let i = 0; i < 12; i++) key("ArrowRight");
-  ok(/That's a wrap\. But the drama never ends\./.test(text()) && /Drama personality: The Thriller Addict/.test(text()) && /Top genre: Thriller/.test(text()) && /Most-watched actor: Moon Lee/.test(text()) && /@jaesan · all time/.test(text()), "the summary card, all time");
+  ok(/That's a wrap\. But the drama never ends\./.test(text()) && /Drama personality: The Thriller Addict/.test(text()) && /Top genre: Thriller/.test(text()) && /Most-watched actor: Moon Lee/.test(text()) && /@jaesan · so far/.test(text()) && !/all time/i.test(text()), "the summary card, all time");
   ok(d.querySelector(".wrappedHint").hidden, "no tap hint on the last slide");
   ok(![...d.querySelectorAll(".wrappedStage button")].some((b: any) => /Replay|Close/.test(b.textContent)), "no Replay or Close buttons, only the ×");
   (d.querySelector(".wrappedClose") as any).click();

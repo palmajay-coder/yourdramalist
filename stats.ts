@@ -168,6 +168,9 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
     ratings: pick(i => i.score === 10),
     type: pick(() => true),
     card: pick(() => true),
+    // Added later; picked last so the other slides keep their pictures.
+    completed: pick(() => true),
+    eras: pick(i => !!i.year && Math.floor(i.year / 10) * 10 + "s" === [...decades].sort((a, b) => b.count - a.count)[0]?.decade),
   };
   const coverage = {completed: completed.length, matched: matched.length, unmatched: completed.filter(item => meta[item.slug] && !meta[item.slug].matched).length, pending: extra.pending || 0};
 
