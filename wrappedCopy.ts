@@ -51,7 +51,7 @@ export function wrappedCopy(data, raw) {
     const titles = countries[0].titles || [];
     const watched = b(top + " " + (top === 1 ? "title" : "titles") + " watched!");
     const own = text["countries.line." + countries[0].country] ? "countries.line." + countries[0].country : "countries.line.other";
-    out.countries = leaders.length > 1 ? t("countries.tie", values)
+    out.countries = leaders.length > 2 ? t("countries.tieMany", values) : leaders.length > 1 ? t("countries.tie", values)
       : titles.length >= 2 && text[own] ? t(own, { ...values, title1: "__" + titles[0] + "__", title2: "__" + titles[1] + "__", watched })
       : t("countries.clear", values);
   } else out.countries = null;

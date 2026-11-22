@@ -37,8 +37,8 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
 
 await test("countries: a tie keeps its line, a single leader gets its own line with two titles; only first place is named", () => {
   const c = (list: [string, number][]) => plain(say({countries: list.map(([country, count]) => ({country, count}))}).countries);
-  ok(c([["Japan", 29], ["South Korea", 29], ["Hong Kong", 14]]) === "Japan and South Korea tied at 29 each, because choosing favorites isn't your thing.", "a tie of two");
-  ok(c([["Japan", 9], ["South Korea", 9], ["China", 9]]) === "Japan, South Korea and China tied at 9 each, because choosing favorites isn't your thing.", "a tie of three");
+  ok(c([["Japan", 29], ["South Korea", 29], ["Hong Kong", 14]]) === "Looks like your heart belongs to two places! You watched 29 titles from each country. Talk about being open-minded!", "a tie of two");
+  ok(c([["Japan", 9], ["South Korea", 9], ["China", 9]]) === "Looks like your heart belongs to more than two places! You watched 9 titles from each country. Talk about being open-minded!", "a tie of three");
   const withTitles = (country: string, count: number, titles: string[]) => plain(say({countries: [{country, count, titles}]}).countries);
   ok(withTitles("Japan", 7, ["First Love", "Alice in Borderland"]) === "Sugoi! From __First Love__ to __Alice in Borderland__, you're living the J-drama life with 7 titles watched!", "Japan");
   ok(/Wow! From __A__ to __B__, you've traveled the world of Vietnam dramas with 1 title watched!/.test(withTitles("Vietnam", 1, ["A", "B"])), "another country, singular");

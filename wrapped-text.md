@@ -73,7 +73,8 @@ countries.line.Hong Kong: Waa! From {title1} to {title2}, you've soaked up the H
 countries.line.Philippines: Ang galing! From {title1} to {title2}, you've embraced Filipino drama with {watched}
 countries.line.other: Wow! From {title1} to {title2}, you've traveled the world of {country} dramas with {watched}
 countries.clear: {country} practically took over your watchlist, with {count|title|titles}.
-countries.tie: {countries} tied at {count} each, because choosing favorites isn't your thing.
+countries.tie: Looks like your heart belongs to two places! You watched {count|title|titles} from each country. Talk about being open-minded!
+countries.tieMany: Looks like your heart belongs to more than two places! You watched {count|title|titles} from each country. Talk about being open-minded!
 
 ## 6. Eras (by release decade; the big "The 2020s" under the headline is filled in from their list)
 eras.story: Every era has its drama, yours was:
