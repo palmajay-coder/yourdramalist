@@ -149,6 +149,7 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
     actors: pick(i => !!actorList[0] && meta[i.slug].cast.some(c => c.id === actorList[0].id)),
     time: pick(() => true),
     ratings: pick(i => i.score === 10),
+    type: pick(() => true),
     card: pick(() => true),
   };
   const coverage = {completed: completed.length, matched: matched.length, unmatched: completed.filter(item => meta[item.slug] && !meta[item.slug].matched).length, pending: extra.pending || 0};
