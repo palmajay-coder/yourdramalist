@@ -26,7 +26,7 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
   ok(plain(s.time) === "16 days nonstop, fueled by snacks, tissues and zero regrets.", "time: " + s.time);
   ok(plain(s.genre) === "23 thrillers in, and you still never trust the nice guy.", "genre: " + s.genre);
   ok(plain(s.countries) === "South Korea practically took over your watchlist, with 50 titles.", "clear winner: " + s.countries);
-  ok(s.eras === "Was yours.", "era: " + s.eras);
+  ok(s.eras === "Dramas from this decade **dominated** your watchlists.", "era: " + s.eras);
   ok(plain(s.actor) === "4 titles in, it's official: Moon Lee has a fan, and it's you.", "actor: " + s.actor);
   ok(plain(s.topDrama) === "Of everything you've finished, this one with Lee Min-ho and Kim Go-eun hit hardest.", "#1 drama: " + s.topDrama);
   ok(plain(s.topMovie) === "Of everything you've finished, this one hit hardest.", "#1 movie without cast");
@@ -55,7 +55,7 @@ await test("every genre has its own line, with a fallback for the rest", () => {
 });
 
 await test("eras use one line under the big decade, which the slide fills in", () => {
-  const line = "Was yours.";
+  const line = "Dramas from this decade **dominated** your watchlists.";
   for (const decade of ["1960s", "2000s", "2020s"]) ok(say({decades: [{decade, count: 9}, {decade: decade === "2000s" ? "1990s" : "2000s", count: 3}]}).eras === line, decade);
   ok(say({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]}).eras === line, "tie");
   ok(say({decades: [{decade: "2000s", count: 9}]}).eras === null, "one decade: no line");

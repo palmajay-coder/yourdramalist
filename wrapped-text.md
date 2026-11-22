@@ -67,8 +67,8 @@ countries.close: It was neck and neck, but {country} pulled ahead with {count|ti
 countries.tie: {countries} tied at {count} each, because choosing favorites isn't your thing.
 
 ## 6. Eras (by release decade; the big "The 2020s" under the headline is filled in from their list)
-eras.story: Every era has its drama.
-eras.line: Was yours.
+eras.story: Every era has its drama, yours was:
+eras.line: Dramas from this decade **dominated** your watchlists.
 
 ## 7. Most-watched actor
 actor.headline: Your most-watched actor is {name}.
