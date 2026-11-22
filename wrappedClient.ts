@@ -483,7 +483,7 @@ export function installWrapped() {
   const bannerArt = el("div", "wrappedBannerArt");
   const copy = el("div", "wrappedBannerCopy");
   const go = el("button", "wrappedBannerGo", "Let's go"); go.type = "button";
-  copy.append(el("h2", "", "Your Drama Wrapped"), el("p", "", "Jump into your years of Drama"), go);
+  copy.append(el("h2", "", "Your Drama Wrapped"), el("p", "", "Jump into your years of drama from the beginning to 2026."), go);
   const hide = el("button", "wrappedBannerClose", "×"); hide.type = "button"; hide.setAttribute("aria-label", "Hide Wrapped");
   banner.append(bannerArt, el("i", "wrappedSpark isA"), el("i", "wrappedSpark isB"), el("i", "wrappedSpark isC"), copy, hide);
   let bannerData = null, bannerUser = null;
