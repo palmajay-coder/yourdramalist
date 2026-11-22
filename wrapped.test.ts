@@ -70,7 +70,7 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   const text = () => currentText(document);
   const storyLine = () => d.querySelector(".wrappedStage .wrappedStory")?.textContent;
   const big = () => d.querySelector(".wrappedStage .wrappedHuge, .wrappedStage .wrappedHeadline")?.textContent;
-  ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
+  ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /Every drama and movie you've completed so far\./.test(text()) && !/all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
   d.querySelector(".wrappedStage").dispatchEvent(new window.Event("click", {bubbles: true}));
   await tick(1300);
   ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /23 dramas and 56 movies, completed\./.test(text()), "a tap goes forward to the completed count: " + text());

@@ -208,7 +208,7 @@ export function installWrapped() {
     {
       const box = slide("isJourney");
       box.append(el("p", "wrappedKicker", "@" + data.username), el("h2", "wrappedTitle wrappedSlogan", "You've watched the dramas. Now here's the drama."),
-        el("p", "wrappedLine", "Every drama and movie you've completed, all time."));
+        el("p", "wrappedLine", "Every drama and movie you've completed so far."));
       out.push({ node: withArt(box, data.art?.opening) });
     }
     // 2. Completed: the count, big.
