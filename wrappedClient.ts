@@ -123,7 +123,7 @@ export function installWrapped() {
         const rank = el("span", "rankNumber statsRank", t.rank); rank.setAttribute("aria-hidden", "true"); poster.append(rank);
         li.append(poster, el("small", "", t.title + " · " + t.score)); row.append(li);
       });
-      out.push({ node: slide("isStories", el("p", "wrappedKicker", "Your highest-rated stories"), el("h2", "wrappedTitle", data.topRated[0].title + " tops your list"), row) });
+      out.push({ node: slide("isStories", el("p", "wrappedKicker", "Your top rated"), el("h2", "wrappedTitle", data.topRated[0].title + " tops your list"), row) });
     }
     // 7. Ratings: only facts the data supports.
     const r = data.ratings;
