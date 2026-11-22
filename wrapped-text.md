@@ -25,7 +25,7 @@ How to edit:
 
 ## 1. Opening
 opening.headline: You've watched the dramas. Now here's the drama.
-opening.line: Every drama and movie you've completed so far.
+opening.line: Here's everything you've completed so far from the beginning to now.
 
 ## 2. Completed
 completed.story: That's a whole lot of drama.
@@ -34,8 +34,8 @@ completed.one: You didn't just start it. You finished it.
 
 ## 3. Watch time
 time.story: Time well spent. Or was it?
-time.days: {days|day|days} nonstop, fueled by snacks, tissues and zero regrets.
-time.hours: {hours|hour|hours} nonstop, fueled by snacks, tissues and zero regrets.
+time.days:That's {days|day|days} nonstop, fueled by snacks, tissues and zero regrets.
+time.hours:That's {hours|hour|hours} nonstop, fueled by snacks, tissues and zero regrets.
 
 ## 4. Top genre (one line per genre; "other" is used for any genre not listed)
 genre.story: You clearly have a type.
