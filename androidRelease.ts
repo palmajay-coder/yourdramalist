@@ -12,7 +12,7 @@ const CACHE_MS = 60 * 60 * 1000, RETRY_MS = 5 * 60 * 1000;
 // The in-app update notice only reminds apps older than this version code. A quiet release (a small,
 // cosmetic change) leaves this alone, so people on the previous version are not asked to update.
 // For an update everyone should get, raise it to that release's version code.
-export const ANDROID_REMIND_BELOW = 105; // 1.1.29
+export const ANDROID_REMIND_BELOW = 100000; // 1.1.31 is not a quiet release: every older app is reminded (the endpoint caps this at the newest version code)
 
 type Latest = {versionCode: number; versionName: string; url: string};
 

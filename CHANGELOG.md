@@ -1,6 +1,19 @@
 # Changelog
 
-## Website updates since 1.1.30
+## 1.1.31
+
+### What's new
+
+- Your Drama Wrapped: A personalized, Spotify-style recap of your drama and movie history.
+- Stats Tab: Explore your watch time, genres, countries, eras, actors, ratings, and more.
+- Lists: My Collections has moved into the Lists tab, next to MyDramaList.
+- Cast & Crew: Filter by movies or shows, with five sorting options.
+- Trope Search: Find titles using tropes like enemies to lovers or second lead syndrome.
+
+### Also
+
+- Not a quiet release: every app older than 1.1.31 is shown the update notice (`ANDROID_REMIND_BELOW` is raised above any version code).
+- Since 1.1.30 (website, already reaching the app): the items below.
 - Your Drama Wrapped: a Stats tab and a story of 12 slides built from a connected MyDramaList list (completed, watch time, top genre, most-watched country on a map with the user's two top titles there, eras, actor, #1 drama and movie, ratings, drama personality, share card), with a looping soundtrack and a Share/Save image. A pop-up on login (once per login) leads to it. Every slide's words live in `wrapped-text.md`. The soundtrack is `assets/wrapped-music-v1.mp3` in the R2 bucket (it must exist in `ydl-data` before a live deploy). Website only: no new APK is needed.
 - Fix: Nuvio could drop titles from actor and director catalogs (Kurosawa Kiyoshi's Top 10 showed 8) when a title search missed them. TMDB credits now get their IMDb id from TMDB by id, like Spotlight and Top 10, with the title search kept as a fallback.
 - Actors and directors show by name only (Son Ye Jin, not Son Ye Jin (손예진)) in search, on their page, in Your Selection and in Nuvio catalog names. The native name is still used behind the scenes to find the right person on TMDB.
