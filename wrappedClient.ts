@@ -97,9 +97,10 @@ export function installWrapped() {
     return node;
   }
   const b = x => "**" + x + "**";
-  // A story slide: the story line, the big stat, the narrator's comment, then the fact (bold numbers) in small text.
-  const storySlide = (theme, story, big, comment, fact, ...extra) => slide(theme, el("p", "wrappedStory", story), big,
-    comment ? rich("wrappedLine", comment) : null, fact ? rich("wrappedSmall wrappedFact", fact) : null, ...extra);
+  // One flowing description: the fact (bold numbers) and the narrator's comment, as one paragraph.
+  const describe = (fact, comment) => { const text = [fact, comment].filter(Boolean).join(" "); return text ? rich("wrappedLine", text) : null; };
+  // A story slide: the story line, the big stat, then the description.
+  const storySlide = (theme, story, big, comment, fact, ...extra) => slide(theme, el("p", "wrappedStory", story), big, describe(fact, comment), ...extra);
   const huge = text => el("h2", "wrappedHuge wrappedPop" + (String(text).length > 8 ? " isLong" : ""), text); // long names shrink to stay on one or two lines
   // The countries slide's map: a pixel map of Asia with the top country (or tied countries) lit up and circled.
   // Returns null for a country that isn't on it, and the slide falls back to bars.
@@ -315,7 +316,7 @@ export function installWrapped() {
         li.append(el("span", "wrappedRankedNumber", i + 1), face, text); list.append(li);
       });
       out.push({ node: withArt(slide("isFaces", portrait, el("h2", "wrappedTitle wrappedHeadline", "Your most-watched actor is " + first.name + "."),
-        say.actor ? rich("wrappedLine", say.actor) : null, rich("wrappedSmall wrappedFact", b(first.count) + " of your completed titles feature " + b(first.name) + "."), list), data.art?.actors) });
+        describe(b(first.count) + " of your completed titles feature " + b(first.name) + ".", say.actor), list), data.art?.actors) });
     }
     // 6. Your #1 drama and your #1 movie, each with its own ranked list and backdrop.
     const rankedSlide = (items, label, theme, art) => {
@@ -341,12 +342,11 @@ export function installWrapped() {
       const num = el("span", "wrappedNumber");
       const head = el("h2", "wrappedTitle wrappedHeadline");
       head.append("Your average score is ", num, ".");
-      const facts = el("ul", "wrappedFacts");
       const tens = (r.distribution || []).find(d => d.score === 10)?.count || 0;
-      if (tens) facts.append(rich("", "You gave a perfect 10 to " + b(tens) + (tens === 1 ? " title" : " titles") + ".", "li"));
       const most = [...(r.distribution || [])].sort((a, b) => b.count - a.count)[0];
-      if (most && most.score !== 10) facts.append(rich("", "Your most common score is " + b(most.score) + ".", "li"));
-      out.push({ node: withArt(slide("isRatings", head, say.ratings ? rich("wrappedLine", say.ratings) : null, rich("wrappedSmall wrappedFact", "Across the " + b(r.rated) + " titles you rated."), facts), data.art?.ratings),
+      const fact = "Across " + b(r.rated) + (r.rated === 1 ? " rated title" : " rated titles") + (tens ? ", you gave " + b(tens) + " a perfect 10." : ".") +
+        (most && most.score !== 10 ? " Your most common score is " + b(most.score) + "." : "");
+      out.push({ node: withArt(slide("isRatings", head, describe(fact, say.ratings)), data.art?.ratings),
         onShow: () => countUp(num, r.average, 2) });
     }
     // 8. Your drama type: a label from clear rules on real numbers.

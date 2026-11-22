@@ -73,12 +73,12 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /Every drama and movie you've completed so far\./.test(text()) && !/all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
   d.querySelector(".wrappedStage").dispatchEvent(new window.Event("click", {bubbles: true}));
   await tick(1300);
-  ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /23 dramas and 56 movies, completed so far\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedFact strong").length === 2 && !!d.querySelector(".wrappedStage .wrappedLine"), "a tap goes forward to the completed count: " + text());
+  ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /23 dramas and 56 movies, completed so far\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedLine").length === 1 && d.querySelectorAll(".wrappedStage .wrappedLine strong").length === 2 && !d.querySelector(".wrappedStage .wrappedFact"), "a tap goes forward to the completed count: " + text());
   const key = (k: string) => d.dispatchEvent(Object.assign(new window.Event("keydown", {bubbles: true}), {key: k}));
   key("ArrowRight"); await tick(1300);
   ok(storyLine() === "Time well spent. Or was it?" && big() === "388.8 hours" && /That's 16 days nonstop\./.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/cure.jpg" && !/Backdrop:/.test(text()), "hours, with its own backdrop: " + big());
   key("ArrowRight");
-  ok(storyLine() === "You clearly have a type." && big() === "Thriller" && /In 23 of your completed titles\./.test(text()) && !/Crime/.test(text()) && d.querySelector(".wrappedStage .wrappedLine") && d.querySelector(".wrappedStage .wrappedFact"), "genre: " + text());
+  ok(storyLine() === "You clearly have a type." && big() === "Thriller" && /In 23 of your completed titles\./.test(text()) && !/Crime/.test(text()) && d.querySelectorAll(".wrappedStage .wrappedLine").length === 1, "genre: " + text());
   key("ArrowRight");
   ok(storyLine() === "Your passport to drama." && big() === "Japan and South Korea" && /29 titles each\./.test(text()) && !/Hong Kong/.test(text()) && /Two countries|refuses to choose|tie|sharing the spotlight/.test(text()), "countries, a tie said as a tie: " + text());
   ok(d.querySelector(".wrappedStage svg.wrappedMap") && d.querySelectorAll(".wrappedStage .wrappedMapRing").length === 2 && (d.querySelector(".wrappedStage .wrappedMap .isHit")?.getAttribute("d") || "").split("M").length > 10 && !d.querySelector(".wrappedStage .wrappedBar"), "a map with both tied countries lit up and circled, instead of bars");
@@ -112,7 +112,7 @@ await test("slides without data are left out, and ratings only state supported f
   for (let i = 0; i < 6; i++) key("ArrowRight");
   await tick(1300);
   ok(story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent === "Your average score is 8.89.", "the average keeps two decimals: " + story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent);
-  ok(/Across the 79 titles you rated\./.test(currentText(document)) && /perfect 10 to 34 titles/.test(currentText(document)) && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
+  ok(/Across 79 rated titles, you gave 34 a perfect 10\. You believe in giving credit where the drama is due\./.test(currentText(document)) && story(document).querySelectorAll(".wrappedStage .wrappedLine").length === 1 && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
 });
 
 await test("a top country that isn't on the Asia map falls back to bars", async () => {
