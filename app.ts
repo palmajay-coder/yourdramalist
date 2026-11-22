@@ -2,6 +2,7 @@ import {installDiscoverAddButtons} from "./discoverAddButtons.ts";
 import {handlePersonalCatalog} from "./personalCatalogs.ts";
 import {installPersonalCatalogSync} from "./personalCatalogSync.ts";
 import { installMyCollections } from "./myCollectionsClient.ts";
+import { installStats } from "./statsClient.ts";
 import { installCollectionPicker } from "./collectionPicker.ts";
 import { installCatalogTitlePreview } from "./catalogTitlePreview.ts";
 import { installAndroidDiscover } from "./androidDiscoverClient.ts";
@@ -553,7 +554,7 @@ async function loadProfile(username){
 }
 
 renderSelection();
-function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();listRequest++;communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';showMyCollections(tab);if(tab==='discover')window.ydlRefreshPersonal?.();window.syncAndroidNav?.(currentPage)}
+function switchTab(tab){profileLists=null;$('communityViews').classList.add('hidden');peopleUI.cleanup();listRequest++;communityUI.reset();state.tab=tab;$('listItems').replaceChildren();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('profileSearch').classList.toggle('hidden',tab!=='profiles');$('discoverSearch').classList.toggle('hidden',tab!=='discover');$('results').textContent='';showMyCollections(tab);showStats(tab);if(tab==='discover')window.ydlRefreshPersonal?.();window.syncAndroidNav?.(currentPage)}
 function switchFilter(f){peopleUI.cleanup();listRequest++;state.filter=f;$('listItems').replaceChildren();$('results').textContent='';document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.filter===f);b.setAttribute('aria-pressed',String(b.dataset.filter===f))});const catalogs=f==='catalogs';$('discoverLabel').classList.toggle('hidden',catalogs);$('discoverForm').classList.toggle('hidden',catalogs);$('exploreSearch').classList.toggle('hidden',!catalogs);if(catalogs)exploreUI.render();}
 function openSelection(tab){navigate('selection');switchTab(tab)}
 function openCommunity(username){
@@ -585,6 +586,7 @@ const makeDiscoverTitleAdd=(${installDiscoverAddButtons.toString()})();
 const layeredPostersIcon = '<span class="layeredPostersIcon" aria-hidden="true"><i></i><i></i><i></i></span>';
 const personalCatalogSync=(${installPersonalCatalogSync.toString()})();
 const showMyCollections=(${installMyCollections.toString()})();
+const showStats=(${installStats.toString()})();
 const openCollectionPicker=(${installCollectionPicker.toString()})();
 const showCatalogTitle=(${installCatalogTitlePreview.toString()})();
 const exploreUI=(${installExploreUI.toString()})();

@@ -177,7 +177,8 @@ type Store = {get: (key: string) => Promise<any>; set: (key: string, value: any)
  * continues on the next request), and the last good watchlist kept for when Kuryana is down.
  */
 export function createStatsService(deps: {fetchList: (username: string) => Promise<any>; tmdb: (path: string, params?: Record<string, string>) => Promise<any>; store: Store; now?: () => number; budgetMs?: number}) {
-  const now = deps.now || Date.now, budget = deps.budgetMs ?? 20000;
+  // About 12 seconds of lookups per request, two at a time, so a first fill leaves room in the shared TMDB limit for Discover.
+  const now = deps.now || Date.now, budget = deps.budgetMs ?? 12000;
   const key = (kind: string, username: string) => "stats-" + kind + ":v1:" + username.toLowerCase();
 
   async function stats(username: string, options: {refresh?: boolean} = {}) {
@@ -217,7 +218,7 @@ export function createStatsService(deps: {fetchList: (username: string) => Promi
         catch { /* TMDB trouble: try this title again next time. */ }
       }
     }
-    await Promise.all([worker(), worker(), worker()]);
+    await Promise.all([worker(), worker()]);
     if (changed) {
       // Keep the shared title cache to the 5,000 most recently looked-up titles.
       const entries = Object.entries(cache);

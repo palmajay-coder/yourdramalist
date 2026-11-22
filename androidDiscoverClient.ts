@@ -8,7 +8,7 @@ export function installAndroidDiscover() {
   heading.textContent = "Discover";
   toolbar.append(heading);
   const header = document.querySelector("body > header");
-  const mainTitles = {profiles: "Lists", discover: "Discover", collections: "My Collections"};
+  const mainTitles = {profiles: "Lists", discover: "Discover", collections: "My Collections", stats: "Stats"};
   function syncHeader() {
     const mobileHeader = currentPage === "selection" && !document.body.classList.contains("wideWeb");
     header.classList.toggle("mobilePageHeader", mobileHeader);
@@ -53,6 +53,12 @@ export function installAndroidDiscover() {
   pageDescription.className = "androidPageDescription";
   pageDescription.style.cssText = "margin:8px 16px 16px;color:#b9c1ce;font-size:14px;line-height:1.5";
   home.insertBefore(pageDescription, workspace);
+  // My Collections opens from the top of Lists (its bottom-bar spot went to Stats), with a way back.
+  const collectionsLink = document.createElement("button");
+  collectionsLink.type = "button";
+  collectionsLink.className = "secondary androidCollectionsLink";
+  collectionsLink.onclick = () => switchTab(state.tab === "collections" ? "profiles" : "collections");
+  home.insertBefore(collectionsLink, workspace);
 
   const discoverForm = $("discoverForm");
   const discoverInput = $("discoverInput");
@@ -97,7 +103,8 @@ export function installAndroidDiscover() {
     ["community", '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>', "Lists"],
     ["search", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v9M7.5 12h9"/></svg>', "Search titles to add"],
     ["discover", "▦", "Discover"],
-    ["collections", layeredPostersIcon, "My Collections"],
+    // Stats took My Collections' place; My Collections opens from a button on the Lists page.
+    ["stats", '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>', "Stats"],
   ];
   const navButtons = new Map();
   for (const [key, icon, label] of destinations) {
@@ -117,7 +124,7 @@ export function installAndroidDiscover() {
     }
     button.onclick = () => {
       if (key === "connect") navigate("connect");
-      if (key === "discover" || key === "collections") openSelection(key);
+      if (key === "discover" || key === "stats") openSelection(key);
       if (key === "community") openCommunity(connectedUser);
       syncNav(currentPage, key);
     };
@@ -127,13 +134,17 @@ export function installAndroidDiscover() {
   document.body.append(bottomNav);
   let wasInDiscover = false;
   function syncNav(page, explicit) {
-    const selected = explicit || (page === "connect" ? "connect" : state.tab === "profiles" ? "community" : state.tab);
+    // My Collections lives inside Lists now, so it lights up Lists.
+    const selected = explicit || (page === "connect" ? "connect" : state.tab === "profiles" || state.tab === "collections" ? "community" : state.tab);
     const inDiscover = state.tab === "discover";
     const inCollections = state.tab === "collections";
+    const inStats = state.tab === "stats";
     syncHeader();
-    pageDescription.hidden = inDiscover;
+    pageDescription.hidden = inDiscover || inStats;
     pageDescription.textContent = inCollections ? "Create and manage your own custom catalogs here." : "Import lists from MyDramaList by searching a username or pasting a link to a list.";
-    filters.hidden = inCollections;
+    filters.hidden = inCollections || inStats;
+    collectionsLink.hidden = !(state.tab === "profiles" || inCollections) || page !== "selection";
+    collectionsLink.textContent = inCollections ? "‹ Back to Lists" : "My Collections ›";
     catalogs.hidden = !inDiscover;
     actions.classList.toggle("hidden", page !== "selection");
     actions.dataset.section = inDiscover ? "discover" : "community";

@@ -36,12 +36,12 @@ Deno.test("Connect keeps its landing title while other tabs share the mobile hea
   const nav = document.querySelector(".androidBottomNav")!;
   const navLabels = () => [...nav.querySelectorAll("button")].map(button=>button.getAttribute("aria-label")).join("|");
   const iconMarkup = [...header.querySelectorAll(".androidHeaderActions button")].map(node=>node.innerHTML).join("|");
-  assert(navLabels()==="Connect|Lists|Search titles to add|Discover|My Collections","Navigation order changed");
+  assert(navLabels()==="Connect|Lists|Search titles to add|Discover|Stats","Navigation order changed");
 
   click("connect");
   assert(!header.classList.contains("mobilePageHeader") && !header.querySelector("h1"),"Connect has a navigation heading");
   assert(!connectHeading.hidden && connectHeading.textContent==="YourDramaList","Connect branding is missing");
-  for (const [destination,title] of [["community","Lists"],["discover","Discover"],["collections","My Collections"]]) {
+  for (const [destination,title] of [["community","Lists"],["discover","Discover"],["stats","Stats"]]) {
     click(destination);
     assert(header.classList.contains("mobilePageHeader"),title+" has no mobile header");
     assert(heading()?.textContent===title,title+" heading is wrong");
@@ -72,7 +72,7 @@ Deno.test("Connect keeps its landing title while other tabs share the mobile hea
   click("connect");
   (document.getElementById("skip") as HTMLButtonElement).click();
   assert(heading()?.textContent==="Discover","Skip account flow changed");
-  assert(navLabels()==="Connect|Lists|Search titles to add|Discover|My Collections","Bottom navigation changed during resize");
+  assert(navLabels()==="Connect|Lists|Search titles to add|Discover|Stats","Bottom navigation changed during resize");
 });
 
 function boot(saved: Map<string,string>, path = "/setup/lists") {
