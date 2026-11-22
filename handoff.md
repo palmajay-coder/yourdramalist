@@ -63,6 +63,14 @@
 - **Configure button:** the manifest sets `configurable:true`, so Nuvio and Stremio open `/addon/<token>/configure`. `configurePage` writes `selectionFromConfig(config)`, the preferences and the username into the browser, then goes to `/setup/lists`. Keys and poster patterns are never written back. Every new catalog kind needs a case in `selectionFromConfig` (tested by a round trip through `normalizeAddon`).
 - **Search:** `/guide` (`guidePage.ts`) is plain server HTML with HowTo and FAQ data. **The owner writes its text in `guide-text.md`** (rules at the top of that file). `cloudflare/build.mjs` copies it into `guideText.ts` on every build; after the owner edits it, fetch, build, commit `guideText.ts` and deploy. A test fails if `guideText.ts` is out of date. Don't police the owner's wording in tests. `/robots.txt` and `/sitemap.xml` live in the same file. The owner should add the site to Google Search Console and submit the sitemap.
 
+## Stats (feature branch `feature/stats`, Phase 1: engine only, not deployed)
+- **Engine:** `stats.ts`, route `GET /api/stats?username=<u>[&refresh=1]` (wired in `app.ts`), tests in `stats.test.ts`.
+- **Sources:** Kuryana's raw dramalist (`/v2/users/<u>/dramalist`), which carries each title's country name, year, type, the owner's score, episodes seen/total, and MyDramaList's own per-list totals (`stats.days`, `stats.episodes`). TMDB adds genres (with drama keywords via `factsGenresFor`), top-5 cast, a textless backdrop and a poster (matched with `pickTmdbResult`).
+- **Exact vs. not:** counts, types, countries (including Hong Kong and others), decades, ratings and Top 10 come straight from the watchlist. Viewing time is MyDramaList's own Completed total (days to 0.1, so within about 1.2 h). Genres and actors cover only TMDB-matched titles (reported in `coverage`). No completion dates exist anywhere.
+- **Hero:** snapshots of Completed (`stats-snapshot:v1:<user>`). The first sync marks everything as old and falls back to the top-rated title (`reason: top-rated-fallback`). Later syncs stamp newly completed titles with their detection time (not a completion date), so the hero is the newest detection, with ties by score then title. Removed titles drop out, and snapshots older than 180 days restart.
+- **Storage (R2 blobs):** `stats-list:v1:<user>` (last good watchlist, refetched after 30 min, refresh at most every 2 min), `stats-snapshot:v1:<user>`, and `stats-titles:v1` (TMDB details per title, 30 days, or 3 for no match, capped at 5,000).
+- **TMDB budget:** about 20 s per request, then `coverage.pending`. Kuryana down: the last good stats, `stale: true`. Private or V2 layout: a clear error.
+
 ## Quirks
 - GitHub GraphQL is blocked from the container. Use `gh api repos/...` (REST).
 - The container can't reach TMDB, yourdramalist.net or workers.dev. Check visual changes locally with `wrangler dev --local` and Playwright.
