@@ -70,7 +70,7 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   const text = () => currentText(document);
   const storyLine = () => d.querySelector(".wrappedStage .wrappedStory")?.textContent;
   const big = () => d.querySelector(".wrappedStage .wrappedHuge, .wrappedStage .wrappedHeadline")?.textContent;
-  ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /Every drama and movie you've completed so far\./.test(text()) && !/all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
+  ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /Here's everything you've completed so far from then to 2026\./.test(text()) && !/all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
   d.querySelector(".wrappedStage").dispatchEvent(new window.Event("click", {bubbles: true}));
   await tick(1300);
   ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /You didn't just start 23 dramas and 56 movies\. You finished every single one\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedLine").length === 1 && d.querySelectorAll(".wrappedStage .wrappedLine strong").length === 2 && !d.querySelector(".wrappedStage .wrappedFact"), "a tap goes forward to the completed count: " + text());
@@ -193,45 +193,51 @@ await test("the music file is served with Range support, and 404 when it isn't s
   ok((await handler(new Request("https://test/assets/wrapped-music-v1.mp3"))).status === 404, "the route exists and says 404 without a stored file");
 });
 
-await test("the Lists pop-up: shows when ready, × hides it for a year, comes back with more completed titles", async () => {
+await test("the Wrapped pop-up: shows once when a username is newly connected, Let's go opens Stats, and it never nags after that", async () => {
   // The test DOM shares one window between mounts, so each case mounts, checks, and is done before the next.
   const banner = (m: any) => m.document.querySelector(".wrappedBanner") as any;
   const lists = async (m: any) => { (m.document.querySelector('[data-list-tab="profiles"]') as any).click(); await tick(); };
-  const stats = (m: any) => m.asked.filter((u: string) => u.startsWith("/api/stats")).length;
+  // A login: the Connect page, a username typed in, the form sent.
+  const login = async (m: any, name = "jaesan") => {
+    m.click("connect"); await tick();
+    m.document.getElementById("source").value = name;
+    m.document.getElementById("connectForm").onsubmit({preventDefault() {}});
+    await tick(100);
+  };
   const mounted = async (options: any = {}) => { const m = mount(options); await tick(100); return m; };
-  const fresh = await mounted({user: "jaesan"});
-  ok(banner(fresh).hidden && banner(fresh).parentElement === fresh.document.body, "not on Discover (the app opens there), and it floats over the page");
-  await lists(fresh);
-  ok(!banner(fresh).hidden && banner(fresh).querySelector("h2").textContent === "Your Drama Wrapped" && /Jump into your year of dramas so far\./.test(banner(fresh).textContent) && banner(fresh).querySelector("button.wrappedBannerGo").textContent === "Let's go", "pops up on Lists when ready");
-  ok(banner(fresh).querySelector(".wrappedBannerArt img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/b.jpg", "behind the hero backdrop");
-  fresh.click("discover"); await tick();
-  ok(banner(fresh).hidden, "hidden on Discover");
-  fresh.click("stats"); await tick(60);
-  ok(banner(fresh).hidden && stats(fresh) === 2, "hidden on Stats (which makes its own request)");
-  await lists(fresh);
-  ok(!banner(fresh).hidden && stats(fresh) === 2, "back on Lists, with no further request");
-  banner(fresh).querySelector(".wrappedBannerGo").click(); await tick();
-  ok(story(fresh.document).open && slideKinds(fresh.document) === 12 && !banner(fresh).hidden, "Let's go opens Wrapped and the pop-up stays");
-  banner(fresh).querySelector(".wrappedBannerClose").click();
-  const saved = JSON.parse(fresh.saved.get("ydl-wrapped-banner:jaesan") || "null");
-  ok(banner(fresh).hidden && saved?.completed === 79 && saved?.dismissedAt > 0, "× hides it and remembers when and how many");
-  fresh.click("stats"); await tick(60); await lists(fresh);
-  ok(banner(fresh).hidden, "still hidden after a revisit");
 
-  const busy = await mounted({user: "jaesan", stats: sample({coverage: {completed: 79, matched: 20, unmatched: 0, pending: 59}})});
-  await lists(busy);
-  ok(banner(busy).hidden, "not while TMDB details are still coming");
-  const guest = await mounted();
-  ok(banner(guest).hidden && stats(guest) === 0, "not without a username");
-  const recent = await mounted({user: "jaesan", saved: [["ydl-wrapped-banner:jaesan", JSON.stringify({dismissedAt: Date.now() - 30 * DAY, completed: 79})]]});
-  await lists(recent);
-  ok(banner(recent).hidden && stats(recent) === 0, "hidden for a year after ×, and no request is made");
-  const more = mount({user: "jaesan", saved: [["ydl-wrapped-banner:jaesan", JSON.stringify({dismissedAt: Date.now() - 30 * DAY, completed: 60})]]});
-  more.click("stats"); await tick(60); await lists(more);
-  ok(!banner(more).hidden, "more titles completed than when it was hidden: it returns");
-  const old = await mounted({user: "jaesan", saved: [["ydl-wrapped-banner:jaesan", JSON.stringify({dismissedAt: Date.now() - 400 * DAY, completed: 79})]]});
-  await lists(old);
-  ok(!banner(old).hidden, "back after a year");
+  const fresh = await mounted();
+  ok(banner(fresh).hidden && banner(fresh).parentElement === fresh.document.body, "nobody connected: no pop-up, and it floats over the page");
+  await login(fresh);
+  ok(!banner(fresh).hidden, "it pops up right after logging in, without waiting for any numbers");
+  ok(banner(fresh).querySelector("h2").textContent === "Your Drama Wrapped"
+    && /Jump into your years of drama from the beginning to 2026\./.test(banner(fresh).textContent)
+    && banner(fresh).querySelector("button.wrappedBannerGo").textContent === "Let's go", "the wording");
+  banner(fresh).querySelector(".wrappedBannerGo").click(); await tick(60);
+  ok(banner(fresh).hidden && !!fresh.document.querySelector(".statsWrappedButton"), "Let's go opens the Stats page and the pop-up goes");
+  await lists(fresh);
+  ok(banner(fresh).hidden, "it does not come back on Lists");
+  await login(fresh);
+  ok(banner(fresh).hidden, "looking up the same username again is not a new login");
+  await login(fresh, "someoneelse");
+  ok(!banner(fresh).hidden, "a different username is a new login: it shows once more");
+  banner(fresh).querySelector(".wrappedBannerClose").click();
+  ok(banner(fresh).hidden, "× closes it");
+  fresh.click("stats"); await tick(60); await lists(fresh);
+  ok(banner(fresh).hidden, "and it stays closed");
+
+  const away = await mounted();
+  await login(away);
+  away.click("stats"); await tick(60); await lists(away);
+  ok(banner(away).hidden, "moving on without tapping anything uses it up");
+
+  const returning = await mounted({user: "jaesan"});
+  await lists(returning);
+  ok(banner(returning).hidden, "a saved username on a page reload is not a login: no pop-up");
+
+  const empty = await mounted({stats: sample({statusCounts: {watching: 0, completed: 0, planToWatch: 0, onHold: 0, dropped: 0}})});
+  await login(empty); await tick(60);
+  ok(banner(empty).hidden, "nothing completed: nothing to show");
 });
 await test("drama personalities follow fixed rules, first match wins, and everyone gets one", async () => {
   const personality = async (stats: any) => {

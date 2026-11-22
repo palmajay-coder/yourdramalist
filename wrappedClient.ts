@@ -516,7 +516,8 @@ export function installWrapped() {
     inFlight = false;
     if (connectedUser !== user) return;
     const completed = data?.statusCounts?.completed || 0;
-    if (completed && (data.coverage?.pending || 0) <= completed * 0.1) { learn(data); return; }
+    // Nothing completed is also an answer: it is recorded so the pop-up has nothing to show.
+    if (data?.statusCounts && (!completed || (data.coverage?.pending || 0) <= completed * 0.1)) { learn(data); return; }
     // Not ready: a private list or none completed will not change, so only keep asking while details are coming in.
     if (data && (!completed || data.coverage?.pending === 0)) return;
     if (polls++ < 15) { clearTimeout(pollTimer); pollTimer = setTimeout(checkBanner, 20e3); }

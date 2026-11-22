@@ -23,7 +23,7 @@ const say = (extra: Record<string, unknown> = {}) => wrappedCopy(base(extra), WR
 await test("the owner's chosen lines, with the numbers folded in and no 'out of' totals", () => {
   const s = say();
   ok(plain(s.completed) === "You didn't just start 23 dramas and 56 movies. You finished every single one.", "completed: " + s.completed);
-  ok(plain(s.time) === "16 days nonstop, fueled by snacks, tissues and zero regrets.", "time: " + s.time);
+  ok(plain(s.time) === "That's 16 days nonstop, fueled by snacks, tissues and zero regrets.", "time: " + s.time);
   ok(plain(s.genre) === "23 thrillers in, and you still never trust the nice guy.", "genre: " + s.genre);
   ok(plain(s.countries) === "Aigoo! From __Goblin__ to __The Glory__, you've officially mastered the art of K-drama marathons with 50 titles watched!", "the country's own line: " + s.countries);
   ok(s.eras === "Dramas from this decade **dominated** your watchlists.", "era: " + s.eras);
@@ -65,7 +65,7 @@ await test("eras use one line under the big decade, which the slide fills in", (
 await test("small numbers, missing data, and ratings without perfect 10s read correctly", () => {
   ok(plain(say({types: {dramas: 0, movies: 3, tvShows: 0}, statusCounts: {completed: 3}}).completed) === "You didn't just start 3 movies. You finished every single one.", "movies only");
   ok(plain(say({statusCounts: {completed: 1}, types: {dramas: 1, movies: 0}}).completed) === "You didn't just start it. You finished it.", "one title");
-  ok(plain(say({viewingTime: {hours: 5, days: 0.2}}).time) === "5 hours nonstop, fueled by snacks, tissues and zero regrets.", "under a day");
+  ok(plain(say({viewingTime: {hours: 5, days: 0.2}}).time) === "That's 5 hours nonstop, fueled by snacks, tissues and zero regrets.", "under a day");
   ok(plain(say({actors: [{name: "A", count: 1}]}).actor) === "One title in, and A already has a fan: you.", "one title with an actor");
   ok(plain(say({ratings: {rated: 5, average: 9, distribution: [{score: 10, count: 1}]}}).ratings).startsWith("Out of everything you watched, you gave 1 title a perfect 10!"), "one perfect 10");
   ok(say({ratings: {rated: 20, average: 8, distribution: [{score: 8, count: 20}]}}).ratings === "You believe in giving credit where the drama is due.", "no 10s but favorable: the approved line");
