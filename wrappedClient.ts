@@ -2,7 +2,7 @@
 // MyDramaList Wrapped: an optional, full-screen story of someone's all-time stats (the same /api/stats data as the
 // Stats tab). Tap the right of the screen (or swipe left, or press →) to go on, the left to go back; × or Esc closes.
 // Nothing advances by itself. Slides without data are left out. Reduced motion shows everything at once.
-// On Discover, a card (the banner) invites people whose stats are ready to open it; × hides it for a year.
+// On the Lists page, a pop-up card (the banner) invites people whose stats are ready to open it; × hides it for a year.
 export function installWrapped() {
   const el = (tag, className = "", text = "") => {
     const node = document.createElement(tag);
@@ -399,7 +399,7 @@ export function installWrapped() {
     show(0);
   }
 
-  // The banner at the top of Discover. It shows once someone's stats are ready, stays after "Let's go" so the recap
+  // The pop-up card that slides up from the bottom of the Lists page. It shows once someone's stats are ready, stays after "Let's go" so the recap
   // can be replayed, and × hides it for a year (or until they have completed more titles).
   const YEAR = 365 * 86400000;
   const banner = el("section", "wrappedBanner");
@@ -420,8 +420,8 @@ export function installWrapped() {
   };
   function syncBanner() {
     const user = connectedUser;
-    // On Lists and Discover (not Stats, My Collections or the other pages).
-    const show = !!bannerData && !!user && user === bannerUser && (state.tab === "discover" || state.tab === "profiles") && currentPage === "selection" && !dismissedNow(user, bannerData.statusCounts.completed);
+    // A pop-up on the Lists page only (not Discover, Stats, My Collections or the other pages).
+    const show = !!bannerData && !!user && user === bannerUser && state.tab === "profiles" && currentPage === "selection" && !dismissedNow(user, bannerData.statusCounts.completed);
     banner.hidden = !show;
   }
   // Their stats are fetched in the background as soon as a username is connected (the server keeps what it learns), and
@@ -465,7 +465,7 @@ export function installWrapped() {
     if (bannerData) try { localStorage.setItem(bannerKey(bannerUser), JSON.stringify({ dismissedAt: Date.now(), completed: bannerData.statusCounts.completed })); } catch {}
     banner.hidden = true;
   };
-  function mountBanner(anchor) { anchor.before(banner); checkBanner(); }
+  function mountBanner() { document.body.append(banner); checkBanner(); }
   window.syncWrappedBanner = () => { syncBanner(); checkBanner(); };
   return { open, mountBanner, learn, syncBanner, userChanged };
 }

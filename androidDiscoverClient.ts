@@ -186,7 +186,7 @@ export function installAndroidDiscover() {
   const catalogs = document.createElement("div");
   catalogs.id = "androidCatalogs";
   $("listItems").after(catalogs);
-  wrapped.mountBanner(workspace); // above the page, so it shows on Lists and Discover
+  wrapped.mountBanner(); // a pop-up card that slides up over the Lists page
   state.filter = "catalogs";
   $("profileInput").placeholder = "Search a MyDramaList username or paste a list link";
   $("exploreSearch").classList.remove("hidden");
