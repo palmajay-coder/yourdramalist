@@ -158,7 +158,7 @@ export function installWrapped() {
       g.fillText(value, 90, y + 58);
       y += 122;
     }
-    g.textAlign = "center"; g.font = font(30, 700); g.globalAlpha = 0.6; g.fillText("yourdramalist.net", W / 2, 1880); g.globalAlpha = 1;
+    g.textAlign = "center"; g.font = font(30, 700); g.globalAlpha = 0.6; g.fillText("MyDramaList", W / 2, 1880); g.globalAlpha = 1;
     return new Promise(resolve => { try { canvas.toBlob(blob => resolve(blob), "image/png"); } catch { resolve(null); } });
   }
   // Share through the phone's own share sheet (Instagram, Facebook, TikTok and so on); save the picture if it can't open.
@@ -294,7 +294,7 @@ export function installWrapped() {
       if (data.actors?.[0]) lines.append(el("li", "", "Most-watched actor: " + data.actors[0].name));
       if (data.countries?.length) lines.append(el("li", "", data.countries.slice(0, 3).map(x => x.country + " " + x.count).join(" · ")));
       if (type) lines.append(el("li", "", "Drama type: " + type.name));
-      card.append(el("p", "wrappedCardBrand", "YourDramaList"), el("p", "wrappedCardUser", "@" + data.username + " · all time"), top, lines);
+      card.append(el("p", "wrappedCardBrand", "MyDramaList"), el("p", "wrappedCardUser", "@" + data.username + " · all time"), top, lines);
       const note = el("p", "wrappedShareNote"); note.setAttribute("role", "status");
       const share = el("button", "primary", "Share"); share.type = "button"; share.onclick = () => shareCard(data, type, genres, note);
       const save = el("button", "secondary", "Save image"); save.type = "button"; save.onclick = () => saveCard(data, type, genres, note);
