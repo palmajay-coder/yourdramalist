@@ -41,16 +41,19 @@ export function wrappedCopy(data, raw) {
   const genre = (data?.genres || []).find(g => g.genre !== "Drama");
   out.genre = !genre ? null : t("genre." + genre.genre, { count: genre.count, genre: b(genre.genre) }) || t("genre.other", { count: genre.count, genre: b(genre.genre) });
 
-  // Countries. Ties first, then a close race, then a clear winner. Only first place is named.
-  // A close race: the leader is ahead of second place by 3 titles or fewer, or by under 10% of its own count.
+  // Countries. Only first place is named (ties are said as ties).
   const countries = (data?.countries || []).filter(x => x.country && x.country !== "Unknown" && x.count > 0);
   if (countries.length) {
     const top = countries[0].count;
     const leaders = countries.filter(x => x.count === top).map(x => b(x.country));
-    const gap = top - (countries[leaders.length]?.count || 0);
     const values = { count: top, country: leaders[0], countries: and(leaders) };
+    // A single leader gets its own line (cultural expression, two of their titles, a country-specific remark); a tie keeps the tie line.
+    const titles = countries[0].titles || [];
+    const watched = b(top + " " + (top === 1 ? "title" : "titles") + " watched!");
+    const own = text["countries.line." + countries[0].country] ? "countries.line." + countries[0].country : "countries.line.other";
     out.countries = leaders.length > 1 ? t("countries.tie", values)
-      : countries.length > 1 && (gap <= 3 || gap < top * 0.1) ? t("countries.close", values) : t("countries.clear", values);
+      : titles.length >= 2 && text[own] ? t(own, { ...values, title1: "__" + titles[0] + "__", title2: "__" + titles[1] + "__", watched })
+      : t("countries.clear", values);
   } else out.countries = null;
 
   // Eras, by release decade (MyDramaList gives no watch dates).

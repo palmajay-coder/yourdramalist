@@ -11,7 +11,7 @@ const base = (extra: Record<string, unknown> = {}) => ({
   statusCounts: {completed: 79}, types: {dramas: 23, movies: 56, tvShows: 0},
   viewingTime: {hours: 388.8, days: 16.2},
   genres: [{genre: "Drama", count: 36}, {genre: "Thriller", count: 23}, {genre: "Crime", count: 18}],
-  countries: [{country: "South Korea", count: 50}, {country: "Japan", count: 20}],
+  countries: [{country: "South Korea", count: 50, titles: ["Goblin", "The Glory"]}, {country: "Japan", count: 20}],
   decades: [{decade: "2000s", count: 40}, {decade: "2010s", count: 30}],
   actors: [{name: "Moon Lee", count: 4}],
   topDramas: [{slug: "1-d", title: "D", score: 10, cast: ["Lee Min-ho", "Kim Go-eun", "Third"]}], topMovies: [{slug: "1-m", title: "M", score: 9}],
@@ -25,7 +25,7 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
   ok(plain(s.completed) === "You didn't just start 23 dramas and 56 movies. You finished every single one.", "completed: " + s.completed);
   ok(plain(s.time) === "16 days nonstop, fueled by snacks, tissues and zero regrets.", "time: " + s.time);
   ok(plain(s.genre) === "23 thrillers in, and you still never trust the nice guy.", "genre: " + s.genre);
-  ok(plain(s.countries) === "South Korea practically took over your watchlist, with 50 titles.", "clear winner: " + s.countries);
+  ok(plain(s.countries) === "Aigoo! From __Goblin__ to __The Glory__, you've officially mastered the art of K-drama marathons with 50 titles watched!", "the country's own line: " + s.countries);
   ok(s.eras === "Dramas from this decade **dominated** your watchlists.", "era: " + s.eras);
   ok(plain(s.actor) === "4 titles in, it's official: Moon Lee has a fan, and it's you.", "actor: " + s.actor);
   ok(plain(s.topDrama) === "Of everything you've finished, this one with Lee Min-ho and Kim Go-eun hit hardest.", "#1 drama: " + s.topDrama);
@@ -35,12 +35,13 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
   ok(/\*\*23\*\*/.test(s.completed!) && /\*\*Moon Lee\*\*/.test(s.actor!), "numbers and names are bold");
 });
 
-await test("countries: ties first, then a close race, then a clear winner; only first place is named", () => {
+await test("countries: a tie keeps its line, a single leader gets its own line with two titles; only first place is named", () => {
   const c = (list: [string, number][]) => plain(say({countries: list.map(([country, count]) => ({country, count}))}).countries);
   ok(c([["Japan", 29], ["South Korea", 29], ["Hong Kong", 14]]) === "Japan and South Korea tied at 29 each, because choosing favorites isn't your thing.", "a tie of two");
   ok(c([["Japan", 9], ["South Korea", 9], ["China", 9]]) === "Japan, South Korea and China tied at 9 each, because choosing favorites isn't your thing.", "a tie of three");
-  ok(c([["South Korea", 31], ["Japan", 29]]) === "It was neck and neck, but South Korea pulled ahead with 31 titles.", "close (3 or fewer ahead)");
-  ok(/neck and neck/.test(c([["Japan", 100], ["South Korea", 92]])), "close (under 10% ahead)");
+  const withTitles = (country: string, count: number, titles: string[]) => plain(say({countries: [{country, count, titles}]}).countries);
+  ok(withTitles("Japan", 7, ["First Love", "Alice in Borderland"]) === "Sugoi! From __First Love__ to __Alice in Borderland__, you're living the J-drama life with 7 titles watched!", "Japan");
+  ok(/Wow! From __A__ to __B__, you've traveled the world of Vietnam dramas with 1 title watched!/.test(withTitles("Vietnam", 1, ["A", "B"])), "another country, singular");
   ok(c([["Japan", 40], ["South Korea", 20]]) === "Japan practically took over your watchlist, with 40 titles.", "clear winner");
   ok(c([["Japan", 1]]) === "Japan practically took over your watchlist, with 1 title.", "only one country, singular");
   ok(say({countries: []}).countries === null, "no countries");

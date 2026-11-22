@@ -13,6 +13,8 @@ How to edit:
     {name}      an actor's name, shown in bold
     {cast}      the #1 title's two lead actors, shown in bold ("Lee Min-ho and Kim Go-eun")
     {list}      what was completed, shown in bold numbers ("23 dramas and 56 movies")
+    {title1} {title2}  two of their titles from that country (their top rated), shown in italics
+    {watched}   "42 titles watched!" in bold
     {countries} the tied countries, shown in bold ("Japan and South Korea")
     {average}   the average score, counted up on screen
     {count}     just the number, in bold (also {days} and {hours} where they're used)
@@ -60,10 +62,17 @@ genre.Animation: {count|animated story|animated stories}, proof that big feeling
 genre.Documentary: {count|documentary|documentaries}, because real life has the best drama.
 genre.other: {count|title|titles} of {genre}, and you know exactly what you like.
 
-## 5. Countries
+## 5. Countries (one line for the #1 country: expression, two of their titles, a remark about the country; countries.clear is only the fallback)
 countries.story: Your passport to drama.
+countries.line.South Korea: Aigoo! From {title1} to {title2}, you've officially mastered the art of K-drama marathons with {watched}
+countries.line.Japan: Sugoi! From {title1} to {title2}, you're living the J-drama life with {watched}
+countries.line.China: Tài bàng le! From {title1} to {title2}, you've explored the C-drama universe with {watched}
+countries.line.Thailand: Sud yot! From {title1} to {title2}, you've dived headfirst into Thai drama with {watched}
+countries.line.Taiwan: Hǎo kàn! From {title1} to {title2}, you've fallen for Taiwanese drama charm with {watched}
+countries.line.Hong Kong: Waa! From {title1} to {title2}, you've soaked up the Hong Kong drama magic with {watched}
+countries.line.Philippines: Ang galing! From {title1} to {title2}, you've embraced Filipino drama with {watched}
+countries.line.other: Wow! From {title1} to {title2}, you've traveled the world of {country} dramas with {watched}
 countries.clear: {country} practically took over your watchlist, with {count|title|titles}.
-countries.close: It was neck and neck, but {country} pulled ahead with {count|title|titles}.
 countries.tie: {countries} tied at {count} each, because choosing favorites isn't your thing.
 
 ## 6. Eras (by release decade; the big "The 2020s" under the headline is filled in from their list)

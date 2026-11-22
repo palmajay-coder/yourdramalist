@@ -96,7 +96,11 @@ export function installWrapped() {
   // Text with **bold** parts for emphasis (numbers, names), built from text nodes only.
   function rich(className, text, tag = "p") {
     const node = el(tag, className);
-    String(text).split("**").forEach((part, i) => { if (part) node.append(i % 2 ? el("strong", "", part) : part); });
+    // **bold** and __italic__ (title names); both are built as elements, never as HTML.
+    String(text).split("**").forEach((part, i) => {
+      const parent = i % 2 ? node.appendChild(el("strong")) : node;
+      part.split("__").forEach((bit, j) => { if (bit) parent.append(j % 2 ? el("em", "", bit) : bit); });
+    });
     return node;
   }
   const b = x => "**" + x + "**";
