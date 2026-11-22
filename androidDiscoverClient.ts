@@ -53,7 +53,25 @@ export function installAndroidDiscover() {
   pageDescription.className = "androidPageDescription";
   pageDescription.style.cssText = "margin:8px 16px 16px;color:#b9c1ce;font-size:14px;line-height:1.5";
   home.insertBefore(pageDescription, workspace);
-  // My Collections has no button for now (it looked out of place on Lists); its page and code are kept for when it gets a new home.
+  // Lists has two tabs: lists imported from MyDramaList, and My Collections.
+  const listTabs = document.createElement("div");
+  listTabs.className = "androidListTabs";
+  listTabs.setAttribute("role", "tablist");
+  const listTabButtons = new Map();
+  for (const [tab, label, icon] of [
+    ["profiles", "MyDramaList", '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>'],
+    ["collections", "My Collections", '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>'],
+  ]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("role", "tab");
+    button.dataset.listTab = tab;
+    button.innerHTML = icon + "<span>" + label + "</span>";
+    button.onclick = () => { if (state.tab !== tab) switchTab(tab); };
+    listTabButtons.set(tab, button);
+    listTabs.append(button);
+  }
+  home.insertBefore(listTabs, pageDescription);
 
   const discoverForm = $("discoverForm");
   const discoverInput = $("discoverInput");
@@ -135,8 +153,12 @@ export function installAndroidDiscover() {
     const inCollections = state.tab === "collections";
     const inStats = state.tab === "stats";
     syncHeader();
-    pageDescription.hidden = inDiscover || inStats;
-    pageDescription.textContent = inCollections ? "Create and manage your own custom catalogs here." : "Import lists from MyDramaList by searching a username or pasting a link to a list.";
+    // The Lists hint lives in the search box now; My Collections keeps its one line.
+    pageDescription.hidden = !inCollections;
+    pageDescription.textContent = "Create and manage your own custom catalogs here.";
+    const onLists = (state.tab === "profiles" || inCollections) && page === "selection";
+    listTabs.hidden = !onLists;
+    for (const [tab, button] of listTabButtons) { button.classList.toggle("active", state.tab === tab); button.setAttribute("aria-selected", String(state.tab === tab)); }
     filters.hidden = inCollections || inStats;
     catalogs.hidden = !inDiscover;
     window.syncWrappedBanner?.();
@@ -166,6 +188,7 @@ export function installAndroidDiscover() {
   $("listItems").after(catalogs);
   wrapped.mountBanner(workspace); // above the page, so it shows on Lists and Discover
   state.filter = "catalogs";
+  $("profileInput").placeholder = "Search a MyDramaList username or paste a list link";
   $("exploreSearch").classList.remove("hidden");
   switchTab("discover");
   let startPage = hasStarted() ? "selection" : "connect";

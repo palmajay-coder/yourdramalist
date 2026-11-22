@@ -94,8 +94,7 @@ await test("View My Wrapped on Stats opens ten slides, each led by one sentence 
   for (let i = 0; i < 9; i++) key("ArrowRight");
   ok(/Your recap, in one card\./.test(currentText(document)) && /Drama type: The Superfan/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
   ok(d.querySelector(".wrappedHint").hidden, "no tap hint on the last slide");
-  (d.querySelector('[data-wrapped-action="replay"]') as any).click();
-  ok(/here's everything you've watched/.test(currentText(document)), "Replay starts over");
+  ok(![...d.querySelectorAll(".wrappedStage button")].some((b: any) => /Replay|Close/.test(b.textContent)), "no Replay or Close buttons, only the ×");
   (d.querySelector(".wrappedClose") as any).click();
   ok(!d.open, "× closes");
 });
@@ -142,7 +141,7 @@ await test("the last slide offers Share and Save image, and says so when the car
   const d = story(m.document);
   for (let i = 0; i < 9; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
   const buttons = [...d.querySelectorAll(".wrappedStage button")].map((b: any) => b.textContent);
-  ok(buttons.join("|") === "Share|Save image|Replay|Close", "buttons: " + buttons);
+  ok(buttons.join("|") === "Share|Save image", "buttons: " + buttons);
   (d.querySelector(".wrappedStage button") as any).click(); await tick();
   ok(/couldn't be made|Making your card|Saved/.test(d.querySelector(".wrappedShareNote").textContent), "a status line, never a silent failure: " + d.querySelector(".wrappedShareNote").textContent);
   ok(slideKinds(m.document) === 10 && /Your recap, in one card/.test(currentText(m.document)), "tapping a button doesn't change slides");

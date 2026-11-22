@@ -300,10 +300,7 @@ export function installWrapped() {
       const save = el("button", "secondary", "Save image"); save.type = "button"; save.onclick = () => saveCard(data, type, genres, note);
       const actions = el("div", "wrappedActions");
       actions.append(share, save);
-      const replay = el("button", "secondary", "Replay"); replay.type = "button"; replay.dataset.wrappedAction = "replay";
-      const done = el("button", "primary", "Close"); done.type = "button"; done.dataset.wrappedAction = "close";
-      const more = el("div", "wrappedActions"); more.append(replay, done);
-      out.push({ node: withArt(slide("isCard", el("h2", "wrappedTitle wrappedHeadline", "Your recap, in one card."), card, actions, note, more), data.art?.card) });
+      out.push({ node: withArt(slide("isCard", el("h2", "wrappedTitle wrappedHeadline", "Your recap, in one card."), card, actions, note), data.art?.card) });
     }
     return out;
   }
@@ -328,9 +325,6 @@ export function installWrapped() {
   function finish() { clearTimers(); if (dialog.open) dialog.close(); }
 
   stage.addEventListener("click", event => {
-    const action = event.target.closest?.("[data-wrapped-action]")?.dataset.wrappedAction;
-    if (action === "replay") { show(0); return; }
-    if (action === "close") { finish(); return; }
     if (event.target.closest?.("button")) return;
     if (swiped) { swiped = false; return; }
     const box = stage.getBoundingClientRect?.() || {};

@@ -92,9 +92,22 @@ await test("still being looked up, stale, empty and error states say so instead 
   ok(/This MyDramaList watchlist is private/.test(priv.panel().textContent) && priv.panel().querySelector("button")?.textContent === "Try again", "the API's message with Try again");
 });
 
-await test("Lists has no My Collections button for now", async () => {
+await test("Lists has two tabs, MyDramaList and My Collections, with the hint inside the search box", async () => {
   const {document, click} = mount({user: "jaesan"});
+  click("discover"); await tick();
+  const tabs = document.querySelector(".androidListTabs") as any;
+  ok(tabs.hidden, "no tabs on Discover");
   click("community"); await tick();
-  ok(!document.querySelector(".androidCollectionsLink") && !/My Collections/.test(document.querySelector(".androidPageDescription")!.parentElement!.textContent || ""), "no button on Lists");
+  const buttons = [...tabs.querySelectorAll("button")] as any[];
+  ok(!tabs.hidden && buttons.map(b => b.textContent).join("|") === "MyDramaList|My Collections" && buttons[0].classList.contains("active"), "two tabs, MyDramaList active");
+  ok((document.getElementById("profileInput") as any).placeholder === "Search a MyDramaList username or paste a list link", "the hint is the search box's placeholder");
+  ok((document.querySelector(".androidPageDescription") as any).hidden, "no hint line on the MyDramaList tab");
+  buttons[1].click(); await tick();
+  ok(!document.getElementById("myCollections")!.classList.contains("hidden") && buttons[1].classList.contains("active") && !buttons[0].classList.contains("active"), "My Collections opens");
+  ok(document.querySelector('[data-destination="community"]')!.classList.contains("active"), "Lists stays highlighted in the bottom bar");
+  buttons[0].click(); await tick();
+  ok(document.getElementById("myCollections")!.classList.contains("hidden") && buttons[0].classList.contains("active"), "back to MyDramaList");
+  click("stats"); await tick();
+  ok(tabs.hidden, "no tabs on Stats");
 });
 console.log(JSON.stringify({passed}));
