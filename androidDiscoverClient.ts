@@ -176,6 +176,7 @@ export function installAndroidDiscover() {
     }
   }
   window.syncAndroidNav = syncNav;
+  window.openWrappedStats = () => { openSelection("stats"); syncNav(currentPage, "stats"); };
   window.syncAndroidSelectionCount = (count) => {
     const badge = $("androidSelectionCount");
     badge.textContent = String(count);

@@ -483,7 +483,7 @@ export function installWrapped() {
   const bannerArt = el("div", "wrappedBannerArt");
   const copy = el("div", "wrappedBannerCopy");
   const go = el("button", "wrappedBannerGo", "Let's go"); go.type = "button";
-  copy.append(el("h2", "", "Your Drama Wrapped"), el("p", "", "Jump into your year of dramas so far."), go);
+  copy.append(el("h2", "", "Your Drama Wrapped"), el("p", "", "Jump into your years of Drama"), go);
   const hide = el("button", "wrappedBannerClose", "×"); hide.type = "button"; hide.setAttribute("aria-label", "Hide Wrapped");
   banner.append(bannerArt, el("i", "wrappedSpark isA"), el("i", "wrappedSpark isB"), el("i", "wrappedSpark isC"), copy, hide);
   let bannerData = null, bannerUser = null;
@@ -496,7 +496,9 @@ export function installWrapped() {
   function syncBanner() {
     const user = connectedUser;
     // A pop-up on the Lists page only (not Discover, Stats, My Collections or the other pages).
-    const show = !!bannerData && !!user && user === bannerUser && state.tab === "profiles" && currentPage === "selection" && !dismissedNow(user, bannerData.statusCounts.completed);
+    // It shows as soon as a username is connected, without waiting for the numbers (Stats loads them). Not on Stats itself.
+    const known = bannerUser === user ? bannerData?.statusCounts?.completed : undefined;
+    const show = !!user && state.tab !== "stats" && currentPage === "selection" && known !== 0 && !dismissedNow(user, known || 0);
     banner.hidden = !show;
   }
   // Their stats are fetched in the background as soon as a username is connected (the server keeps what it learns), and
@@ -525,6 +527,7 @@ export function installWrapped() {
   }
   function userChanged() {
     clearTimeout(pollTimer); polls = 0; inFlight = false; bannerData = null; bannerUser = null; banner.hidden = true;
+    syncBanner();
     if (connectedUser) checkBanner();
   }
   // Called with the numbers whenever they are fresh (here, or when Stats loads them).
@@ -535,11 +538,15 @@ export function installWrapped() {
     bannerArt.replaceChildren(...(data.hero?.backdrop ? [image(data.hero.backdrop)] : []));
     syncBanner();
   }
-  go.onclick = () => { if (bannerData) open(bannerData); };
-  hide.onclick = () => {
-    if (bannerData) try { localStorage.setItem(bannerKey(bannerUser), JSON.stringify({ dismissedAt: Date.now(), completed: bannerData.statusCounts.completed })); } catch {}
+  // Hidden for a year (or until they complete more titles, when the numbers are known).
+  const dismiss = () => {
+    const user = connectedUser;
+    if (user) try { localStorage.setItem(bannerKey(user), JSON.stringify({ dismissedAt: Date.now(), completed: bannerUser === user && bannerData ? bannerData.statusCounts.completed : 1e9 })); } catch {}
     banner.hidden = true;
   };
+  // "Let's go" opens the Stats page, which loads everything.
+  go.onclick = () => { dismiss(); window.openWrappedStats?.(); };
+  hide.onclick = dismiss;
   function mountBanner() { document.body.append(banner); checkBanner(); }
   window.syncWrappedBanner = () => { syncBanner(); checkBanner(); };
   return { open, mountBanner, learn, syncBanner, userChanged };
