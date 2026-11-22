@@ -117,6 +117,8 @@ export function installStats() {
     const parts = [];
     if (data.stale) parts.push(el("p", "statsBanner", "Showing your last saved stats. MyDramaList couldn't be reached just now."));
     parts.push(hero(data));
+    // The optional story version of these same numbers (wrappedClient.ts).
+    if (data.statusCounts.completed && typeof wrapped !== "undefined") parts.push(button("View My Wrapped", "primary statsWrappedButton", () => wrapped.open(data)));
     if (!data.statusCounts.completed) {
       parts.push(message("You haven't completed anything on MyDramaList yet. Finish a drama and your stats will show up here."));
     }

@@ -439,3 +439,83 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .statsMessage p{margin:0 0 14px;font-size:16px}
 @media (prefers-reduced-motion:reduce){.statsHeroArt img.statsHeroFade{transition:none}}
 @media (min-width:900px){.statsPanel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;align-items:start;max-width:1100px}.statsHero,.statsBanner,.statsNote,.statsMessage{grid-column:1/-1}.statsHero{min-height:320px}}
+
+/* MyDramaList Wrapped (wrappedClient.ts): full-screen story slides. */
+.statsWrappedButton{display:block;width:100%;margin:-4px 0 16px;padding:13px;border-radius:12px;font-weight:800;font-size:16px}
+.wrapped{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#0d0f14;color:#f2f5fa;font-family:Lato,system-ui,sans-serif;overflow:hidden}
+.wrapped::backdrop{background:#000}
+.wrappedProgress{position:absolute;z-index:3;top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:56px;display:flex;gap:4px}
+.wrappedProgressBar{flex:1;height:3px;border-radius:2px;background:#ffffff38;overflow:hidden;position:relative}
+.wrappedProgressBar.isDone{background:#fff}
+.wrappedProgressBar.isCurrent::after{content:"";position:absolute;inset:0;background:#fff;transform-origin:left;animation:wrappedFill .5s ease forwards}
+.wrappedClose{position:absolute;z-index:3;top:calc(2px + env(safe-area-inset-top,0px));right:8px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:1}
+.wrappedClose:focus-visible{outline:2px solid #fff}
+.wrappedStage{position:absolute;inset:0;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.wrappedHint{position:absolute;z-index:3;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0;text-align:center;color:#ffffffa0;font-size:13px;pointer-events:none}
+.wrappedSlide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:64px 26px 60px;overflow:hidden}
+.wrappedSlide.isJourney{background:linear-gradient(160deg,#1b3d78,#0d0f14 75%)}
+.wrappedSlide.isTime{background:linear-gradient(160deg,#2674ec,#14306b 60%,#0d0f14)}
+.wrappedSlide.isGenres{background:linear-gradient(160deg,#5b2a86,#2a1648 60%,#0d0f14)}
+.wrappedSlide.isAsia{background:linear-gradient(160deg,#0f6b6b,#0b3340 60%,#0d0f14)}
+.wrappedSlide.isFaces{background:linear-gradient(160deg,#8a3d24,#3b1b14 60%,#0d0f14)}
+.wrappedSlide.isStories{background:linear-gradient(160deg,#1f2f6b,#101a3d 60%,#0d0f14)}
+.wrappedSlide.isRatings{background:linear-gradient(160deg,#7a2a55,#33122a 60%,#0d0f14)}
+.wrappedSlide.isCard{background:linear-gradient(160deg,#2674ec,#5b2a86 70%,#0d0f14);align-items:center;text-align:center}
+.wrappedBackdrop{position:absolute;inset:0;z-index:0}
+.wrappedBackdrop img{width:100%;height:100%;object-fit:cover;opacity:.55}
+.wrappedBackdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0d0f1440,#0d0f14ee 85%)}
+.wrappedSlide.isActive .wrappedBackdrop img{animation:wrappedZoom 14s ease-out forwards}
+.wrappedSlide>*:not(.wrappedBackdrop){position:relative;z-index:1}
+.wrappedKicker{margin:0;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffffffc0}
+.wrappedTitle{margin:0;font-size:30px;line-height:1.15;font-weight:900}
+.wrappedLine{margin:0;font-size:18px;color:#ffffffd8}
+.wrappedSmall{margin:6px 0 0;font-size:15px;color:#ffffffb0}
+.wrappedBig{font-size:88px;line-height:.95;font-weight:900;letter-spacing:-.03em}
+.wrappedHuge{font-size:56px;line-height:1;font-weight:900;letter-spacing:-.02em}
+.wrappedList{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:20px;font-weight:700}
+.wrappedBars{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:12px}
+.wrappedBar{display:grid;grid-template-columns:minmax(80px,32%) 1fr auto;gap:10px;align-items:center;font-size:16px;font-weight:700}
+.wrappedBarTrack{height:14px;border-radius:7px;background:#ffffff1f;overflow:hidden}
+.wrappedBarFill{display:block;height:100%;width:var(--w);border-radius:7px;background:#fff}
+.wrappedSlide.isActive .wrappedBarFill{animation:wrappedGrow .9s cubic-bezier(.2,.8,.2,1) both}
+.wrappedPortrait{width:150px;height:150px;border-radius:50%;overflow:hidden;background:#ffffff26;display:grid;place-items:center;font-size:60px;font-weight:900;border:4px solid #ffffff40}
+.wrappedPortrait img,.wrappedFace img{width:100%;height:100%;object-fit:cover}
+.wrappedName{font-size:34px;font-weight:900;line-height:1.1}
+.wrappedFaces{margin:16px 0 0;padding:0;list-style:none;display:flex;gap:12px;flex-wrap:wrap}
+.wrappedFaces li{display:grid;justify-items:center;gap:4px;width:64px;text-align:center;font-size:12px}
+.wrappedFace{width:56px;height:56px;border-radius:50%;overflow:hidden;background:#ffffff26;display:grid;place-items:center;font-weight:900}
+.wrappedPosters{margin:16px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
+.wrappedPosters li{display:grid;gap:4px;font-size:12px}
+.wrappedPosters li:first-child{grid-column:span 2;grid-row:span 2}
+.wrappedPoster{position:relative;display:grid;place-items:center;aspect-ratio:2/3;border-radius:8px;overflow:hidden;background:#ffffff1f}
+.wrappedPoster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.wrappedPosterName{padding:6px;font-size:12px;text-align:center}
+.wrappedPosters li:first-child .statsRank{font-size:96px}
+.wrappedFacts{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px;font-size:17px;font-weight:700}
+.wrappedCard{width:min(320px,100%);padding:20px;border-radius:18px;background:#0d0f14d0;border:1px solid #ffffff26;box-shadow:0 20px 60px #0008}
+.wrappedCardBrand{margin:0;font-weight:900;font-size:20px}
+.wrappedCardUser{margin:2px 0 12px;color:#ffffffa0;font-size:13px}
+.wrappedCardPosters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.wrappedCardPoster{aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:#ffffff1f}
+.wrappedCardPoster img{width:100%;height:100%;object-fit:cover}
+.wrappedCardLines{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:15px;font-weight:700;text-align:left}
+.wrappedActions{display:flex;gap:10px;margin-top:18px}
+.wrappedActions button{min-width:110px;padding:11px 16px;border-radius:12px;font-weight:800}
+.wrappedSlide.isActive .wrappedRise{animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
+.wrappedSlide.isActive .wrappedPop{animation:wrappedPop .7s cubic-bezier(.2,.9,.25,1.2) both}
+.wrappedSlide.isActive>.wrappedKicker,.wrappedSlide.isActive>.wrappedTitle,.wrappedSlide.isActive>.wrappedBig,.wrappedSlide.isActive>.wrappedLine{animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
+.wrappedSlide.isActive>.wrappedLine{animation-delay:.25s}
+.wrapped.reduceMotion *,.wrapped.reduceMotion *::after{animation:none!important;transition:none!important}
+@keyframes wrappedRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes wrappedPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes wrappedGrow{from{width:0}}
+@keyframes wrappedZoom{from{transform:scale(1)}to{transform:scale(1.12)}}
+@keyframes wrappedFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.wrapped *,.wrapped *::after{animation:none!important}}
+@media (min-width:700px){.wrappedSlide{padding-left:max(26px,calc(50vw - 260px));padding-right:max(26px,calc(50vw - 260px))}}
+/* The once-a-year "Your drama recap is ready!" card. */
+.wrappedPrompt{position:fixed;z-index:30;left:12px;right:12px;bottom:calc(92px + env(safe-area-inset-bottom,0px));max-width:420px;margin:0 auto;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#2674ec,#5b2a86);color:#fff;box-shadow:0 12px 32px #0009;display:flex;align-items:center;justify-content:space-between;gap:12px;animation:wrappedRise .5s cubic-bezier(.2,.8,.2,1) both}
+.wrappedPrompt[hidden]{display:none}
+.wrappedPrompt p{margin:0;font-weight:800;font-size:15px}
+.wrappedPromptActions{display:flex;gap:8px;flex:none}
+.wrappedPromptActions button{padding:8px 14px;border-radius:10px;font-weight:800}

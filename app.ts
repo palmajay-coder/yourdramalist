@@ -3,6 +3,7 @@ import {handlePersonalCatalog} from "./personalCatalogs.ts";
 import {installPersonalCatalogSync} from "./personalCatalogSync.ts";
 import { installMyCollections } from "./myCollectionsClient.ts";
 import { installStats } from "./statsClient.ts";
+import { installWrapped } from "./wrappedClient.ts";
 import { installCollectionPicker } from "./collectionPicker.ts";
 import { installCatalogTitlePreview } from "./catalogTitlePreview.ts";
 import { installAndroidDiscover } from "./androidDiscoverClient.ts";
@@ -586,6 +587,7 @@ const makeDiscoverTitleAdd=(${installDiscoverAddButtons.toString()})();
 const layeredPostersIcon = '<span class="layeredPostersIcon" aria-hidden="true"><i></i><i></i><i></i></span>';
 const personalCatalogSync=(${installPersonalCatalogSync.toString()})();
 const showMyCollections=(${installMyCollections.toString()})();
+const wrapped=(${installWrapped.toString()})();
 const showStats=(${installStats.toString()})();
 const openCollectionPicker=(${installCollectionPicker.toString()})();
 const showCatalogTitle=(${installCatalogTitlePreview.toString()})();
@@ -600,6 +602,8 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter
 const quickSearch=(${installQuickSearch.toString()})();
 (${installAndroidDiscover.toString()})();
 (${installMotion.toString()})();
+// Once a year, when someone's stats are ready, offer their Wrapped recap (they choose View or Later).
+setTimeout(()=>wrapped.maybePrompt(),2000);
 // Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Only that tag
 // shows the notice: Reddit, Instagram and other apps open links in their own web views, which are not ours.
 (()=>{
