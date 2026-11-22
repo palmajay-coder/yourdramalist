@@ -80,7 +80,7 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   key("ArrowRight");
   ok(storyLine() === "You clearly have a type." && big() === "Thriller" && /23 thrillers in, and you still never trust the nice guy\./.test(text()) && !/Crime/.test(text()) && d.querySelectorAll(".wrappedStage .wrappedLine").length === 1, "genre: " + text());
   key("ArrowRight");
-  ok(storyLine() === "Your passport to drama." && big() === "Japan and South Korea" && /Japan and South Korea tied at 29 each, because choosing favorites isn't your thing\./.test(text()) && !/Hong Kong/.test(text()), "countries, a tie said as a tie: " + text());
+  ok(storyLine() === "Your passport to drama." && big() === "Japan and South Korea" && /heart belongs to two places! You watched 29 titles from each country\./.test(text()) && !/Hong Kong/.test(text()), "countries, a tie said as a tie: " + text());
   ok(d.querySelector(".wrappedStage svg.wrappedMap") && d.querySelectorAll(".wrappedStage .wrappedMapRing").length === 2 && (d.querySelector(".wrappedStage .wrappedMap .isHit")?.getAttribute("d") || "").split("M").length > 10 && !d.querySelector(".wrappedStage .wrappedBar"), "a map with both tied countries lit up and circled, instead of bars");
   key("ArrowRight");
   ok(storyLine() === "Every era has its drama, yours was:" && big() === "The 2000s" && /Dramas from this decade dominated your watchlists\./.test(text()) && [...d.querySelectorAll(".wrappedStage .wrappedBarLabel")].map((x: any) => x.textContent).join() === "2000s,2010s", "eras by release decade, most first: " + text());
