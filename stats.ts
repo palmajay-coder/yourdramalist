@@ -18,12 +18,13 @@ export type Entry = {slug: string; title: string; country: string; year: number 
 export type ListTotals = {dramas: number; tvShows: number; movies: number; episodes: number; days: number};
 export type Watchlist = {username: string; fetchedAt: string; lists: Record<Status, {items: Entry[]; totals: ListTotals | null}>};
 export type TitleMeta = {v: number; slug: string; matched: boolean; tmdb?: {kind: "tv" | "movie"; id: number}; genres: string[];
-  cast: {id: number; name: string; profile: string | null}[]; backdrop: string | null; backdropHd: string | null; poster: string | null; at: number};
+  cast: {id: number; name: string; profile: string | null}[]; backdrop: string | null; backdropHd: string | null; poster: string | null; rating: number | null; votes: number; at: number};
 export type Snapshot = {v: 1; lastSync: string; completed: Record<string, string | null>};
 
 const COUNTRY_CODES: Record<string, string> = {"South Korea": "KR", "China": "CN", "Japan": "JP", "Taiwan": "TW", "Thailand": "TH", "Hong Kong": "HK", "Philippines": "PH"};
-// Version 2 added backdropHd (sharp pictures for Wrapped), so every older saved answer is looked up again.
-const META_VERSION = 2, DAY = 86400000;
+// Version 2 added backdropHd (sharp pictures for Wrapped); version 3 added TMDB's rating, which breaks ties between equal
+// scores. Each bump makes every older saved answer be looked up again.
+const META_VERSION = 3, DAY = 86400000;
 const IMG = "https://image.tmdb.org/t/p/";
 const num = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const round = (value: number, places = 1) => Math.round(value * 10 ** places) / 10 ** places;
@@ -116,7 +117,10 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
   const decades = [...new Set(completed.filter(i => i.year).map(i => Math.floor(i.year! / 10) * 10))].sort().map(start => ({decade: start + "s", count: completed.filter(i => i.year && Math.floor(i.year / 10) * 10 === start).length}));
 
   // Top 10: the owner's score, then title A to Z (no dates exist, so no recency).
-  const topRated = [...scored].sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)).slice(0, 10)
+  // Equal scores are ordered by TMDB's rating (only when 50+ people voted), then title A to Z; no dates exist, so no recency.
+  const tmdbRating = (slug: string) => { const m = meta[slug]; return m && m.votes >= 50 && m.rating ? m.rating : 0; };
+  const byScoreThenTitle = (a: Entry, b: Entry) => b.score - a.score || tmdbRating(b.slug) - tmdbRating(a.slug) || a.title.localeCompare(b.title);
+  const topRated = [...scored].sort(byScoreThenTitle).slice(0, 10)
     .map((item, i) => ({rank: i + 1, slug: item.slug, title: item.title, year: item.year, country: item.country, type: item.type, score: item.score, poster: meta[item.slug]?.poster || null}));
 
   // Genres and actors: completed titles that matched on TMDB, each title counted once.
@@ -130,9 +134,8 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
       actorCount.set(person.id, row);
     }
   }
-  // Your highest scored dramas and movies, each with its own #1 (ties by title A to Z; no dates exist, so no recency).
-  const byScoreThenTitle = (a: Entry, b: Entry) => b.score - a.score || a.title.localeCompare(b.title);
-  const rankList = (items: Entry[]) => items.slice(0, 5).map((item, i) => ({rank: i + 1, slug: item.slug, title: item.title, year: item.year, country: item.country, type: item.type, score: item.score, poster: meta[item.slug]?.poster || null}));
+  // Your highest scored dramas and movies, each with its own #1 (same tie-break as above), with their two lead actors.
+  const rankList = (items: Entry[]) => items.slice(0, 5).map((item, i) => ({rank: i + 1, slug: item.slug, title: item.title, year: item.year, country: item.country, type: item.type, score: item.score, poster: meta[item.slug]?.poster || null, cast: (meta[item.slug]?.cast || []).slice(0, 2).map(c => c.name)}));
   const dramasScored = scored.filter(i => kind(i) !== "movie").sort(byScoreThenTitle), moviesScored = scored.filter(i => kind(i) === "movie").sort(byScoreThenTitle);
   const topDramas = rankList(dramasScored), topMovies = rankList(moviesScored);
 
@@ -191,7 +194,7 @@ export async function lookupTitle(item: Entry, tmdb: (path: string, params?: Rec
   const code = COUNTRY_CODES[item.country] || "";
   let match = item.year ? pickTmdbResult((await tmdb("search/" + type, {query: item.title, include_adult: "false", [yearKey]: String(item.year)}))?.results || [], item.title, item.year, code) : null;
   if (!match) match = pickTmdbResult((await tmdb("search/" + type, {query: item.title, include_adult: "false"}))?.results || [], item.title, item.year, code);
-  if (!match) return {v: META_VERSION, slug: item.slug, matched: false, genres: [], cast: [], backdrop: null, backdropHd: null, poster: null, at: now};
+  if (!match) return {v: META_VERSION, slug: item.slug, matched: false, genres: [], cast: [], backdrop: null, backdropHd: null, poster: null, rating: null, votes: 0, at: now};
   const details = await tmdb(type + "/" + match.id, {append_to_response: (type === "tv" ? "aggregate_credits" : "credits") + ",keywords,images", include_image_language: "en,null"});
   const keywords = (details?.keywords?.results || details?.keywords?.keywords || []).map((k: any) => String(k?.name || ""));
   const genres = factsGenresFor(type, (details?.genres || []).map((g: any) => Number(g?.id)), keywords);
@@ -210,7 +213,8 @@ export async function lookupTitle(item: Entry, tmdb: (path: string, params?: Rec
   const sharpPath = (pickSharp(null) || pickSharp("en"))?.file_path || null;
   return {v: META_VERSION, slug: item.slug, matched: true, tmdb: {kind: type, id: Number(match.id)}, genres, cast,
     backdrop: backdropPath ? IMG + "w1280" + backdropPath : null, backdropHd: sharpPath ? IMG + "original" + sharpPath : null,
-    poster: details?.poster_path ? IMG + "w500" + details.poster_path : null, at: now};
+    poster: details?.poster_path ? IMG + "w500" + details.poster_path : null,
+    rating: Number(details?.vote_average) > 0 ? Math.round(Number(details.vote_average) * 10) / 10 : null, votes: Math.max(0, Math.floor(Number(details?.vote_count) || 0)), at: now};
 }
 
 type Store = {get: (key: string) => Promise<any>; set: (key: string, value: any) => Promise<any>};

@@ -1,4 +1,4 @@
-// MyDramaList Wrapped (wrappedClient.ts): the story slides and the once-a-year "ready" card.
+// MyDramaList Wrapped (wrappedClient.ts): the story slides and the Discover banner.
 import {parseHTML} from "npm:linkedom@0.18.12";
 import handler from "./app.ts";
 let passed = 0;
@@ -65,7 +65,7 @@ await test("View My Wrapped on Stats opens ten slides, each led by one sentence 
   button.click(); await tick();
   const d = story(document);
   ok(d.open && slideKinds(document) === 10, "ten slides: " + slideKinds(document));
-  ok(/@jaesan, here's everything you've watched/.test(currentText(document)) && !/stor(y|ies)/i.test(currentText(document)) && /Recently completed: 3-Iron/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening slide with a sharp (original-size) backdrop");
+  ok(/@jaesan, here's everything you've watched/.test(currentText(document)) && !/stor(y|ies)/i.test(currentText(document)) && !/Recently completed|Your top-rated/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening slide with a sharp (original-size) backdrop");
   const stage = d.querySelector(".wrappedStage");
   stage.dispatchEvent(new window.Event("click", {bubbles: true}));
   ok(/You watched for/.test(currentText(document)), "a tap goes forward");
@@ -81,16 +81,16 @@ await test("View My Wrapped on Stats opens ten slides, each led by one sentence 
   key("ArrowRight");
   ok(heading() === "Your most-watched actor is Moon Lee." && /4 of your completed titles feature Moon Lee\./.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "actors as a ranked list");
   key("ArrowRight");
-  ok(heading() === "Your #1 drama was Drama 1." && /You gave it a 10\./.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama, its ranked list, and its own backdrop: " + currentText(document));
+  ok(heading() === "Your #1 drama was Drama 1." && /Out of the 23 dramas you've completed\./.test(currentText(document)) && !/You gave it/.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama, its ranked list, and its own backdrop: " + currentText(document));
   key("ArrowRight");
   ok(heading() === "Your #1 movie was Movie 1." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie, its ranked list, and its own backdrop");
   key("ArrowRight"); key("ArrowRight");
-  ok(heading() === "The Perfectionist" && /34 of your 79 scores are a perfect 10/.test(currentText(document)) && /You're also The Movie Buff and The Binger\./.test(currentText(document)), "drama type from the rules: " + currentText(document));
+  ok(heading() === "The Superfan" && /When you love a title, you go all in\. 34 of your 79 scores are a perfect 10\./.test(currentText(document)) && !/also/.test(currentText(document)), "one drama type with what it means: " + currentText(document));
   for (let i = 0; i < 9; i++) key("ArrowLeft");
   key("ArrowLeft");
   ok(/here's everything you've watched/.test(currentText(document)), "← goes back");
   for (let i = 0; i < 9; i++) key("ArrowRight");
-  ok(/Your recap, in one card\./.test(currentText(document)) && /Drama type: The Perfectionist/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
+  ok(/Your recap, in one card\./.test(currentText(document)) && /Drama type: The Superfan/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
   ok(d.querySelector(".wrappedHint").hidden, "no tap hint on the last slide");
   (d.querySelector('[data-wrapped-action="replay"]') as any).click();
   ok(/here's everything you've watched/.test(currentText(document)), "Replay starts over");
@@ -121,25 +121,50 @@ await test("someone with only movies (or only dramas) gets just their one #1 sli
   ok(/Your #1 movie was Movie 1\./.test(currentText(m.document)) && !/#1 drama/.test(d.textContent), "only the movie slide");
 });
 
-await test("the ready card: once a year, ask first, never when not ready or not connected", async () => {
-  const fresh = mount({user: "jaesan"});
-  const recent = mount({user: "jaesan", saved: [["ydl-wrapped-prompt:jaesan", String(Date.now() - 30 * DAY)]]});
-  const old = mount({user: "jaesan", saved: [["ydl-wrapped-prompt:jaesan", String(Date.now() - 400 * DAY)]]});
-  const busy = mount({user: "jaesan", stats: sample({coverage: {completed: 79, matched: 20, unmatched: 0, pending: 59}})});
-  const guest = mount();
-  await tick(2300);
-  const card = (m: any) => m.document.querySelector(".wrappedPrompt") as any;
-  ok(!card(fresh).hidden && /Your drama recap is ready!/.test(card(fresh).textContent) && fresh.saved.has("ydl-wrapped-prompt:jaesan"), "shows once stats are ready, and remembers it");
-  ok(card(recent).hidden && !recent.asked.some(u => u.startsWith("/api/stats")), "not again within a year (no request either)");
-  ok(!card(old).hidden, "again after a year");
-  ok(card(busy).hidden && !busy.saved.has("ydl-wrapped-prompt:jaesan"), "not while TMDB details are still coming, and nothing is written");
-  ok(card(guest).hidden, "not without a connected username");
-  const view = [...card(fresh).querySelectorAll("button")].find((b: any) => b.textContent === "View") as any;
-  view.click(); await tick();
-  ok(card(fresh).hidden && story(fresh.document).open && slideKinds(fresh.document) === 10, "View opens Wrapped");
-  const later = [...card(old).querySelectorAll("button")].find((b: any) => b.textContent === "Later") as any;
-  later.click();
-  ok(card(old).hidden && !story(old.document).open, "Later just closes the card");
+await test("a movie's lead actors fill the #1 subtitle", async () => {
+  const stats = sample({topMovies: [1, 2].map(i => ({rank: i, slug: i + "-m", title: "Movie " + i, year: 2000, country: "Japan", type: "Movie", score: 10, poster: null, cast: i === 1 ? ["Star One", "Star Two"] : []})), topDramas: [{rank: 1, slug: "1-d", title: "Drama 1", year: 2010, country: "South Korea", type: "Drama", score: 10, poster: null, cast: ["Solo Star"]}]});
+  const m = mount({user: "jaesan", stats});
+  m.click("stats"); await tick(60);
+  (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
+  const d = story(m.document);
+  for (let i = 0; i < 5; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  ok(/Starring Solo Star\./.test(currentText(m.document)), "one name: " + currentText(m.document));
+  d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  ok(/Starring Star One and Star Two\./.test(currentText(m.document)), "two names: " + currentText(m.document));
+});
+
+await test("the Discover banner: shows when ready, × hides it for a year, comes back with more completed titles", async () => {
+  // The test DOM shares one window between mounts, so each case mounts, checks, and is done before the next.
+  const banner = (m: any) => m.document.querySelector(".wrappedBanner") as any;
+  const mounted = async (options: any = {}) => { const m = mount(options); await tick(100); return m; };
+  const fresh = await mounted({user: "jaesan"});
+  ok(!banner(fresh).hidden && /Your MyDramaList Wrapped/.test(banner(fresh).textContent) && /Jump into your drama story so far\./.test(banner(fresh).textContent) && banner(fresh).querySelector("button.wrappedBannerGo").textContent === "Let's go", "shows on Discover when ready");
+  ok(banner(fresh).querySelector(".wrappedBannerArt img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/b.jpg", "behind the hero backdrop");
+  ok(banner(fresh).nextElementSibling?.id === "androidCatalogs", "sits at the top of Discover, above its sections");
+  const stats = (m: any) => m.asked.filter((u: string) => u.startsWith("/api/stats")).length;
+  fresh.click("stats"); await tick(60);
+  ok(banner(fresh).hidden && stats(fresh) === 2, "only on Discover (Stats makes its own request)");
+  fresh.click("discover"); await tick();
+  ok(!banner(fresh).hidden && stats(fresh) === 2, "back on Discover, with no further request");
+  banner(fresh).querySelector(".wrappedBannerGo").click(); await tick();
+  ok(story(fresh.document).open && slideKinds(fresh.document) === 10 && !banner(fresh).hidden, "Let's go opens Wrapped and the banner stays");
+  banner(fresh).querySelector(".wrappedBannerClose").click();
+  const saved = JSON.parse(fresh.saved.get("ydl-wrapped-banner:jaesan") || "null");
+  ok(banner(fresh).hidden && saved?.completed === 79 && saved?.dismissedAt > 0, "× hides it and remembers when and how many");
+  fresh.click("stats"); await tick(60); fresh.click("discover"); await tick();
+  ok(banner(fresh).hidden, "still hidden after a revisit");
+
+  const busy = await mounted({user: "jaesan", stats: sample({coverage: {completed: 79, matched: 20, unmatched: 0, pending: 59}})});
+  ok(banner(busy).hidden, "not while TMDB details are still coming");
+  const guest = await mounted();
+  ok(banner(guest).hidden && stats(guest) === 0, "not without a username");
+  const recent = await mounted({user: "jaesan", saved: [["ydl-wrapped-banner:jaesan", JSON.stringify({dismissedAt: Date.now() - 30 * DAY, completed: 79})]]});
+  ok(banner(recent).hidden && stats(recent) === 0, "hidden for a year after ×, and no request is made");
+  const more = mount({user: "jaesan", saved: [["ydl-wrapped-banner:jaesan", JSON.stringify({dismissedAt: Date.now() - 30 * DAY, completed: 60})]]});
+  more.click("stats"); await tick(60); more.click("discover"); await tick();
+  ok(!banner(more).hidden, "more titles completed than when it was hidden: it returns");
+  const old = await mounted({user: "jaesan", saved: [["ydl-wrapped-banner:jaesan", JSON.stringify({dismissedAt: Date.now() - 400 * DAY, completed: 79})]]});
+  ok(!banner(old).hidden, "back after a year");
 });
 await test("drama types follow their rules, and everyone fits at least one", async () => {
   const types = async (stats: any) => {

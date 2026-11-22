@@ -2,7 +2,7 @@
 // MyDramaList Wrapped: an optional, full-screen story of someone's all-time stats (the same /api/stats data as the
 // Stats tab). Tap the right of the screen (or swipe left, or press →) to go on, the left to go back; × or Esc closes.
 // Nothing advances by itself. Slides without data are left out. Reduced motion shows everything at once.
-// Once a year, after someone's stats are ready, a small "Your drama recap is ready!" card offers to open it.
+// On Discover, a card (the banner) invites people whose stats are ready to open it; × hides it for a year.
 export function installWrapped() {
   const el = (tag, className = "", text = "") => {
     const node = document.createElement(tag);
@@ -67,8 +67,8 @@ export function installWrapped() {
 
   // Each builder returns a slide, or null when the data isn't there. onShow runs its animations.
   /**
-   * Your drama type. Each label has a clear rule on the stats; the first that fits is yours, and any others that
-   * fit are listed as "also". Everyone with a completed title fits at least "The Drama Fan".
+   * Your drama type: the first rule that fits on the stats. Everyone with a completed title fits at least
+   * "The Drama Fan". Only that one type is shown, with what it means and a real number from the list.
    */
   function dramaType(data) {
     const c = data.statusCounts.completed, r = data.ratings || {}, t = data.types || {};
@@ -78,14 +78,14 @@ export function installWrapped() {
     const top = countries[0];
     const hours = data.viewingTime?.hours || 0;
     const rules = [
-      { name: "The Perfectionist", fits: r.rated >= 10 && tens / r.rated >= 1 / 3, line: tens + " of your " + r.rated + " scores are a perfect 10. When you love a title, you say so." },
-      { name: "The Explorer", fits: countries.length >= 4, line: "You've completed titles from " + countries.length + " countries." },
-      { name: "The Loyalist", fits: !!top && c >= 10 && top.count / c > 0.7, line: top ? Math.round(top.count / c * 100) + "% of what you've completed comes from " + top.country + "." : "" },
-      { name: "The Movie Buff", fits: (t.movies || 0) > (t.dramas || 0) + (t.tvShows || 0), line: t.movies + " of your " + c + " completed titles are movies." },
-      { name: "The Binger", fits: hours >= 300, line: fmt.format(hours) + " hours and counting." },
+      { name: "The Superfan", fits: r.rated >= 10 && tens / r.rated >= 1 / 3, line: "When you love a title, you go all in. " + tens + " of your " + r.rated + " scores are a perfect 10." },
+      { name: "The Explorer", fits: countries.length >= 4, line: "Your watchlist has no borders. You've completed titles from " + countries.length + " countries." },
+      { name: "The Loyalist", fits: !!top && c >= 10 && top.count / c > 0.7, line: top ? "You know what you love. " + Math.round(top.count / c * 100) + "% of what you've completed comes from " + top.country + "." : "" },
+      { name: "The Movie Buff", fits: (t.movies || 0) > (t.dramas || 0) + (t.tvShows || 0), line: "You like a whole story in one sitting. " + t.movies + " of your " + c + " completed titles are movies." },
+      { name: "The Binger", fits: hours >= 300, line: "You don't just watch, you disappear into a story. " + fmt.format(hours) + " hours and counting." },
     ].filter(x => x.fits);
-    const primary = rules[0] || { name: "The Drama Fan", line: c + " dramas and movies completed, and counting." };
-    return { name: primary.name, line: primary.line, also: rules.slice(1).map(x => x.name) };
+    const primary = rules[0] || { name: "The Drama Fan", line: "Dramas and movies are part of your everyday. " + c + " titles completed and counting." };
+    return { name: primary.name, line: primary.line };
   }
   function build(data) {
     const out = [];
@@ -95,7 +95,6 @@ export function installWrapped() {
       const box = slide("isJourney");
       box.append(el("p", "wrappedKicker", "MyDramaList Wrapped"), el("h2", "wrappedTitle", "@" + data.username + ", here's everything you've watched"),
         el("p", "wrappedLine", "Every drama and movie you've completed, all time."));
-      if (data.hero) box.append(el("p", "wrappedSmall", (data.hero.reason === "newly-completed" ? "Recently completed: " : "Your top-rated: ") + data.hero.title));
       out.push({ node: withArt(box, data.art?.opening) });
     }
     // 2. Time: the answer in the sentence, then a friendly beat.
@@ -154,6 +153,9 @@ export function installWrapped() {
     const rankedSlide = (items, label, theme, art) => {
       if (!(items || []).length) return;
       const first = items[0];
+      // Every row already shows the score, so the subtitle names the title's stars (or, without them, the count).
+      const cast = (first.cast || []).slice(0, 2);
+      const subtitle = cast.length ? "Starring " + cast.join(" and ") + "." : "Out of the " + (label === "movie" ? data.types?.movies : (data.types?.dramas || 0) + (data.types?.tvShows || 0)) + " " + label + "s you've completed.";
       const list = el("ol", "wrappedRanked isPosters");
       items.slice(0, 5).forEach((t, i) => {
         const li = el("li", "wrappedRise"); li.style.animationDelay = 0.3 + i * 0.12 + "s";
@@ -161,7 +163,7 @@ export function installWrapped() {
         const text = el("span", "wrappedRankedText"); text.append(el("strong", "", t.title), el("small", "", [t.year, "your score " + t.score].filter(Boolean).join(" · ")));
         li.append(el("span", "wrappedRankedNumber", t.rank), thumb, text); list.append(li);
       });
-      out.push({ node: withArt(slide(theme, el("h2", "wrappedTitle wrappedHeadline", "Your #1 " + label + " was " + first.title + "."), el("p", "wrappedLine", "You gave it a " + first.score + "."), list), art) });
+      out.push({ node: withArt(slide(theme, el("h2", "wrappedTitle wrappedHeadline" + (first.title.length > 24 ? " isLong" : ""), "Your #1 " + label + " was " + first.title + "."), el("p", "wrappedLine", subtitle), list), art) });
     };
     rankedSlide(data.topDramas, "drama", "isStories", data.art?.topDrama);
     rankedSlide(data.topMovies, "movie", "isMovies", data.art?.topMovie);
@@ -182,8 +184,7 @@ export function installWrapped() {
     // 8. Your drama type: a label from clear rules on real numbers.
     const type = dramaType(data);
     if (type) {
-      const also = type.also.length ? el("p", "wrappedSmall", "You're also " + (type.also.length > 1 ? type.also.slice(0, -1).join(", ") + " and " + type.also[type.also.length - 1] : type.also[0]) + ".") : null;
-      out.push({ node: withArt(slide("isType", el("p", "wrappedKicker", "Your drama type"), el("h2", "wrappedHuge wrappedPop", type.name), el("p", "wrappedLine", type.line), also), data.art?.type) });
+      out.push({ node: withArt(slide("isType", el("p", "wrappedKicker", "Your drama type"), el("h2", "wrappedHuge wrappedPop", type.name), el("p", "wrappedLine", type.line)), data.art?.type) });
     }
     // 8. Summary.
     {
@@ -260,40 +261,62 @@ export function installWrapped() {
     show(0);
   }
 
-  // The once-a-year "Your drama recap is ready!" card.
-  const card = el("div", "wrappedPrompt");
-  card.hidden = true;
-  card.setAttribute("role", "status");
-  const view = el("button", "primary", "View"); view.type = "button";
-  const later = el("button", "secondary", "Later"); later.type = "button";
-  const promptActions = el("div", "wrappedPromptActions"); promptActions.append(later, view);
-  card.append(el("p", "", "Your drama recap is ready!"), promptActions);
-  document.body.append(card);
-  let promptData = null;
-  later.onclick = () => { card.hidden = true; };
-  view.onclick = () => { card.hidden = true; open(promptData); };
+  // The banner at the top of Discover. It shows once someone's stats are ready, stays after "Let's go" so the recap
+  // can be replayed, and × hides it for a year (or until they have completed more titles).
   const YEAR = 365 * 86400000;
-  async function maybePrompt(tries = 0) {
-    // Wait for the app's opening intro to finish (it shows while <html> has the ydlIntro class).
-    if (document.documentElement.classList.contains("ydlIntro")) { if (tries < 10) setTimeout(() => maybePrompt(tries + 1), 1500); return; }
+  const banner = el("section", "wrappedBanner");
+  banner.hidden = true;
+  banner.setAttribute("aria-label", "MyDramaList Wrapped");
+  const bannerArt = el("div", "wrappedBannerArt");
+  const copy = el("div", "wrappedBannerCopy");
+  const go = el("button", "wrappedBannerGo", "Let's go"); go.type = "button";
+  copy.append(el("h2", "", "Your MyDramaList Wrapped"), el("p", "", "Jump into your drama story so far."), go);
+  const hide = el("button", "wrappedBannerClose", "×"); hide.type = "button"; hide.setAttribute("aria-label", "Hide Wrapped");
+  banner.append(bannerArt, el("i", "wrappedSpark isA"), el("i", "wrappedSpark isB"), el("i", "wrappedSpark isC"), copy, hide);
+  let bannerData = null, bannerUser = null, asked = null;
+  const bannerKey = user => "ydl-wrapped-banner:" + user.toLowerCase();
+  const readDismissal = user => { try { return JSON.parse(localStorage.getItem(bannerKey(user)) || "null"); } catch { return null; } };
+  const dismissedNow = (user, completed) => {
+    const d = readDismissal(user);
+    return !!d && Date.now() - (d.dismissedAt || 0) < YEAR && completed <= (d.completed || 0);
+  };
+  function syncBanner() {
     const user = connectedUser;
-    if (!user || currentPage !== "selection" || document.querySelector("dialog[open]")) return;
-    const key = "ydl-wrapped-prompt:" + user.toLowerCase();
-    let last;
-    try { last = Number(localStorage.getItem(key) || 0); } catch { return; }
-    if (last && Date.now() - last < YEAR) return;
+    const show = !!bannerData && !!user && user === bannerUser && state.tab === "discover" && currentPage === "selection" && !dismissedNow(user, bannerData.statusCounts.completed);
+    banner.hidden = !show;
+  }
+  async function checkBanner() {
+    const user = connectedUser;
+    if (!user) return;
+    if (user === bannerUser && bannerData) { syncBanner(); return; }
+    // One request per session, and none while the banner is hidden for a year.
+    const d = readDismissal(user);
+    if (asked === user || (d && Date.now() - (d.dismissedAt || 0) < YEAR)) return;
+    asked = user;
     let data;
     try {
       const response = await fetch("/api/stats?username=" + encodeURIComponent(user), { signal: AbortSignal.timeout(45e3) });
       data = response.ok ? await response.json() : null;
-    } catch { return; }
+    } catch { asked = null; return; }
     const completed = data?.statusCounts?.completed || 0;
-    // Ready: something completed, and TMDB details mostly in (otherwise wait for a later app open, writing nothing).
-    if (!completed || (data.coverage?.pending || 0) > completed * 0.1) return;
-    if (connectedUser !== user || currentPage !== "selection" || document.querySelector("dialog[open]")) return;
-    try { localStorage.setItem(key, String(Date.now())); } catch { return; }
-    promptData = data;
-    card.hidden = false;
+    // Ready: something completed, and TMDB details mostly in (otherwise a later Discover visit asks again).
+    if (!completed || (data.coverage?.pending || 0) > completed * 0.1 || connectedUser !== user) { asked = null; return; }
+    learn(data);
   }
-  return { open, maybePrompt };
+  // Called with the numbers whenever they are fresh (here, or when Stats loads them).
+  function learn(data) {
+    const user = connectedUser;
+    if (!user || data?.username?.toLowerCase?.() !== user.toLowerCase()) return;
+    bannerData = data; bannerUser = user;
+    bannerArt.replaceChildren(...(data.hero?.backdrop ? [image(data.hero.backdrop)] : []));
+    syncBanner();
+  }
+  go.onclick = () => { if (bannerData) open(bannerData); };
+  hide.onclick = () => {
+    if (bannerData) try { localStorage.setItem(bannerKey(bannerUser), JSON.stringify({ dismissedAt: Date.now(), completed: bannerData.statusCounts.completed })); } catch {}
+    banner.hidden = true;
+  };
+  function mountBanner(anchor) { anchor.before(banner); checkBanner(); }
+  window.syncWrappedBanner = () => { syncBanner(); if (state.tab === "discover") checkBanner(); };
+  return { open, mountBanner, learn, syncBanner };
 }

@@ -452,7 +452,7 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedClose:focus-visible{outline:2px solid #fff}
 .wrappedStage{position:absolute;inset:0;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
 .wrappedHint{position:absolute;z-index:3;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0;text-align:center;color:#ffffffa0;font-size:13px;pointer-events:none}
-.wrappedSlide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:safe center;gap:10px;padding:64px 26px 60px;overflow-x:hidden;overflow-y:auto}
+.wrappedSlide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:safe center;gap:10px;padding:64px 26px 84px;overflow-x:hidden;overflow-y:auto}
 .wrappedSlide.isJourney{background:linear-gradient(160deg,#1b3d78,#0d0f14 75%)}
 .wrappedSlide.isTime{background:linear-gradient(160deg,#2674ec,#14306b 60%,#0d0f14)}
 .wrappedSlide.isGenres{background:linear-gradient(160deg,#5b2a86,#2a1648 60%,#0d0f14)}
@@ -517,11 +517,24 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 @media (prefers-reduced-motion:reduce){.wrapped *,.wrapped *::after{animation:none!important}}
 @media (min-width:700px){.wrappedSlide{padding-left:max(26px,calc(50vw - 260px));padding-right:max(26px,calc(50vw - 260px))}}
 /* The once-a-year "Your drama recap is ready!" card. */
-.wrappedPrompt{position:fixed;z-index:30;left:12px;right:12px;bottom:calc(92px + env(safe-area-inset-bottom,0px));max-width:420px;margin:0 auto;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#2674ec,#5b2a86);color:#fff;box-shadow:0 12px 32px #0009;display:flex;align-items:center;justify-content:space-between;gap:12px;animation:wrappedRise .5s cubic-bezier(.2,.8,.2,1) both}
-.wrappedPrompt[hidden]{display:none}
-.wrappedPrompt p{margin:0;font-weight:800;font-size:15px}
-.wrappedPromptActions{display:flex;gap:8px;flex:none}
-.wrappedPromptActions button{padding:8px 14px;border-radius:10px;font-weight:800}
+.wrappedBanner{position:relative;overflow:hidden;isolation:isolate;margin:0 0 16px;min-height:188px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#5b2a86,#2674ec 55%,#d6479b);box-shadow:0 10px 26px #0006;animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
+.wrappedBanner[hidden]{display:none}
+.wrappedBannerArt{position:absolute;inset:0;z-index:-2;opacity:.5}
+.wrappedBannerArt img{width:100%;height:100%;object-fit:cover;display:block}
+.wrappedBanner::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,#2a0f4ae6,#1d4fb8b8 55%,#d6479b73)}
+.wrappedBannerCopy{padding:22px 20px;max-width:84%;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.wrappedBannerCopy h2{margin:0;font-size:23px;line-height:1.1;font-weight:900}
+.wrappedBannerCopy p{margin:0;font-size:15px;color:#ffffffe0}
+.wrappedBannerGo{margin-top:6px;padding:10px 26px;border:0;border-radius:999px;background:#2674ec;color:#fff;font-weight:900;font-size:16px;cursor:pointer;box-shadow:0 4px 14px #0006}
+.wrappedBannerGo:focus-visible,.wrappedBannerClose:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.wrappedBannerClose{position:absolute;top:6px;right:8px;width:36px;height:36px;border:0;border-radius:50%;background:#0000004d;color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.wrappedSpark{position:absolute;z-index:0;width:14px;height:14px;background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);opacity:.8;animation:wrappedTwinkle 2.6s ease-in-out infinite}
+.wrappedSpark.isA{right:18%;top:22%}
+.wrappedSpark.isB{right:10%;bottom:20%;width:22px;height:22px;animation-delay:.9s}
+.wrappedSpark.isC{right:30%;bottom:14%;width:10px;height:10px;animation-delay:1.7s}
+@keyframes wrappedTwinkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:.95;transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.wrappedBanner{animation:none}.wrappedSpark{animation:none;opacity:.6}}
+.wrappedHeadline.isLong{font-size:26px}
 /* Wrapped: one sentence per slide, ranked lists, drama type. */
 .wrappedHeadline{font-size:32px;line-height:1.15;max-width:22ch}
 .wrappedNumber{display:inline-block;min-width:2ch;color:#fff;font-size:1.35em;font-weight:900;letter-spacing:-.02em}

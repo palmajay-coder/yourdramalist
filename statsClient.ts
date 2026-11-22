@@ -199,6 +199,7 @@ export function installStats() {
         return;
       }
       render(data);
+      if (typeof wrapped !== "undefined" && data?.statusCounts?.completed) wrapped.learn(data);
       pendingLeft = data.coverage.pending;
       // TMDB details still coming: ask again quietly, a few times, so the page fills in place.
       if (data.coverage.pending && polls < 8) { polls++; timer = setTimeout(() => { if (shownUser === user && !panel.classList.contains("hidden")) load(user, { quiet: true }); }, 30e3); }

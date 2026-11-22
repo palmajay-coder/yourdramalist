@@ -146,6 +146,7 @@ export function installAndroidDiscover() {
     collectionsLink.hidden = !(state.tab === "profiles" || inCollections) || page !== "selection";
     collectionsLink.textContent = inCollections ? "‹ Back to Lists" : "My Collections ›";
     catalogs.hidden = !inDiscover;
+    window.syncWrappedBanner?.();
     actions.classList.toggle("hidden", page !== "selection");
     actions.dataset.section = inDiscover ? "discover" : "community";
     filters.setAttribute("aria-label", inDiscover ? "Filter Discover catalogs" : "Filter Community lists");
@@ -170,6 +171,7 @@ export function installAndroidDiscover() {
   const catalogs = document.createElement("div");
   catalogs.id = "androidCatalogs";
   $("listItems").after(catalogs);
+  wrapped.mountBanner(catalogs);
   state.filter = "catalogs";
   $("exploreSearch").classList.remove("hidden");
   switchTab("discover");

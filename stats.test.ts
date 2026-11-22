@@ -187,4 +187,20 @@ await test("failures: a private list says so; MyDramaList trouble shows the last
   const bad = await handleStats(new Request("https://test/api/stats?username=" + encodeURIComponent("<x>")));
   ok(bad.status === 400, "usernames are checked");
 });
+await test("equal scores are ordered by TMDB's rating (50+ votes), then title; the top lists carry their lead cast", () => {
+  const items = [entry("1-aaa", "Alpha", "South Korea", 2020, "Drama", 10), entry("2-bbb", "Beta", "South Korea", 2020, "Drama", 10), entry("3-ccc", "Gamma", "South Korea", 2020, "Drama", 10), entry("4-ddd", "Delta", "South Korea", 2020, "Drama", 9)];
+  const list = parseDramalist(dramalist(items), "u", T0);
+  const m = (slug: string, rating: number | null, votes: number, cast: any[] = []): TitleMeta => ({v: 3, slug, matched: true, genres: [], cast, backdrop: null, backdropHd: null, poster: null, rating, votes, at: T0});
+  const meta: Record<string, TitleMeta> = {
+    "1-aaa": m("1-aaa", 7.0, 900),
+    "2-bbb": m("2-bbb", 8.5, 900, [{id: 1, name: "Star One", profile: null}, {id: 2, name: "Star Two", profile: null}, {id: 3, name: "Star Three", profile: null}]),
+    "3-ccc": m("3-ccc", 9.9, 10), // a 9.9 from 10 votes means little, so it does not win
+  };
+  const s = computeStats(list, meta, null);
+  ok(s.topDramas.map(t => t.title).join() === "Beta,Alpha,Gamma,Delta", "among 10s: the higher TMDB rating first, a few-votes rating ignored, then A to Z, then the 9: " + s.topDramas.map(t => t.title));
+  ok(s.topRated.map(t => t.title).join() === "Beta,Alpha,Gamma,Delta", "the Stats Top 10 uses the same order");
+  ok(s.topDramas[0].cast.join() === "Star One,Star Two" && s.topDramas[1].cast.length === 0, "the two lead actors, or none: " + JSON.stringify(s.topDramas[0].cast));
+  const none = computeStats(list, {}, null);
+  ok(none.topDramas.map(t => t.title).join() === "Alpha,Beta,Gamma,Delta", "without TMDB data: A to Z");
+});
 console.log(JSON.stringify({passed}));

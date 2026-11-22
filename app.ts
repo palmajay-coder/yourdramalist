@@ -602,8 +602,6 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>switchFilter
 const quickSearch=(${installQuickSearch.toString()})();
 (${installAndroidDiscover.toString()})();
 (${installMotion.toString()})();
-// Once a year, when someone's stats are ready, offer their Wrapped recap (they choose View or Later).
-setTimeout(()=>wrapped.maybePrompt(),2000);
 // Android app updates: the app adds "YourDramaListApp/<version code>" to its browser signature. Only that tag
 // shows the notice: Reddit, Instagram and other apps open links in their own web views, which are not ours.
 (()=>{
