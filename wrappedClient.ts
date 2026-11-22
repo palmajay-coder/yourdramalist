@@ -527,6 +527,8 @@ export function installWrapped() {
   }
   function userChanged() {
     clearTimeout(pollTimer); polls = 0; inFlight = false; bannerData = null; bannerUser = null; banner.hidden = true;
+    // Every login pops it up again, even if it was closed before.
+    if (connectedUser) try { localStorage.removeItem(bannerKey(connectedUser)); } catch {}
     syncBanner();
     if (connectedUser) checkBanner();
   }
