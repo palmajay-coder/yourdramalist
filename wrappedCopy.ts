@@ -58,7 +58,7 @@ export function wrappedCopy(data, raw) {
   if (decades.length >= 2) {
     const most = Math.max(...decades.map(d => d.count));
     const leaders = decades.filter(d => d.count === most).map(d => d.decade);
-    out.eras = t("eras.line", { decade: b(and(leaders)) });
+    out.eras = t("eras.line");
   } else out.eras = null;
 
   // Most-watched actor.

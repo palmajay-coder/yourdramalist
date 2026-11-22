@@ -83,7 +83,7 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   ok(storyLine() === "Your passport to drama." && big() === "Japan and South Korea" && /Japan and South Korea tied at 29 each, because choosing favorites isn't your thing\./.test(text()) && !/Hong Kong/.test(text()), "countries, a tie said as a tie: " + text());
   ok(d.querySelector(".wrappedStage svg.wrappedMap") && d.querySelectorAll(".wrappedStage .wrappedMapRing").length === 2 && (d.querySelector(".wrappedStage .wrappedMap .isHit")?.getAttribute("d") || "").split("M").length > 10 && !d.querySelector(".wrappedStage .wrappedBar"), "a map with both tied countries lit up and circled, instead of bars");
   key("ArrowRight");
-  ok(storyLine() === "Every era has its drama." && big() === "The 2000s" && /found yours in: 2000s/.test(text()) && [...d.querySelectorAll(".wrappedStage .wrappedBarLabel")].map((x: any) => x.textContent).join() === "2000s,2010s", "eras by release decade, oldest first: " + text());
+  ok(storyLine() === "Every era has its drama." && big() === "The 2000s" && /Was yours\./.test(text()) && [...d.querySelectorAll(".wrappedStage .wrappedBarLabel")].map((x: any) => x.textContent).join() === "2000s,2010s", "eras by release decade, oldest first: " + text());
   key("ArrowRight");
   ok(big() === "Your most-watched actor is Moon Lee." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "the actor slide is unchanged");
   key("ArrowRight");

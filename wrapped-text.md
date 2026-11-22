@@ -13,7 +13,6 @@ How to edit:
     {name}      an actor's name, shown in bold
     {cast}      the #1 title's two lead actors, shown in bold ("Lee Min-ho and Kim Go-eun")
     {list}      what was completed, shown in bold numbers ("23 dramas and 56 movies")
-    {decade}    the top decade ("2010s"), shown in bold
     {countries} the tied countries, shown in bold ("Japan and South Korea")
     {average}   the average score, counted up on screen
     {count}     just the number, in bold (also {days} and {hours} where they're used)
@@ -67,9 +66,9 @@ countries.clear: {country} practically took over your watchlist, with {count|tit
 countries.close: It was neck and neck, but {country} pulled ahead with {count|title|titles}.
 countries.tie: {countries} tied at {count} each, because choosing favorites isn't your thing.
 
-## 6. Eras (by release decade; {decade} is the top decade, or two tied decades)
+## 6. Eras (by release decade; the big "The 2020s" under the headline is filled in from their list)
 eras.story: Every era has its drama.
-eras.line: Every decade has their own drama, and you've found yours in: {decade}
+eras.line: Was yours.
 
 ## 7. Most-watched actor
 actor.headline: Your most-watched actor is {name}.
