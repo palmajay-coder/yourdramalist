@@ -171,7 +171,7 @@ export function installAndroidDiscover() {
   const catalogs = document.createElement("div");
   catalogs.id = "androidCatalogs";
   $("listItems").after(catalogs);
-  wrapped.mountBanner(catalogs);
+  wrapped.mountBanner(workspace); // above the page, so it shows on Lists and Discover
   state.filter = "catalogs";
   $("exploreSearch").classList.remove("hidden");
   switchTab("discover");

@@ -1,6 +1,8 @@
 // MyDramaList Wrapped (wrappedClient.ts): the story slides and the Discover banner.
 import {parseHTML} from "npm:linkedom@0.18.12";
 import handler from "./app.ts";
+// The page re-checks in the background with long timers; don't let them keep the test process alive.
+{ const realSetTimeout = globalThis.setTimeout; (globalThis as any).setTimeout = (fn: any, ms?: number, ...args: any[]) => { const id = realSetTimeout(fn, ms, ...args); if ((ms || 0) >= 15000) (Deno as any).unrefTimer(id); return id; }; }
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
 async function test(name: string, fn: () => unknown) { await fn(); passed++; console.log("PASS " + name); }
@@ -187,7 +189,7 @@ await test("the Discover banner: shows when ready, × hides it for a year, comes
   const fresh = await mounted({user: "jaesan"});
   ok(!banner(fresh).hidden && /Your MyDramaList Wrapped/.test(banner(fresh).textContent) && /Jump into your drama story so far\./.test(banner(fresh).textContent) && banner(fresh).querySelector("button.wrappedBannerGo").textContent === "Let's go", "shows on Discover when ready");
   ok(banner(fresh).querySelector(".wrappedBannerArt img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/b.jpg", "behind the hero backdrop");
-  ok(banner(fresh).nextElementSibling?.id === "androidCatalogs", "sits at the top of Discover, above its sections");
+  ok(banner(fresh).nextElementSibling?.classList.contains("workspace") && banner(fresh).parentElement.querySelector(".androidPageDescription"), "sits at the top of the page, under the heading, so Lists and Discover both show it");
   const stats = (m: any) => m.asked.filter((u: string) => u.startsWith("/api/stats")).length;
   fresh.click("stats"); await tick(60);
   ok(banner(fresh).hidden && stats(fresh) === 2, "only on Discover (Stats makes its own request)");

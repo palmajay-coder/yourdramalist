@@ -417,7 +417,7 @@ export function installWrapped() {
   copy.append(el("h2", "", "Your MyDramaList Wrapped"), el("p", "", "Jump into your drama story so far."), go);
   const hide = el("button", "wrappedBannerClose", "×"); hide.type = "button"; hide.setAttribute("aria-label", "Hide Wrapped");
   banner.append(bannerArt, el("i", "wrappedSpark isA"), el("i", "wrappedSpark isB"), el("i", "wrappedSpark isC"), copy, hide);
-  let bannerData = null, bannerUser = null, asked = null;
+  let bannerData = null, bannerUser = null;
   const bannerKey = user => "ydl-wrapped-banner:" + user.toLowerCase();
   const readDismissal = user => { try { return JSON.parse(localStorage.getItem(bannerKey(user)) || "null"); } catch { return null; } };
   const dismissedNow = (user, completed) => {
@@ -426,26 +426,37 @@ export function installWrapped() {
   };
   function syncBanner() {
     const user = connectedUser;
-    const show = !!bannerData && !!user && user === bannerUser && state.tab === "discover" && currentPage === "selection" && !dismissedNow(user, bannerData.statusCounts.completed);
+    // On Lists and Discover (not Stats, My Collections or the other pages).
+    const show = !!bannerData && !!user && user === bannerUser && (state.tab === "discover" || state.tab === "profiles") && currentPage === "selection" && !dismissedNow(user, bannerData.statusCounts.completed);
     banner.hidden = !show;
   }
+  // Their stats are fetched in the background as soon as a username is connected (the server keeps what it learns), and
+  // asked again every 20 seconds until the TMDB details are mostly in, so the banner is ready by the time they look.
+  let pollTimer = null, polls = 0, inFlight = false;
   async function checkBanner() {
     const user = connectedUser;
-    if (!user) return;
+    if (!user || inFlight) return;
     if (user === bannerUser && bannerData) { syncBanner(); return; }
-    // One request per session, and none while the banner is hidden for a year.
+    // None while the banner is hidden for a year.
     const d = readDismissal(user);
-    if (asked === user || (d && Date.now() - (d.dismissedAt || 0) < YEAR)) return;
-    asked = user;
-    let data;
+    if (d && Date.now() - (d.dismissedAt || 0) < YEAR) return;
+    inFlight = true;
+    let data = null;
     try {
       const response = await fetch("/api/stats?username=" + encodeURIComponent(user), { signal: AbortSignal.timeout(45e3) });
       data = response.ok ? await response.json() : null;
-    } catch { asked = null; return; }
+    } catch {}
+    inFlight = false;
+    if (connectedUser !== user) return;
     const completed = data?.statusCounts?.completed || 0;
-    // Ready: something completed, and TMDB details mostly in (otherwise a later Discover visit asks again).
-    if (!completed || (data.coverage?.pending || 0) > completed * 0.1 || connectedUser !== user) { asked = null; return; }
-    learn(data);
+    if (completed && (data.coverage?.pending || 0) <= completed * 0.1) { learn(data); return; }
+    // Not ready: a private list or none completed will not change, so only keep asking while details are coming in.
+    if (data && (!completed || data.coverage?.pending === 0)) return;
+    if (polls++ < 15) { clearTimeout(pollTimer); pollTimer = setTimeout(checkBanner, 20e3); }
+  }
+  function userChanged() {
+    clearTimeout(pollTimer); polls = 0; inFlight = false; bannerData = null; bannerUser = null; banner.hidden = true;
+    if (connectedUser) checkBanner();
   }
   // Called with the numbers whenever they are fresh (here, or when Stats loads them).
   function learn(data) {
@@ -461,6 +472,6 @@ export function installWrapped() {
     banner.hidden = true;
   };
   function mountBanner(anchor) { anchor.before(banner); checkBanner(); }
-  window.syncWrappedBanner = () => { syncBanner(); if (state.tab === "discover") checkBanner(); };
-  return { open, mountBanner, learn, syncBanner };
+  window.syncWrappedBanner = () => { syncBanner(); checkBanner(); };
+  return { open, mountBanner, learn, syncBanner, userChanged };
 }

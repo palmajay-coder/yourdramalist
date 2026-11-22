@@ -522,7 +522,7 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 @media (prefers-reduced-motion:reduce){.wrapped *,.wrapped *::after{animation:none!important}}
 @media (min-width:700px){.wrappedSlide{padding-left:max(26px,calc(50vw - 260px));padding-right:max(26px,calc(50vw - 260px))}}
 /* The once-a-year "Your drama recap is ready!" card. */
-.wrappedBanner{position:relative;overflow:hidden;isolation:isolate;margin:0 0 16px;min-height:188px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#5b2a86,#2674ec 55%,#d6479b);box-shadow:0 10px 26px #0006;animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
+.wrappedBanner{position:relative;overflow:hidden;isolation:isolate;margin:0 16px 16px;min-height:188px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#5b2a86,#2674ec 55%,#d6479b);box-shadow:0 10px 26px #0006;animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
 .wrappedBanner[hidden]{display:none}
 .wrappedBannerArt{position:absolute;inset:0;z-index:-2;opacity:.5}
 .wrappedBannerArt img{width:100%;height:100%;object-fit:cover;display:block}

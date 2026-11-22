@@ -381,7 +381,7 @@ if(new URLSearchParams(location.search).get('tint-preview')==='1')window.addEven
 let currentPage='',preferencesUI,preferencesReady,discoverScroll=0;
 const androidFlow=['selection','preferences','confirm'];
 let connectedUser='';try{const saved=localStorage.getItem('ydl-v3-user')||'';if(/^[a-zA-Z0-9_-]{1,60}$/.test(saved))connectedUser=saved}catch{}
-function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}window.ydlRefreshPersonal?.()}
+function setConnectedUser(user){connectedUser=user;try{user?localStorage.setItem('ydl-v3-user',user):localStorage.removeItem('ydl-v3-user')}catch{}window.ydlRefreshPersonal?.();try{wrapped.userChanged()}catch{}}
 // Connect comes first: until someone enters a username or continues without an account, the other pages stay closed.
 // Returning visitors (a saved username, the saved choice, or any saved selection or collection) go straight in.
 function markStarted(){try{localStorage.setItem('ydl-v3-started','1')}catch{}}

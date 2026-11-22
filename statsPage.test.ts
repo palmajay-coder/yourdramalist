@@ -1,6 +1,8 @@
 // The Stats tab (statsClient.ts) and My Collections' new place inside Lists.
 import {parseHTML} from "npm:linkedom@0.18.12";
 import handler from "./app.ts";
+// The page re-checks in the background with long timers; don't let them keep the test process alive.
+{ const realSetTimeout = globalThis.setTimeout; (globalThis as any).setTimeout = (fn: any, ms?: number, ...args: any[]) => { const id = realSetTimeout(fn, ms, ...args); if ((ms || 0) >= 15000) (Deno as any).unrefTimer(id); return id; }; }
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
 async function test(name: string, fn: () => unknown) { await fn(); passed++; console.log("PASS " + name); }
