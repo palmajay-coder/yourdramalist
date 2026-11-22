@@ -26,7 +26,7 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
   ok(plain(s.time) === "16 days nonstop, fueled by snacks, tissues and zero regrets.", "time: " + s.time);
   ok(plain(s.genre) === "23 thrillers in, and you still never trust the nice guy.", "genre: " + s.genre);
   ok(plain(s.countries) === "South Korea practically took over your watchlist, with 50 titles.", "clear winner: " + s.countries);
-  ok(s.eras === "Flip phones, legendary OSTs, and dramas with absolutely no chill.", "era: " + s.eras);
+  ok(s.eras === "Every decade has their own drama, and you've found yours in: **2000s**", "era: " + s.eras);
   ok(plain(s.actor) === "4 titles in, it's official: Moon Lee has a fan, and it's you.", "actor: " + s.actor);
   ok(plain(s.topDrama) === "Of everything you've finished, this one with Lee Min-ho and Kim Go-eun hit hardest.", "#1 drama: " + s.topDrama);
   ok(plain(s.topMovie) === "Of everything you've finished, this one hit hardest.", "#1 movie without cast");
@@ -54,19 +54,10 @@ await test("every genre has its own line, with a fallback for the rest", () => {
   ok(say({genres: [{genre: "Drama", count: 9}]}).genre === null, "only Drama: no line");
 });
 
-await test("eras use the approved decade lines word for word, with a tie line and a fallback", () => {
-  const approved: Record<string, string> = {
-    "1960s": "Before streaming, timeless classics were already stealing the show.",
-    "1970s": "Martial arts legends, real stunts, and pure movie magic.",
-    "1980s": "Big action, bold soundtracks, and just the right amount of chaos.",
-    "1990s": "VHS tapes, iconic dramas, and movies worth rewinding.",
-    "2000s": "Flip phones, legendary OSTs, and dramas with absolutely no chill.",
-    "2010s": "Bigger productions, global hits, and the rise of \"one more episode.\"",
-    "2020s": "Streaming sensations, cinematic blockbusters, and plot twists heard worldwide.",
-  };
-  for (const [decade, line] of Object.entries(approved)) ok(say({decades: [{decade, count: 9}, {decade: decade === "2000s" ? "1990s" : "2000s", count: 3}]}).eras === line, decade);
-  ok(/Two eras/.test(say({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]}).eras!), "tie");
-  ok(/Every decade/.test(say({decades: [{decade: "1950s", count: 9}, {decade: "2000s", count: 1}]}).eras!), "outside the approved range");
+await test("eras use one line with the top decade (or the tied decades) filled in", () => {
+  const line = (d: string) => "Every decade has their own drama, and you've found yours in: **" + d + "**";
+  for (const decade of ["1960s", "2000s", "2020s"]) ok(say({decades: [{decade, count: 9}, {decade: decade === "2000s" ? "1990s" : "2000s", count: 3}]}).eras === line(decade), decade);
+  ok(say({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]}).eras === line("2000s and 2010s"), "tie");
   ok(say({decades: [{decade: "2000s", count: 9}]}).eras === null, "one decade: no line");
 });
 
@@ -92,7 +83,6 @@ await test("the owner's wrapped-text.md: wrappedText.ts is up to date, and every
   const missing = used.filter(k => !t(k));
   ok(used.length > 15 && !missing.length, "missing lines: " + missing.join(", "));
   for (const id of ["romantic", "thriller", "hopper", "marathoner", "fan"]) ok(t("personality." + id + ".name") && t("personality." + id + ".line"), "personality " + id);
-  for (const d of ["1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]) ok(t("eras." + d), "decade " + d);
 });
 
 await test("the file's rules: {count|one|many} picks the word, unknown or deleted lines are harmless", () => {

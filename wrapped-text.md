@@ -13,6 +13,7 @@ How to edit:
     {name}      an actor's name, shown in bold
     {cast}      the #1 title's two lead actors, shown in bold ("Lee Min-ho and Kim Go-eun")
     {list}      what was completed, shown in bold numbers ("23 dramas and 56 movies")
+    {decade}    the top decade ("2010s"), shown in bold
     {countries} the tied countries, shown in bold ("Japan and South Korea")
     {average}   the average score, counted up on screen
     {count}     just the number, in bold (also {days} and {hours} where they're used)
@@ -66,17 +67,9 @@ countries.clear: {country} practically took over your watchlist, with {count|tit
 countries.close: It was neck and neck, but {country} pulled ahead with {count|title|titles}.
 countries.tie: {countries} tied at {count} each, because choosing favorites isn't your thing.
 
-## 6. Eras (by release decade)
+## 6. Eras (by release decade; {decade} is the top decade, or two tied decades)
 eras.story: Every era has its drama.
-eras.1960s: Before streaming, timeless classics were already stealing the show.
-eras.1970s: Martial arts legends, real stunts, and pure movie magic.
-eras.1980s: Big action, bold soundtracks, and just the right amount of chaos.
-eras.1990s: VHS tapes, iconic dramas, and movies worth rewinding.
-eras.2000s: Flip phones, legendary OSTs, and dramas with absolutely no chill.
-eras.2010s: Bigger productions, global hits, and the rise of "one more episode."
-eras.2020s: Streaming sensations, cinematic blockbusters, and plot twists heard worldwide.
-eras.tie: Two eras, one watchlist. Great stories never go out of style.
-eras.other: Every decade brings its own drama, and you've found yours.
+eras.line: Every decade has their own drama, and you've found yours in: {decade}
 
 ## 7. Most-watched actor
 actor.headline: Your most-watched actor is {name}.
