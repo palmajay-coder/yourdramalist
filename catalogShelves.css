@@ -562,3 +562,15 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .androidListTabs button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border:0;background:transparent;color:#d6dbe6;font-weight:800;font-size:15px;cursor:pointer}
 .androidListTabs button.active{background:#2674ec;color:#fff}
 .androidListTabs button:focus-visible{outline:2px solid #fff;outline-offset:-4px}
+
+/* Wrapped story slides: a short story line, one big statistic, one supporting line. */
+.wrappedStory{margin:0;font-size:20px;font-weight:800;line-height:1.25;color:#fff}
+.wrappedSlide .wrappedHuge{font-size:76px;line-height:1;margin:6px 0 4px;overflow-wrap:anywhere}
+.wrappedSlide .wrappedHuge.isLong{font-size:48px;line-height:1.05}
+.wrappedSlide.isType .wrappedHuge{font-size:48px;line-height:1.05}
+.wrappedUnit{font-size:28px;font-weight:800;letter-spacing:0}
+.wrappedSlogan{font-size:38px;line-height:1.1;max-width:14ch}
+.wrappedSlide.isCompleted{background:linear-gradient(160deg,#5b2a86,#1b2c66 60%,#0d0f14)}
+.wrappedSlide.isEras{background:linear-gradient(160deg,#7a4a12,#3b2347 60%,#0d0f14)}
+.wrappedSlide.isActive>.wrappedStory{animation:wrappedRise .6s cubic-bezier(.2,.8,.2,1) both}
+@media (max-height:680px){.wrappedSlide .wrappedHuge{font-size:60px}.wrappedSlide .wrappedHuge.isLong,.wrappedSlide.isType .wrappedHuge{font-size:40px}.wrappedSlogan{font-size:32px}}

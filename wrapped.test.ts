@@ -20,7 +20,7 @@ const sample = (extra: Record<string, unknown> = {}) => ({
   ratings: {rated: 79, unrated: 0, average: 8.89, distribution: [{score: 10, count: 34}, {score: 8, count: 13}, {score: 9, count: 10}], byCountry: [], minCountrySample: 3,
     highestCountry: {country: "Hong Kong", rated: 14, average: 9.36}, lowestCountry: {country: "China", rated: 4, average: 8.13}},
   countries: [{country: "Japan", count: 29}, {country: "South Korea", count: 29}, {country: "Hong Kong", count: 14}],
-  decades: [{decade: "2000s", count: 20}], unknownYear: 0,
+  decades: [{decade: "2010s", count: 17}, {decade: "2000s", count: 20}], unknownYear: 0,
   topRated: Array.from({length: 10}, (_, i) => ({rank: i + 1, slug: (i + 1) + "-t", title: "Title " + (i + 1), year: 2000, country: "Japan", type: "Movie", score: 10, poster: "https://image.tmdb.org/t/p/w500/" + i + ".jpg"})),
   genres: [{genre: "Drama", count: 36}, {genre: "Thriller", count: 23}, {genre: "Crime", count: 18}],
   actors: [{id: 1, name: "Moon Lee", profile: null, count: 4, titles: []}, {id: 2, name: "Yukari Ôshima", profile: null, count: 3, titles: []}],
@@ -59,40 +59,42 @@ const story = (document: any) => document.querySelector("dialog.wrapped");
 const slideKinds = (document: any) => [...story(document).querySelectorAll(".wrappedProgressBar")].length;
 const currentText = (document: any) => story(document).querySelector(".wrappedStage").textContent;
 
-await test("View My Wrapped on Stats opens ten slides, each led by one sentence with the answer in it", async () => {
+await test("Your Drama Wrapped on Stats opens twelve story slides: a story line, one big stat, one supporting line", async () => {
   const {document, window, click} = mount({user: "jaesan"});
   click("stats"); await tick(60);
   const button = document.querySelector(".statsWrappedButton") as any;
   ok(button && button.textContent === "Your Drama Wrapped", "the button sits under the hero");
   button.click(); await tick();
   const d = story(document);
-  ok(d.open && slideKinds(document) === 10, "ten slides: " + slideKinds(document));
-  ok(/@jaesan, here's everything you've watched/.test(currentText(document)) && !/stor(y|ies)/i.test(currentText(document)) && !/Recently completed|Your top-rated/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening slide with a sharp (original-size) backdrop");
-  const stage = d.querySelector(".wrappedStage");
-  stage.dispatchEvent(new window.Event("click", {bubbles: true}));
-  ok(/You watched for/.test(currentText(document)), "a tap goes forward");
-  ok(d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/cure.jpg" && !d.querySelector(".wrappedArtCaption") && !/Backdrop:/.test(currentText(document)), "each slide has its own sharp backdrop, with no caption naming it");
+  ok(d.open && slideKinds(document) === 12, "twelve slides: " + slideKinds(document));
+  const text = () => currentText(document);
+  const storyLine = () => d.querySelector(".wrappedStage .wrappedStory")?.textContent;
+  const big = () => d.querySelector(".wrappedStage .wrappedHuge, .wrappedStage .wrappedHeadline")?.textContent;
+  ok(d.querySelector(".wrappedStage .wrappedKicker")?.textContent === "@jaesan" && d.querySelector(".wrappedStage .wrappedSlogan")?.textContent === "You've watched the dramas. Now here's the drama." && /all time/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening: @username above the slogan, on a sharp backdrop");
+  d.querySelector(".wrappedStage").dispatchEvent(new window.Event("click", {bubbles: true}));
   await tick(1300);
-  ok(d.querySelector(".wrappedHeadline").textContent === "You watched for 388.8 hours." && /That's 16 days nonstop\./.test(currentText(document)) && /Across 79 completed dramas and movies\./.test(currentText(document)), "hours in the sentence: " + d.querySelector(".wrappedHeadline").textContent);
+  ok(storyLine() === "That's a whole lot of drama." && big() === "79" && /23 dramas and 56 movies, completed\./.test(text()), "a tap goes forward to the completed count: " + text());
   const key = (k: string) => d.dispatchEvent(Object.assign(new window.Event("keydown", {bubbles: true}), {key: k}));
-  const heading = () => d.querySelector(".wrappedStage .wrappedHeadline, .wrappedStage .wrappedHuge")?.textContent;
+  key("ArrowRight"); await tick(1300);
+  ok(storyLine() === "Time well spent. Or was it?" && big() === "388.8 hours" && /That's 16 days nonstop\./.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/cure.jpg" && !/Backdrop:/.test(text()), "hours, with its own backdrop: " + big());
   key("ArrowRight");
-  ok(heading() === "Your top genre was Thriller." && /It's in 23 of the titles you've completed\./.test(currentText(document)) && /Then Crime\./.test(currentText(document)), "genre sentence: " + currentText(document));
+  ok(storyLine() === "You clearly have a type." && big() === "Thriller" && /In 23 of your completed titles\. Then Crime\./.test(text()), "genre: " + text());
   key("ArrowRight");
-  ok(heading() === "Japan and South Korea are tied for first." && /29 titles each\./.test(currentText(document)), "a tie is said as a tie: " + heading());
+  ok(storyLine() === "Your passport to drama." && big() === "Japan and South Korea" && /29 titles each\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedBar").length === 3, "countries, a tie said as a tie: " + big());
   key("ArrowRight");
-  ok(heading() === "Your most-watched actor is Moon Lee." && /4 of your completed titles feature Moon Lee\./.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "actors as a ranked list");
+  ok(storyLine() === "Every era has its drama." && big() === "The 2000s" && /20 of your completed titles came out in the 2000s\./.test(text()) && [...d.querySelectorAll(".wrappedStage .wrappedBarLabel")].map((x: any) => x.textContent).join() === "2000s,2010s", "eras by release decade, oldest first: " + text());
   key("ArrowRight");
-  ok(heading() === "Your #1 drama was Drama 1." && /Out of the 23 dramas you've completed\./.test(currentText(document)) && !/You gave it/.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama, its ranked list, and its own backdrop: " + currentText(document));
+  ok(big() === "Your most-watched actor is Moon Lee." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "the actor slide is unchanged");
   key("ArrowRight");
-  ok(heading() === "Your #1 movie was Movie 1." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie, its ranked list, and its own backdrop");
+  ok(storyLine() === "Some stories just hit different." && big() === "Drama 1" && /Your #1 drama, out of the 23 dramas you've completed\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama: " + text());
+  key("ArrowRight");
+  ok(big() === "Movie 1" && /Your #1 movie/.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie");
   key("ArrowRight"); key("ArrowRight");
-  ok(heading() === "The Superfan" && /When you love a title, you go all in\. 34 of your 79 scores are a perfect 10\./.test(currentText(document)) && !/also/.test(currentText(document)), "one drama type with what it means: " + currentText(document));
-  for (let i = 0; i < 9; i++) key("ArrowLeft");
-  key("ArrowLeft");
-  ok(/here's everything you've watched/.test(currentText(document)), "← goes back");
-  for (let i = 0; i < 9; i++) key("ArrowRight");
-  ok(/Your recap, in one card\./.test(currentText(document)) && /Drama type: The Superfan/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
+  ok(storyLine() === "Your drama personality revealed." && big() === "The Thriller Addict" && /You live for the twist\. Thriller is in 23 of your completed titles\./.test(text()), "personality: " + text());
+  for (let i = 0; i < 12; i++) key("ArrowLeft");
+  ok(/Now here's the drama/.test(text()), "← goes back");
+  for (let i = 0; i < 12; i++) key("ArrowRight");
+  ok(/That's a wrap\. But the drama never ends\./.test(text()) && /Drama personality: The Thriller Addict/.test(text()) && /Top genre: Thriller/.test(text()) && /Most-watched actor: Moon Lee/.test(text()) && /@jaesan · all time/.test(text()), "the summary card, all time");
   ok(d.querySelector(".wrappedHint").hidden, "no tap hint on the last slide");
   ok(![...d.querySelectorAll(".wrappedStage button")].some((b: any) => /Replay|Close/.test(b.textContent)), "no Replay or Close buttons, only the ×");
   (d.querySelector(".wrappedClose") as any).click();
@@ -100,13 +102,13 @@ await test("View My Wrapped on Stats opens ten slides, each led by one sentence 
 });
 
 await test("slides without data are left out, and ratings only state supported facts", async () => {
-  const {document, click} = mount({user: "jaesan", stats: sample({actors: [], genres: [{genre: "Drama", count: 9}], hero: null})});
+  const {document, click} = mount({user: "jaesan", stats: sample({actors: [], genres: [{genre: "Drama", count: 9}], hero: null, decades: [{decade: "2000s", count: 79}]})});
   click("stats"); await tick(60);
   (document.querySelector(".statsWrappedButton") as any).click(); await tick();
-  ok(slideKinds(document) === 8, "no actors or genres slide: " + slideKinds(document));
+  ok(slideKinds(document) === 9, "no actors, genres or era slide (one decade only): " + slideKinds(document));
   const d = story(document);
   const key = (k: string) => d.dispatchEvent(Object.assign(new (d.ownerDocument.defaultView as any).Event("keydown", {bubbles: true}), {key: k}));
-  for (let i = 0; i < 5; i++) key("ArrowRight");
+  for (let i = 0; i < 6; i++) key("ArrowRight");
   await tick(1300);
   ok(story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent === "Your average score is 8.89.", "the average keeps two decimals: " + story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent);
   ok(/Across the 79 titles you rated\./.test(currentText(document)) && /perfect 10 to 34 titles/.test(currentText(document)) && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
@@ -116,10 +118,10 @@ await test("someone with only movies (or only dramas) gets just their one #1 sli
   const m = mount({user: "jaesan", stats: sample({topDramas: []})});
   m.click("stats"); await tick(60);
   (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
-  ok(slideKinds(m.document) === 9, "no #1 drama slide: " + slideKinds(m.document));
+  ok(slideKinds(m.document) === 11, "no #1 drama slide: " + slideKinds(m.document));
   const d = story(m.document);
-  for (let i = 0; i < 5; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
-  ok(/Your #1 movie was Movie 1\./.test(currentText(m.document)) && !/#1 drama/.test(d.textContent), "only the movie slide");
+  for (let i = 0; i < 7; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  ok(/Your #1 movie/.test(currentText(m.document)) && !/#1 drama/.test(d.textContent), "only the movie slide: " + currentText(m.document));
 });
 
 await test("a movie's lead actors fill the #1 subtitle", async () => {
@@ -128,7 +130,7 @@ await test("a movie's lead actors fill the #1 subtitle", async () => {
   m.click("stats"); await tick(60);
   (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
   const d = story(m.document);
-  for (let i = 0; i < 5; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  for (let i = 0; i < 7; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
   ok(/Starring Solo Star\./.test(currentText(m.document)), "one name: " + currentText(m.document));
   d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
   ok(/Starring Star One and Star Two\./.test(currentText(m.document)), "two names: " + currentText(m.document));
@@ -139,12 +141,12 @@ await test("the last slide offers Share and Save image, and says so when the car
   m.click("stats"); await tick(60);
   (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
   const d = story(m.document);
-  for (let i = 0; i < 9; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  for (let i = 0; i < 15; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
   const buttons = [...d.querySelectorAll(".wrappedStage button")].map((b: any) => b.textContent);
   ok(buttons.join("|") === "Share|Save image", "buttons: " + buttons);
   (d.querySelector(".wrappedStage button") as any).click(); await tick();
   ok(/couldn't be made|Making your card|Saved/.test(d.querySelector(".wrappedShareNote").textContent), "a status line, never a silent failure: " + d.querySelector(".wrappedShareNote").textContent);
-  ok(slideKinds(m.document) === 10 && /Your recap, in one card/.test(currentText(m.document)), "tapping a button doesn't change slides");
+  ok(slideKinds(m.document) === 12 && /That's a wrap/.test(currentText(m.document)), "tapping a button doesn't change slides");
 });
 
 await test("the soundtrack starts from the tap that opens Wrapped, mutes and remembers it, and stops on close", async () => {
@@ -199,7 +201,7 @@ await test("the Lists pop-up: shows when ready, × hides it for a year, comes ba
   await lists(fresh);
   ok(!banner(fresh).hidden && stats(fresh) === 2, "back on Lists, with no further request");
   banner(fresh).querySelector(".wrappedBannerGo").click(); await tick();
-  ok(story(fresh.document).open && slideKinds(fresh.document) === 10 && !banner(fresh).hidden, "Let's go opens Wrapped and the pop-up stays");
+  ok(story(fresh.document).open && slideKinds(fresh.document) === 12 && !banner(fresh).hidden, "Let's go opens Wrapped and the pop-up stays");
   banner(fresh).querySelector(".wrappedBannerClose").click();
   const saved = JSON.parse(fresh.saved.get("ydl-wrapped-banner:jaesan") || "null");
   ok(banner(fresh).hidden && saved?.completed === 79 && saved?.dismissedAt > 0, "× hides it and remembers when and how many");
@@ -221,19 +223,23 @@ await test("the Lists pop-up: shows when ready, × hides it for a year, comes ba
   await lists(old);
   ok(!banner(old).hidden, "back after a year");
 });
-await test("drama types follow their rules, and everyone fits at least one", async () => {
-  const types = async (stats: any) => {
+await test("drama personalities follow fixed rules, first match wins, and everyone gets one", async () => {
+  const personality = async (stats: any) => {
     const m = mount({user: "u", stats});
     m.click("stats"); await tick(60);
     (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
     const d = story(m.document);
-    for (let i = 0; i < 9; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
-    const line = [...d.querySelectorAll(".wrappedCardLines li")].map((li: any) => li.textContent).find((t: string) => t.startsWith("Drama type: "));
-    return line?.slice("Drama type: ".length);
+    for (let i = 0; i < 15; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+    const line = [...d.querySelectorAll(".wrappedCardLines li")].map((li: any) => li.textContent).find((t: string) => t.startsWith("Drama personality: "));
+    return line?.slice("Drama personality: ".length);
   };
-  const base = {ratings: {rated: 20, unrated: 0, average: 8, distribution: [{score: 8, count: 20}], highestCountry: null, lowestCountry: null}, viewingTime: {hours: 50, days: 2.1}, types: {dramas: 18, movies: 2, tvShows: 0}, statusCounts: {watching: 0, completed: 20, planToWatch: 0, onHold: 0, dropped: 0}, countries: [{country: "South Korea", count: 19}, {country: "Japan", count: 1}]};
-  ok(await types(sample(base)) === "The Loyalist", "95% from one country is a Loyalist");
-  ok(await types(sample({...base, countries: [{country: "South Korea", count: 8}, {country: "Japan", count: 6}, {country: "China", count: 4}, {country: "Thailand", count: 2}]})) === "The Explorer", "four countries is an Explorer");
-  ok(await types(sample({...base, countries: [{country: "South Korea", count: 12}, {country: "Japan", count: 8}]})) === "The Drama Fan", "no rule fits: The Drama Fan");
+  const g = (...list: [string, number][]) => list.map(([genre, count]) => ({genre, count}));
+  const base = {statusCounts: {watching: 0, completed: 40, planToWatch: 0, onHold: 0, dropped: 0}, viewingTime: {hours: 50, days: 2.1}};
+  ok(await personality(sample({...base, genres: g(["Drama", 30], ["Romance", 20], ["Thriller", 5])})) === "The Hopeless Romantic", "Romance leads (Drama is left out)");
+  ok(await personality(sample({...base, genres: g(["Mystery", 15], ["Romance", 10])})) === "The Thriller Addict", "Mystery leads");
+  ok(await personality(sample({...base, genres: g(["Comedy", 9], ["Family", 8], ["Fantasy", 7], ["History", 6], ["Action", 5], ["Music", 4])})) === "The Genre Hopper", "six genres, none in 25% or more");
+  ok(await personality(sample({...base, viewingTime: {hours: 400, days: 16.7}, genres: g(["Comedy", 20])})) === "The Drama Marathoner", "400 hours, no genre rule fits");
+  ok(await personality(sample({...base, genres: g(["Comedy", 20])})) === "The Drama Fan", "nothing fits: The Drama Fan");
+  ok(await personality(sample({...base, viewingTime: {hours: 400, days: 16.7}, genres: g(["Romance", 20])})) === "The Hopeless Romantic", "a genre rule comes before hours");
 });
 console.log(JSON.stringify({passed}));
