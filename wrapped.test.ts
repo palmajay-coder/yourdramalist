@@ -63,7 +63,7 @@ await test("View My Wrapped on Stats opens ten slides, each led by one sentence 
   const {document, window, click} = mount({user: "jaesan"});
   click("stats"); await tick(60);
   const button = document.querySelector(".statsWrappedButton") as any;
-  ok(button && button.textContent === "Your " + new Date().getFullYear() + " Wrapped", "the button sits under the hero");
+  ok(button && button.textContent === "Your Drama Wrapped", "the button sits under the hero");
   button.click(); await tick();
   const d = story(document);
   ok(d.open && slideKinds(document) === 10, "ten slides: " + slideKinds(document));
@@ -190,7 +190,7 @@ await test("the Lists pop-up: shows when ready, × hides it for a year, comes ba
   const fresh = await mounted({user: "jaesan"});
   ok(banner(fresh).hidden && banner(fresh).parentElement === fresh.document.body, "not on Discover (the app opens there), and it floats over the page");
   await lists(fresh);
-  ok(!banner(fresh).hidden && banner(fresh).querySelector("h2").textContent === "Your " + new Date().getFullYear() + " Wrapped" && /Jump into your year of Dramas\./.test(banner(fresh).textContent) && banner(fresh).querySelector("button.wrappedBannerGo").textContent === "Let's go", "pops up on Lists when ready");
+  ok(!banner(fresh).hidden && banner(fresh).querySelector("h2").textContent === "Your Drama Wrapped" && /Jump into your year of dramas so far\./.test(banner(fresh).textContent) && banner(fresh).querySelector("button.wrappedBannerGo").textContent === "Let's go", "pops up on Lists when ready");
   ok(banner(fresh).querySelector(".wrappedBannerArt img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/b.jpg", "behind the hero backdrop");
   fresh.click("discover"); await tick();
   ok(banner(fresh).hidden, "hidden on Discover");
