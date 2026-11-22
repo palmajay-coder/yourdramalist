@@ -478,9 +478,7 @@ export function installWrapped() {
     show(0);
   }
 
-  // The pop-up card that slides up from the bottom of the Lists page. It shows once someone's stats are ready, stays after "Let's go" so the recap
-  // can be replayed, and × hides it for a year (or until they have completed more titles).
-  const YEAR = 365 * 86400000;
+  // The pop-up card that slides up from the bottom when someone logs in (once). "Let's go" opens Stats; × closes it.
   const banner = el("section", "wrappedBanner");
   banner.hidden = true;
   banner.setAttribute("aria-label", "Your Drama Wrapped");
@@ -491,18 +489,15 @@ export function installWrapped() {
   const hide = el("button", "wrappedBannerClose", "×"); hide.type = "button"; hide.setAttribute("aria-label", "Hide Wrapped");
   banner.append(bannerArt, el("i", "wrappedSpark isA"), el("i", "wrappedSpark isB"), el("i", "wrappedSpark isC"), copy, hide);
   let bannerData = null, bannerUser = null;
-  const bannerKey = user => "ydl-wrapped-banner:" + user.toLowerCase();
-  const readDismissal = user => { try { return JSON.parse(localStorage.getItem(bannerKey(user)) || "null"); } catch { return null; } };
-  const dismissedNow = (user, completed) => {
-    const d = readDismissal(user);
-    return !!d && Date.now() - (d.dismissedAt || 0) < YEAR && completed <= (d.completed || 0);
-  };
+  // The pop-up shows once per login: it is armed when a username is newly connected, shown on the first page that can hold it, and used up
+  // as soon as they tap either button or move on. A page reload, or opening their own lists again, does not bring it back.
+  let popupUser = null, popupSeen = false, lastUser = null;
   function syncBanner() {
     const user = connectedUser;
-    // A pop-up on the Lists page only (not Discover, Stats, My Collections or the other pages).
-    // It shows as soon as a username is connected, without waiting for the numbers (Stats loads them). Not on Stats itself.
+    // It shows without waiting for the numbers (Stats loads them). Not on Stats itself.
     const known = bannerUser === user ? bannerData?.statusCounts?.completed : undefined;
-    const show = !!user && state.tab !== "stats" && currentPage === "selection" && known !== 0 && !dismissedNow(user, known || 0);
+    const show = !!user && popupUser === user && state.tab !== "stats" && currentPage === "selection" && known !== 0;
+    if (show) popupSeen = true; else if (popupSeen) { popupUser = null; popupSeen = false; } // seen once, then they moved on
     banner.hidden = !show;
   }
   // Their stats are fetched in the background as soon as a username is connected (the server keeps what it learns), and
@@ -512,9 +507,6 @@ export function installWrapped() {
     const user = connectedUser;
     if (!user || inFlight) return;
     if (user === bannerUser && bannerData) { syncBanner(); return; }
-    // None while the banner is hidden for a year.
-    const d = readDismissal(user);
-    if (d && Date.now() - (d.dismissedAt || 0) < YEAR) return;
     inFlight = true;
     let data = null;
     try {
@@ -531,8 +523,8 @@ export function installWrapped() {
   }
   function userChanged() {
     clearTimeout(pollTimer); polls = 0; inFlight = false; bannerData = null; bannerUser = null; banner.hidden = true;
-    // Every login pops it up again, even if it was closed before.
-    if (connectedUser) try { localStorage.removeItem(bannerKey(connectedUser)); } catch {}
+    // Only a newly connected username arms the pop-up (not the same one looked up again).
+    popupUser = connectedUser && connectedUser !== lastUser ? connectedUser : null; popupSeen = false; lastUser = connectedUser || "";
     syncBanner();
     if (connectedUser) checkBanner();
   }
@@ -544,16 +536,11 @@ export function installWrapped() {
     bannerArt.replaceChildren(...(data.hero?.backdrop ? [image(data.hero.backdrop)] : []));
     syncBanner();
   }
-  // Hidden for a year (or until they complete more titles, when the numbers are known).
-  const dismiss = () => {
-    const user = connectedUser;
-    if (user) try { localStorage.setItem(bannerKey(user), JSON.stringify({ dismissedAt: Date.now(), completed: bannerUser === user && bannerData ? bannerData.statusCounts.completed : 1e9 })); } catch {}
-    banner.hidden = true;
-  };
+  const dismiss = () => { popupUser = null; popupSeen = false; banner.hidden = true; };
   // "Let's go" opens the Stats page, which loads everything.
   go.onclick = () => { dismiss(); window.openWrappedStats?.(); };
   hide.onclick = dismiss;
-  function mountBanner() { document.body.append(banner); checkBanner(); }
+  function mountBanner() { lastUser = connectedUser || ""; document.body.append(banner); checkBanner(); } // the saved username is not a new login
   window.syncWrappedBanner = () => { syncBanner(); checkBanner(); };
   return { open, mountBanner, learn, syncBanner, userChanged };
 }
