@@ -404,11 +404,11 @@ export function installWrapped() {
   const YEAR = 365 * 86400000;
   const banner = el("section", "wrappedBanner");
   banner.hidden = true;
-  banner.setAttribute("aria-label", "MyDramaList Wrapped");
+  banner.setAttribute("aria-label", "Your " + new Date().getFullYear() + " Wrapped");
   const bannerArt = el("div", "wrappedBannerArt");
   const copy = el("div", "wrappedBannerCopy");
   const go = el("button", "wrappedBannerGo", "Let's go"); go.type = "button";
-  copy.append(el("h2", "", "Your MyDramaList Wrapped"), el("p", "", "Jump into your drama story so far."), go);
+  copy.append(el("h2", "", "Your " + new Date().getFullYear() + " Wrapped"), el("p", "", "Jump into your year of Dramas."), go);
   const hide = el("button", "wrappedBannerClose", "×"); hide.type = "button"; hide.setAttribute("aria-label", "Hide Wrapped");
   banner.append(bannerArt, el("i", "wrappedSpark isA"), el("i", "wrappedSpark isB"), el("i", "wrappedSpark isC"), copy, hide);
   let bannerData = null, bannerUser = null;
