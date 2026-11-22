@@ -249,7 +249,12 @@ export async function handleStats(req: Request) {
   const u = new URL(req.url), username = u.searchParams.get("username") || "";
   if (!/^[a-zA-Z0-9_-]{1,60}$/.test(username)) return Response.json({error: "Enter a MyDramaList username."}, {status: 400, headers});
   try {
-    return Response.json(await (await service()).stats(username, {refresh: u.searchParams.get("refresh") === "1"}), {headers});
+    const result = await (await service()).stats(username, {refresh: u.searchParams.get("refresh") === "1"});
+    // One summary line per request, to check TMDB coverage in the Worker logs (no watchlist contents beyond the top picks).
+    console.log(JSON.stringify({stats: username.toLowerCase(), coverage: result.coverage, stale: result.stale, hours: result.viewingTime?.hours ?? null,
+      genres: result.genres.slice(0, 3).map(g => g.genre + " " + g.count), actors: result.actors.slice(0, 3).map(a => a.name + " " + a.count),
+      hero: result.hero ? {title: result.hero.title, reason: result.hero.reason, backdrop: !!result.hero.backdrop} : null, topPosters: result.topRated.filter(t => t.poster).length}));
+    return Response.json(result, {headers});
   } catch (error) {
     const code = (error as any)?.code;
     const message = code === "PRIVATE" ? "This MyDramaList watchlist is private." : code === "LAYOUT" ? "This MyDramaList watchlist uses the V2 beta layout, which can't be read yet." : "MyDramaList data is temporarily unavailable. Please try again.";
