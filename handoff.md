@@ -69,6 +69,8 @@
 - **Exact vs. not:** counts, types, countries (including Hong Kong and others), decades, ratings and Top 10 come straight from the watchlist. Viewing time is MyDramaList's own Completed total (days to 0.1, so within about 1.2 h). Genres and actors cover only TMDB-matched titles (reported in `coverage`). No completion dates exist anywhere.
 - **Hero:** snapshots of Completed (`stats-snapshot:v1:<user>`). The first sync marks everything as old and falls back to the top-rated title (`reason: top-rated-fallback`). Later syncs stamp newly completed titles with their detection time (not a completion date), so the hero is the newest detection, with ties by score then title. Removed titles drop out, and snapshots older than 180 days restart.
 - **Storage (R2 blobs):** `stats-list:v1:<user>` (last good watchlist, refetched after 30 min, refresh at most every 2 min), `stats-snapshot:v1:<user>`, and `stats-titles:v1` (TMDB details per title, 30 days, or 3 for no match, capped at 5,000).
+- **Navigation (approved by the owner for Phase 2):** Stats replaces the My Collections tab in the bottom bar. My Collections stays as a "My Collections" button at the top of the Lists page, opening the same screen, and Add to Collection in title previews keeps working. Existing collections in Nuvio are untouched.
+- **Test site:** runs `feature/stats` for the TMDB check (live unchanged). Each `/api/stats` request logs one summary line (`stats`, `coverage`, top genres and actors, hero).
 - **TMDB budget:** about 20 s per request, then `coverage.pending`. Kuryana down: the last good stats, `stale: true`. Private or V2 layout: a clear error.
 
 ## Quirks
