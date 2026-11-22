@@ -128,4 +128,13 @@ async function syncGuideText() {
   if (current !== module) { await writeFile(target, module); console.log("Updated guideText.ts from guide-text.md"); }
 }
 await syncGuideText();
+// The owner writes every word of MyDramaList Wrapped in wrapped-text.md; copy it into wrappedText.ts the same way.
+async function syncWrappedText() {
+  const text = await readFile(path.join(root, "wrapped-text.md"), "utf8");
+  const module = "// Generated from wrapped-text.md by cloudflare/build.mjs. Edit wrapped-text.md, not this file.\nexport const WRAPPED_TEXT = " + JSON.stringify(text) + ";\n";
+  const target = path.join(root, "wrappedText.ts");
+  const current = await readFile(target, "utf8").catch(() => "");
+  if (current !== module) { await writeFile(target, module); console.log("Updated wrappedText.ts from wrapped-text.md"); }
+}
+await syncWrappedText();
 await bundle({ entry: "worker.ts", outfile: "worker.js", assets: await buildAssets(), buildId });

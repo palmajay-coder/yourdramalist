@@ -87,9 +87,9 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   key("ArrowRight");
   ok(big() === "Your most-watched actor is Moon Lee." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "the actor slide is unchanged");
   key("ArrowRight");
-  ok(storyLine() === "Some stories just hit different." && big() === "Drama 1" && /Of everything you've finished, this one hit hardest\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama: " + text());
+  ok(storyLine() === "Some dramas hit different." && big() === "Drama 1" && /Of everything you've finished, this one hit hardest\./.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(text()) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama: " + text());
   key("ArrowRight");
-  ok(big() === "Movie 1" && /hit hardest/.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie");
+  ok(storyLine() === "Some movies hit different." && big() === "Movie 1" && /hit hardest/.test(text()) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie");
   key("ArrowRight"); key("ArrowRight");
   ok(storyLine() === "Your drama personality revealed." && big() === "The Thriller Addict" && /You live for the twist\. You trust no one/.test(text()) && !/\d/.test(d.querySelector(".wrappedStage .wrappedLine").textContent), "personality: " + text());
   for (let i = 0; i < 12; i++) key("ArrowLeft");

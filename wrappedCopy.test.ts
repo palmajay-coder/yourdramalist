@@ -1,5 +1,6 @@
 // Wrapped's narrator (wrappedCopy.ts): one owner-chosen line per situation, with the real numbers folded in.
 import {wrappedCopy} from "./wrappedCopy.ts";
+import {WRAPPED_TEXT} from "./wrappedText.ts";
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
 async function test(name: string, fn: () => unknown) { await fn(); passed++; console.log("PASS " + name); }
@@ -17,7 +18,7 @@ const base = (extra: Record<string, unknown> = {}) => ({
   ratings: {rated: 79, average: 8.89, distribution: [{score: 10, count: 34}, {score: 8, count: 45}]},
   ...extra,
 });
-const say = (extra: Record<string, unknown> = {}) => wrappedCopy(base(extra)) as Record<string, string | null>;
+const say = (extra: Record<string, unknown> = {}) => wrappedCopy(base(extra), WRAPPED_TEXT) as Record<string, any>;
 
 await test("the owner's chosen lines, with the numbers folded in and no 'out of' totals", () => {
   const s = say();
@@ -30,7 +31,7 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
   ok(plain(s.topDrama) === "Of everything you've finished, this one with Lee Min-ho and Kim Go-eun hit hardest.", "#1 drama: " + s.topDrama);
   ok(plain(s.topMovie) === "Of everything you've finished, this one hit hardest.", "#1 movie without cast");
   ok(plain(s.ratings) === "Out of everything you've watched, 34 titles earned a perfect 10. Now that's a standing ovation.", "ratings: " + s.ratings);
-  ok(!Object.values(s).some(l => / of your \d|out of \d/i.test(plain(l))), "no totals anywhere");
+  ok(!Object.entries(s).some(([k, l]) => k !== "t" && / of your \d|out of \d/i.test(plain(l as string))), "no totals anywhere");
   ok(/\*\*23\*\*/.test(s.completed!) && /\*\*Moon Lee\*\*/.test(s.actor!), "numbers and names are bold");
 });
 
@@ -49,7 +50,7 @@ await test("every genre has its own line, with a fallback for the rest", () => {
   const genres = ["Thriller", "Romance", "Comedy", "Mystery", "Crime", "Action", "Action & Adventure", "Adventure", "Fantasy", "Sci-Fi & Fantasy", "Science Fiction", "Horror", "Family", "History", "War", "War & Politics", "Music", "Animation", "Documentary"];
   const lines = genres.map(g => plain(say({genres: [{genre: "Drama", count: 50}, {genre: g, count: 12}]}).genre));
   ok(new Set(lines).size === lines.length && lines.every(l => l.startsWith("12 ")), "unique, each starting with the number: " + lines.join(" | "));
-  ok(plain(say({genres: [{genre: "Western", count: 1}]}).genre) === "1 Western title, and you know exactly what you like.", "fallback, singular");
+  ok(plain(say({genres: [{genre: "Western", count: 1}]}).genre) === "1 title of Western, and you know exactly what you like.", "fallback, singular");
   ok(say({genres: [{genre: "Drama", count: 9}]}).genre === null, "only Drama: no line");
 });
 
@@ -79,7 +80,26 @@ await test("small numbers, missing data, and ratings without perfect 10s read co
   ok(/don't hand out stars easily/.test(say({ratings: {rated: 20, average: 5.5, distribution: [{score: 5, count: 20}]}}).ratings!), "tough critic");
   ok(/honest score/.test(say({ratings: {rated: 20, average: 7, distribution: [{score: 7, count: 20}]}}).ratings!), "balanced");
   ok(say({ratings: {rated: 0, average: null, distribution: []}}).ratings === null, "no ratings");
-  ok(Object.values(wrappedCopy({username: "x", statusCounts: {completed: 0}})).every(v => v === null), "an empty list: every line null");
-  ok(JSON.stringify(say()) === JSON.stringify(say()), "same data, same words");
+  ok(Object.entries(wrappedCopy({username: "x", statusCounts: {completed: 0}}, WRAPPED_TEXT)).every(([k, v]) => k === "t" || v === null), "an empty list: every line null");
+  const lines = (o: any) => JSON.stringify(Object.fromEntries(Object.entries(o).filter(([k]) => k !== "t")));
+  ok(lines(say()) === lines(say()), "same data, same words");
 });
+await test("the owner's wrapped-text.md: wrappedText.ts is up to date, and every line the code uses is in it", async () => {
+  ok(WRAPPED_TEXT === await Deno.readTextFile(new URL("./wrapped-text.md", import.meta.url)), "wrapped-text.md changed: run node cloudflare/build.mjs to update wrappedText.ts");
+  const code = await Deno.readTextFile(new URL("./wrappedCopy.ts", import.meta.url)) + await Deno.readTextFile(new URL("./wrappedClient.ts", import.meta.url));
+  const used = [...code.matchAll(/\bT?t\("([a-zA-Z0-9.]+)"/g)].map(m => m[1]).filter(k => k !== "key" && !k.endsWith("."));
+  const t = wrappedCopy(null, WRAPPED_TEXT).t;
+  const missing = used.filter(k => !t(k));
+  ok(used.length > 15 && !missing.length, "missing lines: " + missing.join(", "));
+  for (const id of ["romantic", "thriller", "hopper", "marathoner", "fan"]) ok(t("personality." + id + ".name") && t("personality." + id + ".line"), "personality " + id);
+  for (const d of ["1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]) ok(t("eras." + d), "decade " + d);
+});
+
+await test("the file's rules: {count|one|many} picks the word, unknown or deleted lines are harmless", () => {
+  const t = wrappedCopy(null, "<!-- notes: not a line -->\n## Heading: also not\na.b: {count|title|titles} for {name}.\nempty.line:\n").t;
+  ok(t("a.b", {count: 1, name: "**X**"}) === "**1** title for **X**." && t("a.b", {count: 3, name: "Y"}) === "**3** titles for Y.", "plurals");
+  ok(t("notes") === null && t("## Heading") === null && t("missing") === null && t("empty.line") === null, "comments, headings, blank and missing lines give nothing");
+  ok(t("a.b", {}) === "{count|title|titles} for {name}.", "placeholders without values are left as typed");
+});
+
 console.log(JSON.stringify({passed}));
