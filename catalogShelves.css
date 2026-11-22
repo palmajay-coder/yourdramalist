@@ -444,11 +444,14 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .statsWrappedButton{display:block;width:100%;margin:-4px 0 16px;padding:13px;border-radius:12px;font-weight:800;font-size:16px}
 .wrapped{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#0d0f14;color:#f2f5fa;font-family:Lato,system-ui,sans-serif;overflow:hidden}
 .wrapped::backdrop{background:#000}
-.wrappedProgress{position:absolute;z-index:3;top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:56px;display:flex;gap:4px}
+.wrappedProgress{position:absolute;z-index:3;top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:100px;display:flex;gap:4px}
 .wrappedProgressBar{flex:1;height:3px;border-radius:2px;background:#ffffff38;overflow:hidden;position:relative}
 .wrappedProgressBar.isDone{background:#fff}
 .wrappedProgressBar.isCurrent::after{content:"";position:absolute;inset:0;background:#fff;transform-origin:left;animation:wrappedFill .5s ease forwards}
 .wrappedClose{position:absolute;z-index:3;top:calc(2px + env(safe-area-inset-top,0px));right:8px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:1}
+.wrappedSound{position:absolute;z-index:3;top:calc(2px + env(safe-area-inset-top,0px));right:52px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:20px;line-height:1;cursor:pointer}
+.wrappedSound[hidden]{display:none}
+.wrappedSound:focus-visible{outline:2px solid #fff}
 .wrappedClose:focus-visible{outline:2px solid #fff}
 .wrappedStage{position:absolute;inset:0;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
 .wrappedHint{position:absolute;z-index:3;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0;text-align:center;color:#ffffffa0;font-size:13px;pointer-events:none}

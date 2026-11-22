@@ -22,7 +22,9 @@ export function installWrapped() {
   const stage = el("div", "wrappedStage");
   stage.setAttribute("aria-live", "polite");
   const hint = el("p", "wrappedHint", "Tap to continue");
-  dialog.append(progress, close, stage, hint);
+  const sound = el("button", "wrappedSound", "🔊");
+  sound.type = "button";
+  dialog.append(progress, close, sound, stage, hint);
   document.body.append(dialog);
 
   let slides = [], index = 0, timers = [];
@@ -351,8 +353,52 @@ export function installWrapped() {
   close.onclick = finish;
   dialog.addEventListener("close", clearTimers);
 
+  // The soundtrack: one looping track that starts from the tap that opens Wrapped. Muting is remembered, and if the
+  // file can't load the button simply isn't shown.
+  let music = null, fading = null, muted = false;
+  try { muted = localStorage.getItem("ydl-wrapped-muted") === "1"; } catch {}
+  const paintSound = () => { sound.textContent = muted ? "🔇" : "🔊"; sound.setAttribute("aria-label", muted ? "Turn the music on" : "Turn the music off"); sound.setAttribute("aria-pressed", String(!muted)); };
+  paintSound();
+  function fadeTo(volume, ms, then) {
+    clearInterval(fading);
+    if (!music) return;
+    const from = music.volume, started = Date.now();
+    if (reduced() || !ms) { music.volume = volume; then?.(); return; }
+    fading = setInterval(() => {
+      const t = Math.min(1, (Date.now() - started) / ms);
+      try { music.volume = from + (volume - from) * t; } catch {}
+      if (t >= 1) { clearInterval(fading); then?.(); }
+    }, 50);
+  }
+  function startMusic() {
+    if (muted || typeof Audio !== "function" || typeof WRAPPED_MUSIC === "undefined") return;
+    try {
+      if (!music) {
+        music = new Audio(WRAPPED_MUSIC);
+        music.loop = true;
+        music.preload = "auto";
+        music.addEventListener("error", () => { music = null; sound.hidden = true; }, { once: true });
+      }
+      music.volume = 0;
+      const playing = music.play?.();
+      playing?.catch?.(() => {});
+      fadeTo(0.7, 1500);
+    } catch {}
+  }
+  function stopMusic() { fadeTo(0, 600, () => { try { music?.pause(); } catch {} }); }
+  sound.onclick = () => {
+    muted = !muted;
+    try { localStorage.setItem("ydl-wrapped-muted", muted ? "1" : "0"); } catch {}
+    paintSound();
+    if (muted) stopMusic(); else startMusic();
+  };
+  document.addEventListener("visibilitychange", () => { if (document.hidden && dialog.open) { try { music?.pause(); } catch {} } else if (dialog.open && !muted) startMusic(); });
+  dialog.addEventListener("close", stopMusic);
+
   function open(data) {
     if (!data?.statusCounts) return;
+    sound.hidden = false;
+    startMusic();
     slides = build(data);
     progress.replaceChildren(...slides.map(() => el("span", "wrappedProgressBar")));
     if (!dialog.open) showAndroidDialog(dialog);

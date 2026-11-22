@@ -146,6 +146,40 @@ await test("the last slide offers Share and Save image, and says so when the car
   ok(slideKinds(m.document) === 10 && /Your recap, in one card/.test(currentText(m.document)), "tapping a button doesn't change slides");
 });
 
+await test("the soundtrack starts from the tap that opens Wrapped, mutes and remembers it, and stops on close", async () => {
+  const played: string[] = [];
+  (globalThis as any).Audio = class { volume = 1; loop = false; src: string; constructor(src: string) { this.src = src; played.push("new " + src); } addEventListener() {} play() { played.push("play"); return Promise.resolve(); } pause() { played.push("pause"); } };
+  try {
+    const m = mount({user: "jaesan"});
+    m.click("stats"); await tick(60);
+    (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
+    const d = story(m.document);
+    ok(played.join() === "new /assets/wrapped-music-v1.mp3,play", "starts the track on open: " + played);
+    const sound = d.querySelector(".wrappedSound") as any;
+    ok(sound.getAttribute("aria-label") === "Turn the music off", "a mute button");
+    sound.click();
+    ok(sound.getAttribute("aria-label") === "Turn the music on" && m.saved.get("ydl-wrapped-muted") === "1", "mute is remembered");
+    await tick(700);
+    ok(played.includes("pause"), "muting stops the track");
+    (d.querySelector(".wrappedClose") as any).click(); await tick(700);
+    ok(played.filter(x => x === "play").length === 1, "closing while muted plays nothing");
+  } finally { delete (globalThis as any).Audio; }
+});
+
+await test("the music file is served with Range support, and 404 when it isn't stored", async () => {
+  const {serveWrappedMusic} = await import("./wrappedMusic.ts");
+  const bytes = Uint8Array.from({length: 100}, (_, i) => i);
+  const whole = await serveWrappedMusic(new Request("https://t/x"), bytes);
+  ok(whole.status === 200 && whole.headers.get("content-type") === "audio/mpeg" && whole.headers.get("accept-ranges") === "bytes" && (await whole.arrayBuffer()).byteLength === 100, "whole file");
+  const part = await serveWrappedMusic(new Request("https://t/x", {headers: {range: "bytes=10-19"}}), bytes);
+  ok(part.status === 206 && part.headers.get("content-range") === "bytes 10-19/100" && (await part.arrayBuffer()).byteLength === 10, "a range");
+  const tail = await serveWrappedMusic(new Request("https://t/x", {headers: {range: "bytes=90-"}}), bytes);
+  ok(tail.status === 206 && tail.headers.get("content-range") === "bytes 90-99/100", "an open-ended range");
+  ok((await serveWrappedMusic(new Request("https://t/x", {headers: {range: "bytes=500-"}}), bytes)).status === 416, "out of range");
+  ok((await serveWrappedMusic(new Request("https://t/x"), null)).status === 404, "missing file");
+  ok((await handler(new Request("https://test/assets/wrapped-music-v1.mp3"))).status === 404, "the route exists and says 404 without a stored file");
+});
+
 await test("the Discover banner: shows when ready, × hides it for a year, comes back with more completed titles", async () => {
   // The test DOM shares one window between mounts, so each case mounts, checks, and is done before the next.
   const banner = (m: any) => m.document.querySelector(".wrappedBanner") as any;
