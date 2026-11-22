@@ -97,8 +97,8 @@ export function installWrapped() {
     return node;
   }
   const b = x => "**" + x + "**";
-  // One flowing description: the fact (bold numbers) and the narrator's comment, as one paragraph.
-  const describe = (fact, comment) => { const text = [fact, comment].filter(Boolean).join(" "); return text ? rich("wrappedLine", text) : null; };
+  // One flowing description: the narrator's line (which already holds the numbers), or the plain fact without it.
+  const describe = (fact, comment) => { const text = comment || fact; return text ? rich("wrappedLine", text) : null; };
   // A story slide: the story line, the big stat, then the description.
   const storySlide = (theme, story, big, comment, fact, ...extra) => slide(theme, el("p", "wrappedStory", story), big, describe(fact, comment), ...extra);
   const huge = text => el("h2", "wrappedHuge wrappedPop" + (String(text).length > 8 ? " isLong" : ""), text); // long names shrink to stay on one or two lines

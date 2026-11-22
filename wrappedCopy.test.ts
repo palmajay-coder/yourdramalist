@@ -1,4 +1,4 @@
-// Wrapped's narrator (wrappedCopy.ts): fixed rules, a stable pick, approved copy first, nothing the data doesn't support.
+// Wrapped's narrator (wrappedCopy.ts): one owner-chosen line per situation, with the real numbers folded in.
 import {wrappedCopy} from "./wrappedCopy.ts";
 let passed = 0;
 const ok = (value: unknown, message: string) => { if (!value) throw Error(message); };
@@ -13,60 +13,47 @@ const base = (extra: Record<string, unknown> = {}) => ({
   countries: [{country: "South Korea", count: 50}, {country: "Japan", count: 20}],
   decades: [{decade: "2000s", count: 40}, {decade: "2010s", count: 30}],
   actors: [{name: "Moon Lee", count: 4}],
-  topDramas: [{slug: "1-d", title: "D", score: 10}], topMovies: [{slug: "1-m", title: "M", score: 9}],
+  topDramas: [{slug: "1-d", title: "D", score: 10, cast: ["Lee Min-ho", "Kim Go-eun", "Third"]}], topMovies: [{slug: "1-m", title: "M", score: 9}],
   ratings: {rated: 79, average: 8.89, distribution: [{score: 10, count: 34}, {score: 8, count: 45}]},
   ...extra,
 });
-const countries = (list: [string, number][], extra: Record<string, unknown> = {}) => plain(wrappedCopy(base({countries: list.map(([country, count]) => ({country, count})), ...extra})).countries);
+const say = (extra: Record<string, unknown> = {}) => wrappedCopy(base(extra)) as Record<string, string | null>;
 
-await test("the same data always gives the same lines, and every slide gets one", () => {
-  const a = wrappedCopy(base()), b = wrappedCopy(base());
-  ok(JSON.stringify(a) === JSON.stringify(b), "stable");
-  for (const key of ["completed", "time", "genre", "countries", "eras", "actor", "topDrama", "topMovie", "ratings"]) ok(typeof (a as any)[key] === "string" && (a as any)[key].length > 10, "a line for " + key);
-  const lines = Object.values(a).filter(Boolean) as string[];
-  ok(new Set(lines).size === lines.length, "no line is used twice");
-  ok(lines.every(l => l.split(/\s+/).length <= 22), "short lines");
+await test("the owner's chosen lines, with the numbers folded in and no 'out of' totals", () => {
+  const s = say();
+  ok(plain(s.completed) === "You didn't just start 23 dramas and 56 movies. You finished every single one.", "completed: " + s.completed);
+  ok(plain(s.time) === "16 days nonstop, fueled by snacks, tissues and zero regrets.", "time: " + s.time);
+  ok(plain(s.genre) === "23 thrillers in, and you still never trust the nice guy.", "genre: " + s.genre);
+  ok(plain(s.countries) === "South Korea practically took over your watchlist, with 50 titles.", "clear winner: " + s.countries);
+  ok(s.eras === "Flip phones, legendary OSTs, and dramas with absolutely no chill.", "era: " + s.eras);
+  ok(plain(s.actor) === "4 titles in, it's official: Moon Lee has a fan, and it's you.", "actor: " + s.actor);
+  ok(plain(s.topDrama) === "Of everything you've finished, this one with Lee Min-ho and Kim Go-eun hit hardest.", "#1 drama: " + s.topDrama);
+  ok(plain(s.topMovie) === "Of everything you've finished, this one hit hardest.", "#1 movie without cast");
+  ok(plain(s.ratings) === "Out of everything you've watched, 34 titles earned a perfect 10. Now that's a standing ovation.", "ratings: " + s.ratings);
+  ok(!Object.values(s).some(l => / of your \d|out of \d/i.test(plain(l))), "no totals anywhere");
+  ok(/\*\*23\*\*/.test(s.completed!) && /\*\*Moon Lee\*\*/.test(s.actor!), "numbers and names are bold");
 });
 
-await test("a different user or changed stats can change the wording, but only within the right category", () => {
-  const seen = new Set<string>();
-  for (let n = 20; n < 100; n++) seen.add(plain(wrappedCopy(base({statusCounts: {completed: n}})).completed));
-  ok(seen.size > 1 && [...seen].every(l => !/Triple digits|warming up/.test(l)), "20 to 99 completed: medium lines only: " + [...seen]);
-  ok(/Triple digits|legacy|credits|lived in them/.test(plain(wrappedCopy(base({statusCounts: {completed: 150}})).completed)), "100+: large");
-  ok(/starts somewhere|made the cut|warming up|journey has begun/.test(plain(wrappedCopy(base({statusCounts: {completed: 5}})).completed)), "small lists");
-  ok(/OST|dedication|commitment|tissues/.test(plain(wrappedCopy(base()).time)), "300+ hours");
-  ok(/minute|feelings|marathon|nights/.test(plain(wrappedCopy(base({viewingTime: {hours: 40, days: 1.7}})).time)), "under 100 hours");
+await test("countries: ties first, then a close race, then a clear winner; only first place is named", () => {
+  const c = (list: [string, number][]) => plain(say({countries: list.map(([country, count]) => ({country, count}))}).countries);
+  ok(c([["Japan", 29], ["South Korea", 29], ["Hong Kong", 14]]) === "Japan and South Korea tied at 29 each, because choosing favorites isn't your thing.", "a tie of two");
+  ok(c([["Japan", 9], ["South Korea", 9], ["China", 9]]) === "Japan, South Korea and China tied at 9 each, because choosing favorites isn't your thing.", "a tie of three");
+  ok(c([["South Korea", 31], ["Japan", 29]]) === "It was neck and neck, but South Korea pulled ahead with 31 titles.", "close (3 or fewer ahead)");
+  ok(/neck and neck/.test(c([["Japan", 100], ["South Korea", 92]])), "close (under 10% ahead)");
+  ok(c([["Japan", 40], ["South Korea", 20]]) === "Japan practically took over your watchlist, with 40 titles.", "clear winner");
+  ok(c([["Japan", 1]]) === "Japan practically took over your watchlist, with 1 title.", "only one country, singular");
+  ok(say({countries: []}).countries === null, "no countries");
 });
 
-await test("countries: ties are caught first, then close races, then a clear winner", () => {
-  const two = countries([["Japan", 29], ["South Korea", 29], ["Hong Kong", 14]]);
-  ok(/Two countries|refuses to choose|tie|sharing the spotlight/.test(two), "a tie of two: " + two);
-  ok(!/Hong Kong/.test(two), "never names third place");
-  const three = countries([["Japan", 10], ["South Korea", 10], ["China", 10]]);
-  ok(/no borders|several|showdown|favorites/.test(three), "a tie of three or more: " + three);
-  const close = countries([["Japan", 31], ["South Korea", 29]]);
-  ok(/close race|Neck and neck|friendly competition|made it interesting/.test(close) && /Japan/.test(close) && !/South Korea/.test(close), "a close race names only the winner: " + close);
-  const near = countries([["Japan", 100], ["South Korea", 92]]);
-  ok(/close race|Neck and neck|friendly competition|made it interesting/.test(near), "under 10% ahead is close too");
-  const clear = countries([["Japan", 40], ["South Korea", 20]]);
-  ok(!/close race|Neck and neck|friendly|interesting|tie/.test(clear) && !/South Korea/.test(clear), "a clear winner: " + clear);
-  ok(wrappedCopy(base({countries: []})).countries === null, "no countries, no line");
+await test("every genre has its own line, with a fallback for the rest", () => {
+  const genres = ["Thriller", "Romance", "Comedy", "Mystery", "Crime", "Action", "Action & Adventure", "Adventure", "Fantasy", "Sci-Fi & Fantasy", "Science Fiction", "Horror", "Family", "History", "War", "War & Politics", "Music", "Animation", "Documentary"];
+  const lines = genres.map(g => plain(say({genres: [{genre: "Drama", count: 50}, {genre: g, count: 12}]}).genre));
+  ok(new Set(lines).size === lines.length && lines.every(l => l.startsWith("12 ")), "unique, each starting with the number: " + lines.join(" | "));
+  ok(plain(say({genres: [{genre: "Western", count: 1}]}).genre) === "1 Western title, and you know exactly what you like.", "fallback, singular");
+  ok(say({genres: [{genre: "Drama", count: 9}]}).genre === null, "only Drama: no line");
 });
 
-await test("country lines only make claims the data supports (romance, episodes); unknown countries get the generic lines", () => {
-  const romanceLines = /romance|love stories/i, episodeLines = /another episode|One more K-drama|long story|turned into another|enough episodes/;
-  for (let i = 0; i < 40; i++) {
-    const line = countries([["China", 60], ["Japan", 5]], {username: "u" + i, types: {dramas: 5, movies: 60, tvShows: 0}, genres: [{genre: "Thriller", count: 30}]});
-    ok(!romanceLines.test(line) && !episodeLines.test(line), "no romance or episode claims for a film-heavy thriller fan: " + line);
-  }
-  const lines = new Set<string>();
-  for (let i = 0; i < 40; i++) lines.add(countries([["China", 60], ["Japan", 5]], {username: "u" + i, types: {dramas: 60, movies: 5, tvShows: 0}, genres: [{genre: "Romance", count: 40}]}));
-  ok([...lines].some(l => romanceLines.test(l)), "romance lines can appear for romance fans");
-  const other = countries([["United States", 40], ["Japan", 2]]);
-  ok(/United States/.test(other), "generic lines name the country: " + other);
-});
-
-await test("eras use the approved decade lines exactly, with a tie line and a fallback", () => {
+await test("eras use the approved decade lines word for word, with a tie line and a fallback", () => {
   const approved: Record<string, string> = {
     "1960s": "Before streaming, timeless classics were already stealing the show.",
     "1970s": "Martial arts legends, real stunts, and pure movie magic.",
@@ -76,34 +63,23 @@ await test("eras use the approved decade lines exactly, with a tie line and a fa
     "2010s": "Bigger productions, global hits, and the rise of \"one more episode.\"",
     "2020s": "Streaming sensations, cinematic blockbusters, and plot twists heard worldwide.",
   };
-  for (const [decade, line] of Object.entries(approved)) {
-    const other = decade === "2000s" ? "1990s" : "2000s";
-    ok(wrappedCopy(base({decades: [{decade, count: 9}, {decade: other, count: 3}]})).eras === line, decade);
-  }
-  ok(/Two eras/.test(wrappedCopy(base({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]})).eras!), "a tie");
-  ok(/Every decade/.test(wrappedCopy(base({decades: [{decade: "1950s", count: 9}, {decade: "2000s", count: 1}]})).eras!), "outside the approved range");
-  ok(wrappedCopy(base({decades: [{decade: "2000s", count: 9}]})).eras === null, "one decade: no slide, no line");
+  for (const [decade, line] of Object.entries(approved)) ok(say({decades: [{decade, count: 9}, {decade: decade === "2000s" ? "1990s" : "2000s", count: 3}]}).eras === line, decade);
+  ok(/Two eras/.test(say({decades: [{decade: "2000s", count: 5}, {decade: "2010s", count: 5}]}).eras!), "tie");
+  ok(/Every decade/.test(say({decades: [{decade: "1950s", count: 9}, {decade: "2000s", count: 1}]}).eras!), "outside the approved range");
+  ok(say({decades: [{decade: "2000s", count: 9}]}).eras === null, "one decade: no line");
 });
 
-await test("ratings: the approved line for favorable scores, honest lines otherwise, nothing without ratings", () => {
-  const ratings = (average: number, tens: number, rated = 40) => plain(wrappedCopy(base({ratings: {rated, average, distribution: [{score: 10, count: tens}]}})).ratings);
-  ok(ratings(8.9, 20) === "You believe in giving credit where the drama is due.", "generous critic");
-  ok(ratings(7.8, 2) === "You believe in giving credit where the drama is due.", "drama enthusiast");
-  ok(/stars easily|Tough crowd|High standards|perfect score from you/.test(ratings(5.9, 0)), "tough critic");
-  for (let i = 0; i < 30; i++) ok(!/perfect score from you/.test(plain(wrappedCopy(base({username: "t" + i, ratings: {rated: 40, average: 6, distribution: [{score: 10, count: 1}]}})).ratings)), "a tough critic with one 10 never hears 'a perfect score from you?'");
-  ok(/hits, some misses|call it like you see it|Not every drama|balance/.test(ratings(7, 3)), "balanced reviewer");
-  ok(wrappedCopy(base({ratings: {rated: 0, average: null, distribution: []}})).ratings === null, "no ratings");
-});
-
-await test("genre, actor and #1 lines respect their conditions; missing data gives null", () => {
-  for (let i = 0; i < 30; i++) {
-    const s = wrappedCopy(base({username: "g" + i, genres: [{genre: "Thriller", count: 20}, {genre: "Crime", count: 19}], actors: [{name: "A", count: 1}], topDramas: [{slug: "x", title: "X", score: 8}]}));
-    ok(!/not even close/.test(s.genre!), "a close genre race never says 'not even close'");
-    ok(!/keeps showing up|If \*\*A\*\* is in it/.test(s.actor!), "one title isn't 'keeps showing up'");
-    ok(!/perfect 10/.test(s.topDrama!), "an 8 isn't a perfect 10");
-  }
-  ok(/Thriller/.test(wrappedCopy(base()).genre!), "the genre is named (Drama left out)");
-  const empty = wrappedCopy({username: "x", statusCounts: {completed: 0}});
-  ok(Object.values(empty).every(v => v === null), "an empty list: every line null");
+await test("small numbers, missing data, and ratings without perfect 10s read correctly", () => {
+  ok(plain(say({types: {dramas: 0, movies: 3, tvShows: 0}, statusCounts: {completed: 3}}).completed) === "You didn't just start 3 movies. You finished every single one.", "movies only");
+  ok(plain(say({statusCounts: {completed: 1}, types: {dramas: 1, movies: 0}}).completed) === "You didn't just start it. You finished it.", "one title");
+  ok(plain(say({viewingTime: {hours: 5, days: 0.2}}).time) === "5 hours nonstop, fueled by snacks, tissues and zero regrets.", "under a day");
+  ok(plain(say({actors: [{name: "A", count: 1}]}).actor) === "One title in, and A already has a fan: you.", "one title with an actor");
+  ok(plain(say({ratings: {rated: 5, average: 9, distribution: [{score: 10, count: 1}]}}).ratings).startsWith("Out of everything you've watched, 1 title earned a perfect 10."), "one perfect 10");
+  ok(say({ratings: {rated: 20, average: 8, distribution: [{score: 8, count: 20}]}}).ratings === "You believe in giving credit where the drama is due.", "no 10s but favorable: the approved line");
+  ok(/don't hand out stars easily/.test(say({ratings: {rated: 20, average: 5.5, distribution: [{score: 5, count: 20}]}}).ratings!), "tough critic");
+  ok(/honest score/.test(say({ratings: {rated: 20, average: 7, distribution: [{score: 7, count: 20}]}}).ratings!), "balanced");
+  ok(say({ratings: {rated: 0, average: null, distribution: []}}).ratings === null, "no ratings");
+  ok(Object.values(wrappedCopy({username: "x", statusCounts: {completed: 0}})).every(v => v === null), "an empty list: every line null");
+  ok(JSON.stringify(say()) === JSON.stringify(say()), "same data, same words");
 });
 console.log(JSON.stringify({passed}));
