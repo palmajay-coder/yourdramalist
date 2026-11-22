@@ -583,3 +583,18 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedSlide .wrappedLine strong,.wrappedSlide .wrappedFacts strong{color:#fff;font-weight:900}
 .wrappedSlide.isType .wrappedLine{max-width:30ch;font-size:19px;line-height:1.45}
 .wrappedSlogan{max-width:16ch}
+
+/* Countries slide: a pixel map of Asia with the top country lit up and circled. */
+.wrappedMap{display:block;width:min(100%,340px,42vh);height:auto;margin:4px auto 2px;overflow:visible}
+.wrappedMap .isLand{fill:#ffffff40}
+.wrappedMap .isHit{fill:#4ea1ff}
+.wrappedMapRing{fill:none;stroke:#fff;stroke-width:.55;transform-box:fill-box;transform-origin:center}
+.wrappedSlide.isActive .wrappedMap .isHit{animation:wrappedMapLight .8s .3s ease both}
+.wrappedSlide.isActive .wrappedMapRing{animation:wrappedMapRing 1.8s .6s ease-out infinite}
+@keyframes wrappedMapLight{from{fill:#ffffff40}to{fill:#4ea1ff}}
+@keyframes wrappedMapRing{0%{opacity:0;transform:scale(1.8)}30%{opacity:1;transform:scale(1)}100%{opacity:.85;transform:scale(1)}}
+
+/* The fact under the narrator's comment: smaller, with the numbers in bold. */
+.wrappedSlide .wrappedFact{margin:2px 0 0;font-size:15px;color:#ffffffb3;max-width:34ch}
+.wrappedSlide .wrappedFact strong{color:#fff;font-weight:900}
+.wrappedSlide.isActive>.wrappedFact{animation:wrappedRise .6s .4s cubic-bezier(.2,.8,.2,1) both}

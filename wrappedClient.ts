@@ -97,8 +97,48 @@ export function installWrapped() {
     return node;
   }
   const b = x => "**" + x + "**";
-  const storySlide = (theme, story, big, support, ...extra) => slide(theme, el("p", "wrappedStory", story), big, support ? rich("wrappedLine", support) : null, ...extra);
+  // A story slide: the story line, the big stat, the narrator's comment, then the fact (bold numbers) in small text.
+  const storySlide = (theme, story, big, comment, fact, ...extra) => slide(theme, el("p", "wrappedStory", story), big,
+    comment ? rich("wrappedLine", comment) : null, fact ? rich("wrappedSmall wrappedFact", fact) : null, ...extra);
   const huge = text => el("h2", "wrappedHuge wrappedPop" + (String(text).length > 8 ? " isLong" : ""), text); // long names shrink to stay on one or two lines
+  // The countries slide's map: a pixel map of Asia with the top country (or tied countries) lit up and circled.
+  // Returns null for a country that isn't on it, and the slide falls back to bars.
+  function countryMap(names) {
+    const map = typeof WRAPPED_MAP === "undefined" ? null : WRAPPED_MAP;
+    const codes = map ? names.map(n => map.codes[n]).filter(Boolean) : [];
+    if (!codes.length || !document.createElementNS) return null;
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + map.cols + " " + map.rows);
+    svg.setAttribute("class", "wrappedMap");
+    svg.setAttribute("aria-hidden", "true");
+    const spots = new Map(codes.map(code => [code, { x: 0, y: 0, n: 0 }]));
+    // Two paths (other land, the highlighted country) instead of thousands of squares: light on phones.
+    let land = "", hit = "";
+    map.grid.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        const ch = row[x];
+        if (ch === ".") continue;
+        const square = "M" + (x + 0.07) + " " + (y + 0.07) + "h.86v.86h-.86z";
+        const spot = spots.get(ch);
+        if (spot) { hit += square; spot.x += x + 0.5; spot.y += y + 0.5; spot.n++; } else land += square;
+      }
+    });
+    for (const [d, className] of [[land, "isLand"], [hit, "isHit"]]) {
+      const path = document.createElementNS(NS, "path");
+      path.setAttribute("d", d); path.setAttribute("class", className);
+      svg.append(path);
+    }
+    for (const spot of spots.values()) {
+      if (!spot.n) continue;
+      const ring = document.createElementNS(NS, "circle");
+      ring.setAttribute("cx", spot.x / spot.n); ring.setAttribute("cy", spot.y / spot.n);
+      ring.setAttribute("r", Math.max(3, Math.sqrt(spot.n) * 0.75 + 2).toFixed(2));
+      ring.setAttribute("class", "wrappedMapRing");
+      svg.append(ring);
+    }
+    return svg;
+  }
   function bars(rows) {
     const list = el("ul", "wrappedBars");
     const max = Math.max(...rows.map(x => x.count));
@@ -210,6 +250,8 @@ export function installWrapped() {
   }
   function build(data) {
     const out = [];
+    let say = {};
+    try { say = typeof wrappedCopy === "function" ? wrappedCopy(data) || {} : {}; } catch {} // the narrator's lines (wrappedCopy.ts)
     const c = data.statusCounts.completed;
     // 1. Opening: the slogan over the featured title's backdrop.
     {
@@ -224,30 +266,32 @@ export function installWrapped() {
       const big = el("h2", "wrappedHuge"); big.append(num);
       const dramas = (data.types?.dramas || 0) + (data.types?.tvShows || 0), movies = data.types?.movies || 0;
       const parts = [dramas ? b(dramas) + (dramas === 1 ? " drama" : " dramas") : "", movies ? b(movies) + (movies === 1 ? " movie" : " movies") : ""].filter(Boolean);
-      out.push({ node: withArt(storySlide("isCompleted", "That's a whole lot of drama.", big, parts.length ? andList(parts) + ", completed so far." : "Titles completed so far."), data.art?.completed), onShow: () => countUp(num, c) });
+      out.push({ node: withArt(storySlide("isCompleted", "That's a whole lot of drama.", big, say.completed, parts.length ? andList(parts) + ", completed so far." : "Titles completed so far."), data.art?.completed), onShow: () => countUp(num, c) });
     }
     // 3. Time: hours, big.
     if (data.viewingTime?.hours) {
       const num = el("span", "wrappedNumber");
       const big = el("h2", "wrappedHuge"); big.append(num, el("span", "wrappedUnit", " hours"));
       const days = Math.round(data.viewingTime.days);
-      out.push({ node: withArt(storySlide("isTime", "Time well spent. Or was it?", big, days >= 1 ? "That's " + b(plural(days, "day")) + " nonstop." : "Every minute counted."), data.art?.time),
+      out.push({ node: withArt(storySlide("isTime", "Time well spent. Or was it?", big, say.time, days >= 1 ? "That's " + b(plural(days, "day")) + " nonstop." : "Every minute counted."), data.art?.time),
         onShow: () => countUp(num, data.viewingTime.hours, 1) });
     }
     // 4. Genres ("Drama" fits almost everything, so it's left out, as on Stats).
     const genres = (data.genres || []).filter(g => g.genre !== "Drama");
     if (genres.length) {
-      const rest = genres.slice(1, 3).map(g => g.genre);
-      const support = "In " + b(genres[0].count) + " of your completed titles." + (rest.length ? " Then " + andList(rest.map(b)) + "." : "");
-      out.push({ node: withArt(storySlide("isGenres", "You clearly have a type.", huge(genres[0].genre), support), data.art?.genres) });
+      // Only the #1 genre is named.
+      out.push({ node: withArt(storySlide("isGenres", "You clearly have a type.", huge(genres[0].genre), say.genre, "In " + b(genres[0].count) + " of your completed titles."), data.art?.genres) });
     }
     // 5. Countries, with ties said as ties.
     if ((data.countries || []).length) {
       const top = data.countries.slice(0, 6);
       const leaders = top.filter(x => x.count === top[0].count).map(x => x.country);
+      const map = countryMap(leaders);
+      // Only the #1 country (or the countries tied for #1) is named.
       const line = leaders.length > 1 ? b(top[0].count) + " titles each." : b(top[0].count) + " of your " + b(c) + " completed titles.";
-      const big = huge(andList(leaders));
-      out.push({ node: withArt(storySlide("isAsia", "Your passport to drama.", big, line, bars(top.map(x => ({ label: x.country, count: x.count })))), data.art?.countries) });
+      const box = storySlide("isAsia", "Your passport to drama.", huge(andList(leaders)), say.countries, line, map ? null : bars(top.map(x => ({ label: x.country, count: x.count }))));
+      if (map) box.querySelector(".wrappedStory").after(map); // story line, then the map, then the country
+      out.push({ node: withArt(box, data.art?.countries) });
     }
     // 6. Eras, by release decade (MyDramaList gives no watch dates, so this is when the titles came out).
     const decades = (data.decades || []).filter(d => d.count > 0);
@@ -256,7 +300,7 @@ export function installWrapped() {
       const leaders = decades.filter(d => d.count === most).map(d => d.decade);
       const line = leaders.length > 1 ? b(most) + " titles each, by release year." : b(most) + " of your completed titles came out in the " + b(leaders[0]) + ".";
       const rows = [...decades].sort((a, b) => a.decade.localeCompare(b.decade)).map(d => ({ label: d.decade, count: d.count }));
-      out.push({ node: withArt(storySlide("isEras", "Every era has its drama.", huge("The " + andList(leaders)), line, bars(rows)), data.art?.eras) });
+      out.push({ node: withArt(storySlide("isEras", "Every era has its drama.", huge("The " + andList(leaders)), say.eras, line, bars(rows)), data.art?.eras) });
     }
     // 5. Actors: #1 big, then the top five as a ranked list.
     if ((data.actors || []).length) {
@@ -271,7 +315,7 @@ export function installWrapped() {
         li.append(el("span", "wrappedRankedNumber", i + 1), face, text); list.append(li);
       });
       out.push({ node: withArt(slide("isFaces", portrait, el("h2", "wrappedTitle wrappedHeadline", "Your most-watched actor is " + first.name + "."),
-        rich("wrappedLine", b(first.count) + " of your completed titles feature " + b(first.name) + "."), list), data.art?.actors) });
+        say.actor ? rich("wrappedLine", say.actor) : null, rich("wrappedSmall wrappedFact", b(first.count) + " of your completed titles feature " + b(first.name) + "."), list), data.art?.actors) });
     }
     // 6. Your #1 drama and your #1 movie, each with its own ranked list and backdrop.
     const rankedSlide = (items, label, theme, art) => {
@@ -287,7 +331,7 @@ export function installWrapped() {
         const text = el("span", "wrappedRankedText"); text.append(el("strong", "", t.title), el("small", "", [t.year, "your score " + t.score].filter(Boolean).join(" · ")));
         li.append(el("span", "wrappedRankedNumber", t.rank), thumb, text); list.append(li);
       });
-      out.push({ node: withArt(storySlide(theme, "Some stories just hit different.", el("h2", "wrappedTitle wrappedHeadline wrappedPop" + (first.title.length > 24 ? " isLong" : ""), first.title), subtitle, list), art) });
+      out.push({ node: withArt(storySlide(theme, "Some stories just hit different.", el("h2", "wrappedTitle wrappedHeadline wrappedPop" + (first.title.length > 24 ? " isLong" : ""), first.title), label === "movie" ? say.topMovie : say.topDrama, subtitle, list), art) });
     };
     rankedSlide(data.topDramas, "drama", "isStories", data.art?.topDrama);
     rankedSlide(data.topMovies, "movie", "isMovies", data.art?.topMovie);
@@ -302,13 +346,13 @@ export function installWrapped() {
       if (tens) facts.append(rich("", "You gave a perfect 10 to " + b(tens) + (tens === 1 ? " title" : " titles") + ".", "li"));
       const most = [...(r.distribution || [])].sort((a, b) => b.count - a.count)[0];
       if (most && most.score !== 10) facts.append(rich("", "Your most common score is " + b(most.score) + ".", "li"));
-      out.push({ node: withArt(slide("isRatings", head, rich("wrappedLine", "Across the " + b(r.rated) + " titles you rated."), facts), data.art?.ratings),
+      out.push({ node: withArt(slide("isRatings", head, say.ratings ? rich("wrappedLine", say.ratings) : null, rich("wrappedSmall wrappedFact", "Across the " + b(r.rated) + " titles you rated."), facts), data.art?.ratings),
         onShow: () => countUp(num, r.average, 2) });
     }
     // 8. Your drama type: a label from clear rules on real numbers.
     const type = dramaType(data);
     if (type) {
-      out.push({ node: withArt(storySlide("isType", "Your drama personality revealed.", huge(type.name), type.line), data.art?.type) });
+      out.push({ node: withArt(storySlide("isType", "Your drama personality revealed.", huge(type.name), type.line, null), data.art?.type) });
     }
     // 8. Summary.
     {

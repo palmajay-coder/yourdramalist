@@ -20,6 +20,8 @@ import {handlePosterBackground,handleBackdropBackground} from "./posterBackgroun
 import {BACKDROP_SEEDS} from "./posterBackground.ts";
 import {logoFont,LOGO_FONT_PATH} from "./logoFont.ts";
 import {serveWrappedMusic,WRAPPED_MUSIC_PATH} from "./wrappedMusic.ts";
+import {WRAPPED_MAP} from "./wrappedMap.ts";
+import {wrappedCopy} from "./wrappedCopy.ts";
 import {installPosterWall,POSTER_WALL_CSS} from "./posterWallClient.ts";
 import {LOADING_BEAR_CSS,createLoadingBear} from "./loadingBear.ts";
 import {oauthMiddleware} from "https://esm.town/v/std/oauth/middleware.ts";
@@ -588,7 +590,7 @@ const makeDiscoverTitleAdd=(${installDiscoverAddButtons.toString()})();
 const layeredPostersIcon = '<span class="layeredPostersIcon" aria-hidden="true"><i></i><i></i><i></i></span>';
 const personalCatalogSync=(${installPersonalCatalogSync.toString()})();
 const showMyCollections=(${installMyCollections.toString()})();
-const WRAPPED_MUSIC=${JSON.stringify(WRAPPED_MUSIC_PATH)};
+const WRAPPED_MUSIC=${JSON.stringify(WRAPPED_MUSIC_PATH)};const WRAPPED_MAP=${JSON.stringify(WRAPPED_MAP)};const wrappedCopy=${wrappedCopy.toString()};
 const wrapped=(${installWrapped.toString()})();
 const showStats=(${installStats.toString()})();
 const openCollectionPicker=(${installCollectionPicker.toString()})();
