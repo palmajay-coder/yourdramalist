@@ -386,8 +386,6 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .androidWatchlistTitle.ranked .rankNumber.twoDigits{font-size:56px;letter-spacing:-.12em}
 .quickSearchTheme{margin:4px 0 18px}
 /* My Collections, opened from the top of Lists. */
-.androidCollectionsLink{display:block;margin:0 16px 12px;padding:10px 14px;border-radius:12px;font-weight:700}
-.androidCollectionsLink[hidden]{display:none}
 
 /* Stats tab: an all-time recap of the connected MyDramaList list (statsClient.ts). */
 .statsPanel{padding:0 0 32px;color:#e8ecf2;font-family:Lato,system-ui,sans-serif}

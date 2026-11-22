@@ -92,17 +92,9 @@ await test("still being looked up, stale, empty and error states say so instead 
   ok(/This MyDramaList watchlist is private/.test(priv.panel().textContent) && priv.panel().querySelector("button")?.textContent === "Try again", "the API's message with Try again");
 });
 
-await test("My Collections opens from the top of Lists, with a way back", async () => {
+await test("Lists has no My Collections button for now", async () => {
   const {document, click} = mount({user: "jaesan"});
   click("community"); await tick();
-  const link = document.querySelector(".androidCollectionsLink") as any;
-  ok(link && !link.hidden && link.textContent === "My Collections ›", "the link shows on Lists");
-  link.click(); await tick();
-  ok(!document.getElementById("myCollections")!.classList.contains("hidden") && link.textContent === "‹ Back to Lists", "it opens My Collections");
-  ok(document.querySelector('[data-destination="community"]')!.classList.contains("active"), "Lists stays highlighted");
-  link.click(); await tick();
-  ok(document.getElementById("myCollections")!.classList.contains("hidden"), "back to Lists");
-  click("discover"); await tick();
-  ok(link.hidden, "the link only shows on Lists");
+  ok(!document.querySelector(".androidCollectionsLink") && !/My Collections/.test(document.querySelector(".androidPageDescription")!.parentElement!.textContent || ""), "no button on Lists");
 });
 console.log(JSON.stringify({passed}));

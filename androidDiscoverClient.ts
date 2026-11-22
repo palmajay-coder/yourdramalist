@@ -53,12 +53,7 @@ export function installAndroidDiscover() {
   pageDescription.className = "androidPageDescription";
   pageDescription.style.cssText = "margin:8px 16px 16px;color:#b9c1ce;font-size:14px;line-height:1.5";
   home.insertBefore(pageDescription, workspace);
-  // My Collections opens from the top of Lists (its bottom-bar spot went to Stats), with a way back.
-  const collectionsLink = document.createElement("button");
-  collectionsLink.type = "button";
-  collectionsLink.className = "secondary androidCollectionsLink";
-  collectionsLink.onclick = () => switchTab(state.tab === "collections" ? "profiles" : "collections");
-  home.insertBefore(collectionsLink, workspace);
+  // My Collections has no button for now (it looked out of place on Lists); its page and code are kept for when it gets a new home.
 
   const discoverForm = $("discoverForm");
   const discoverInput = $("discoverInput");
@@ -143,8 +138,6 @@ export function installAndroidDiscover() {
     pageDescription.hidden = inDiscover || inStats;
     pageDescription.textContent = inCollections ? "Create and manage your own custom catalogs here." : "Import lists from MyDramaList by searching a username or pasting a link to a list.";
     filters.hidden = inCollections || inStats;
-    collectionsLink.hidden = !(state.tab === "profiles" || inCollections) || page !== "selection";
-    collectionsLink.textContent = inCollections ? "‹ Back to Lists" : "My Collections ›";
     catalogs.hidden = !inDiscover;
     window.syncWrappedBanner?.();
     actions.classList.toggle("hidden", page !== "selection");
