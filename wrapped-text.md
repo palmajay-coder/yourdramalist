@@ -34,8 +34,8 @@ completed.one: You didn't just start it. You finished it.
 
 ## 3. Watch time
 time.story: Time well spent. Or was it?
-time.days:That's {days|day|days} nonstop, fueled by snacks, tissues and zero regrets.
-time.hours:That's {hours|hour|hours} nonstop, fueled by snacks, tissues and zero regrets.
+time.days: That's {days|day|days} nonstop, fueled by snacks, tissues and zero regrets.
+time.hours: That's {hours|hour|hours} nonstop, fueled by snacks, tissues and zero regrets.
 
 ## 4. Top genre (one line per genre; "other" is used for any genre not listed)
 genre.story: You clearly have a type.
