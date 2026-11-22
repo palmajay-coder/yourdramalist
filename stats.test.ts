@@ -91,7 +91,7 @@ function fakeTmdb(options: {unmatched?: string[]; failOnce?: string[]} = {}) {
     const romance = Number(id) % 3 === 0;
     return {genres: [{id: 18}, ...(kind === "movie" ? [{id: 53}] : [])], keywords: {results: romance ? [{name: "romance"}] : []},
       [kind === "tv" ? "aggregate_credits" : "credits"]: {cast: [{id: 1, name: "Son Ye Jin", order: 0, profile_path: "/s.jpg"}, {id: 2, name: "Hyun Bin", order: 1, profile_path: null}, {id: Number(id), name: "Actor " + id, order: 2}, {id: 1, name: "Son Ye Jin", order: 3}]},
-      images: {backdrops: [{file_path: "/text.jpg", iso_639_1: "ko", width: 1920, vote_average: 9}, {file_path: "/clean.jpg", iso_639_1: null, width: 1920, vote_average: 5}, {file_path: "/small.jpg", iso_639_1: null, width: 780, vote_average: 10}]},
+      images: {backdrops: [{file_path: "/text.jpg", iso_639_1: "ko", width: 1920, height: 1080, vote_average: 9}, {file_path: "/clean.jpg", iso_639_1: null, width: 1920, height: 1080, vote_average: 5}, {file_path: "/mid.jpg", iso_639_1: null, width: 1280, height: 720, vote_average: 9.5}, {file_path: "/small.jpg", iso_639_1: null, width: 780, height: 439, vote_average: 10}]},
       poster_path: "/p" + id + ".jpg", backdrop_path: "/default.jpg"};
   };
   return {tmdb, calls};
@@ -101,7 +101,11 @@ await test("TMDB details: genres with drama keywords, top-billed cast, a textles
   const {tmdb} = fakeTmdb();
   const meta = await lookupTitle({slug: "2-goblin", title: "Goblin", country: "South Korea", year: 2016, type: "Drama", score: 9, episodesSeen: 16, episodesTotal: 16}, tmdb, T0);
   ok(meta.matched && meta.tmdb?.kind === "tv" && meta.genres.includes("Drama"), "matched with genres: " + JSON.stringify(meta.genres));
-  ok(meta.backdrop === "https://image.tmdb.org/t/p/w1280/clean.jpg", "the textless wide backdrop, not the one with text or the small one: " + meta.backdrop);
+  ok(meta.backdrop === "https://image.tmdb.org/t/p/w1280/mid.jpg", "a card gets the best textless wide picture (1280+), not the one with text or the small one: " + meta.backdrop);
+  ok(meta.backdropHd === "https://image.tmdb.org/t/p/original/clean.jpg", "Wrapped gets a textless picture 1920 wide or more, at original size: " + meta.backdropHd);
+  const lowOnly = async (path: string, params?: Record<string, string>) => { const r = await tmdb(path, params); return path.startsWith("search/") ? r : {...r, images: {backdrops: [{file_path: "/low.jpg", iso_639_1: null, width: 1280, height: 720, vote_average: 9}]}}; };
+  const low = await lookupTitle({slug: "2-goblin", title: "Goblin", country: "South Korea", year: 2016, type: "Drama", score: 9, episodesSeen: 16, episodesTotal: 16}, lowOnly, T0);
+  ok(low.backdrop?.endsWith("/low.jpg") && low.backdropHd === null, "a picture under 1920 wide is fine for a card, but is never stretched full screen (and the default picture is never used there)");
   ok(meta.cast.length <= 5 && meta.cast[0].name === "Son Ye Jin" && meta.cast[0].profile?.endsWith("/s.jpg"), "top-billed cast in order");
   const none = await lookupTitle({slug: "x-1", title: "Nowhere", country: "", year: 2000, type: "Drama", score: 0, episodesSeen: 0, episodesTotal: null}, fakeTmdb({unmatched: ["Nowhere"]}).tmdb, T0);
   ok(!none.matched && !none.backdrop && !none.genres.length, "no match is recorded as no match, nothing guessed");
@@ -120,13 +124,19 @@ await test("genres and actors count each title once; actors deduplicate by id; c
   ok(s.actors[0].name === "Son Ye Jin" && s.actors[0].count === 6, "an actor once per title: " + JSON.stringify(s.actors[0]));
   ok(JSON.stringify(s.coverage) === JSON.stringify({completed: 8, matched: 6, unmatched: 1, pending: 1}), "coverage " + JSON.stringify(s.coverage));
   ok(s.topRated[0].poster === "p0", "top rated carries posters where matched");
-  ok(s.art.top === null && s.art.time === null, "no backdrops without TMDB backdrops");
+  ok(s.art.topDrama === null && s.art.topMovie === null && s.art.time === null && s.art.opening === null, "no backdrops without sharp TMDB backdrops");
+  ok(s.topDramas.map(t => t.title).join() === "Reply 1988,Goblin,Good Doctor,Hidden Love" && s.topMovies.map(t => t.title).join() === "Cure,Tokyo Sonata,Lost Tape", "your top dramas and your top movies are ranked apart (unrated Signal left out): " + JSON.stringify([s.topDramas.map(t => t.title), s.topMovies.map(t => t.title)]));
   const arty: Record<string, TitleMeta> = {};
-  for (const [i, item] of list.lists.completed.items.entries()) arty[item.slug] = {...meta[item.slug] || {v: 1, slug: item.slug, matched: true, genres: [], cast: [], poster: null, at: T0}, matched: true, backdrop: "b" + i, genres: i === 3 ? ["Romance"] : ["Thriller"], cast: i === 2 ? [{id: 9, name: "Star", profile: null}, {id: 9, name: "Star", profile: null}] : [{id: 9, name: "Star", profile: null}]};
-  const art = computeStats(list, arty, heroFrom(list, nextSnapshot(null, list, T0))).art;
+  for (const [i, item] of list.lists.completed.items.entries()) arty[item.slug] = {...meta[item.slug] || {v: 2, slug: item.slug, matched: true, genres: [], cast: [], poster: null, at: T0}, matched: true, backdrop: "b" + i, backdropHd: "h" + i, genres: i === 3 ? ["Romance"] : ["Thriller"], cast: i === 2 ? [{id: 9, name: "Star", profile: null}, {id: 9, name: "Star", profile: null}] : [{id: 9, name: "Star", profile: null}]};
+  const fallbackStats = computeStats(list, arty, heroFrom(list, nextSnapshot(null, list, T0)));
+  const art = fallbackStats.art;
   const pictures = Object.values(art).filter(Boolean).map(a => a!.backdrop);
-  ok(new Set(pictures).size === pictures.length && !pictures.includes("b0"), "every slide gets a different backdrop, and none repeats the hero's: " + JSON.stringify(art));
-  ok(art.top?.title === "Goblin" && art.genres?.title === "Cure" && art.countries?.title === "Good Doctor", "backdrops fit their slide (top rated after the hero, the top genre's and top country's best titles): " + JSON.stringify(art));
+  ok(new Set(pictures).size === pictures.length && pictures.every(p => p.startsWith("h")), "every slide gets a different sharp (HD) backdrop: " + JSON.stringify(art));
+  ok(art.topDrama?.title === "Reply 1988" && art.topMovie?.title === "Cure", "the #1 drama and #1 movie slides show their own #1's backdrop");
+  ok(art.opening?.title === "Goblin" && art.genres?.title === "Good Doctor" && art.countries?.title === "Tokyo Sonata", "the opening (a top-rated fallback hero is already the #1) and the genre and country slides take other fitting titles: " + JSON.stringify(art));
+  const snapshot = nextSnapshot(null, list, T0); snapshot.completed["4-hidden-love"] = new Date(T0).toISOString();
+  const fresh = computeStats(list, arty, heroFrom(list, snapshot)).art;
+  ok(fresh.opening?.title === "Hidden Love", "a title just completed keeps its own picture for the opening: " + JSON.stringify(fresh.opening));
 });
 
 function memoryStore() {
@@ -147,7 +157,7 @@ await test("the service: caches the watchlist and title details, keeps to its ti
   let s = first;
   for (let i = 0; i < 10 && s.coverage.pending; i++) s = await service.stats("jaesan");
   ok(s.coverage.pending === 0 && s.coverage.matched === 8 && fetches === 1, "later requests finish the rest from the cached watchlist: " + JSON.stringify(s.coverage) + " fetches " + fetches);
-  ok(s.hero?.backdrop?.endsWith("/clean.jpg"), "the hero gets its backdrop");
+  ok(s.hero?.backdrop?.endsWith("/mid.jpg"), "the hero gets its backdrop");
   const before = calls.length;
   await service.stats("jaesan");
   ok(calls.length === before, "title details are reused");

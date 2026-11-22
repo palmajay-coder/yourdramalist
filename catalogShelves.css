@@ -459,13 +459,12 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedSlide.isAsia{background:linear-gradient(160deg,#0f6b6b,#0b3340 60%,#0d0f14)}
 .wrappedSlide.isFaces{background:linear-gradient(160deg,#8a3d24,#3b1b14 60%,#0d0f14)}
 .wrappedSlide.isStories{background:linear-gradient(160deg,#1f2f6b,#101a3d 60%,#0d0f14)}
+.wrappedSlide.isMovies{background:linear-gradient(160deg,#6b3a1f,#3a1d10 60%,#0d0f14)}
 .wrappedSlide.isRatings{background:linear-gradient(160deg,#7a2a55,#33122a 60%,#0d0f14)}
 .wrappedSlide.isCard{background:linear-gradient(160deg,#2674ec,#5b2a86 70%,#0d0f14);align-items:center;text-align:center}
 .wrappedBackdrop{position:fixed;inset:0;z-index:0;pointer-events:none}
 .wrappedBackdrop img{width:100%;height:100%;object-fit:cover;opacity:.5}
 .wrappedBackdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0d0f1466 0%,#0d0f1499 40%,#0d0f14e6 100%)}
-.wrappedArtCaption{position:fixed!important;z-index:2;top:calc(22px + env(safe-area-inset-top,0px));left:14px;right:60px;margin:0;font-size:11px;color:#ffffff99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-.wrappedArtCaption::before{content:"Backdrop: "}
 .wrappedSlide.isActive .wrappedBackdrop img{animation:wrappedZoom 14s ease-out forwards}
 .wrappedSlide>*:not(.wrappedBackdrop){position:relative;z-index:1}
 .wrappedKicker{margin:0;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffffffc0}

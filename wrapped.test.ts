@@ -24,8 +24,10 @@ const sample = (extra: Record<string, unknown> = {}) => ({
   actors: [{id: 1, name: "Moon Lee", profile: null, count: 4, titles: []}, {id: 2, name: "Yukari Ôshima", profile: null, count: 3, titles: []}],
   hero: {slug: "1475-3-iron", title: "3-Iron", year: 2004, reason: "newly-completed", detectedAt: "2026-11-22T17:00:00Z", backdrop: "https://image.tmdb.org/t/p/w1280/b.jpg", poster: null},
   coverage: {completed: 79, matched: 75, unmatched: 4, pending: 0},
-  art: {time: {title: "Cure", backdrop: "https://image.tmdb.org/t/p/w1280/cure.jpg"}, genres: {title: "Pulse", backdrop: "https://image.tmdb.org/t/p/w1280/pulse.jpg"}, countries: null, actors: null,
-    top: {title: "Title 1", backdrop: "https://image.tmdb.org/t/p/w1280/t1.jpg"}, ratings: null, card: null},
+  topDramas: [1, 2, 3].map(i => ({rank: i, slug: i + "-d", title: "Drama " + i, year: 2010, country: "South Korea", type: "Drama", score: 10, poster: "https://image.tmdb.org/t/p/w500/d" + i + ".jpg"})),
+  topMovies: [1, 2, 3, 4, 5].map(i => ({rank: i, slug: i + "-m", title: "Movie " + i, year: 2000, country: "Japan", type: "Movie", score: 10, poster: "https://image.tmdb.org/t/p/w500/m" + i + ".jpg"})),
+  art: {opening: {title: "Goblin", backdrop: "https://image.tmdb.org/t/p/original/open.jpg"}, time: {title: "Cure", backdrop: "https://image.tmdb.org/t/p/original/cure.jpg"}, genres: {title: "Pulse", backdrop: "https://image.tmdb.org/t/p/original/pulse.jpg"}, countries: null, actors: null,
+    topDrama: {title: "Drama 1", backdrop: "https://image.tmdb.org/t/p/original/drama1.jpg"}, topMovie: {title: "Movie 1", backdrop: "https://image.tmdb.org/t/p/original/movie1.jpg"}, ratings: null, type: null, card: null},
   ...extra,
 });
 
@@ -55,19 +57,19 @@ const story = (document: any) => document.querySelector("dialog.wrapped");
 const slideKinds = (document: any) => [...story(document).querySelectorAll(".wrappedProgressBar")].length;
 const currentText = (document: any) => story(document).querySelector(".wrappedStage").textContent;
 
-await test("View My Wrapped on Stats opens nine slides, each led by one sentence with the answer in it", async () => {
+await test("View My Wrapped on Stats opens ten slides, each led by one sentence with the answer in it", async () => {
   const {document, window, click} = mount({user: "jaesan"});
   click("stats"); await tick(60);
   const button = document.querySelector(".statsWrappedButton") as any;
   ok(button && button.textContent === "View My Wrapped", "the button sits under the hero");
   button.click(); await tick();
   const d = story(document);
-  ok(d.open && slideKinds(document) === 9, "nine slides: " + slideKinds(document));
-  ok(/@jaesan, here's everything you've watched/.test(currentText(document)) && !/stor(y|ies)/i.test(currentText(document)) && /Recently completed: 3-Iron/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img"), "opening slide with the backdrop");
+  ok(d.open && slideKinds(document) === 10, "ten slides: " + slideKinds(document));
+  ok(/@jaesan, here's everything you've watched/.test(currentText(document)) && !/stor(y|ies)/i.test(currentText(document)) && /Recently completed: 3-Iron/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/open.jpg", "opening slide with a sharp (original-size) backdrop");
   const stage = d.querySelector(".wrappedStage");
   stage.dispatchEvent(new window.Event("click", {bubbles: true}));
   ok(/You watched for/.test(currentText(document)), "a tap goes forward");
-  ok(d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/cure.jpg" && d.querySelector(".wrappedArtCaption")?.textContent === "Cure", "each slide has its own backdrop, named");
+  ok(d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/cure.jpg" && !d.querySelector(".wrappedArtCaption") && !/Backdrop:/.test(currentText(document)), "each slide has its own sharp backdrop, with no caption naming it");
   await tick(1300);
   ok(d.querySelector(".wrappedHeadline").textContent === "You watched for 388.8 hours." && /That's 16 days nonstop\./.test(currentText(document)) && /Across 79 completed dramas and movies\./.test(currentText(document)), "hours in the sentence: " + d.querySelector(".wrappedHeadline").textContent);
   const key = (k: string) => d.dispatchEvent(Object.assign(new window.Event("keydown", {bubbles: true}), {key: k}));
@@ -79,13 +81,15 @@ await test("View My Wrapped on Stats opens nine slides, each led by one sentence
   key("ArrowRight");
   ok(heading() === "Your most-watched actor is Moon Lee." && /4 of your completed titles feature Moon Lee\./.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "actors as a ranked list");
   key("ArrowRight");
-  ok(heading() === "Your #1 was Title 1." && /One of your 34 perfect 10s\./.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && /2000 · your score 10/.test(currentText(document)), "top rated as a ranked list: " + currentText(document));
+  ok(heading() === "Your #1 drama was Drama 1." && /You gave it a 10\./.test(currentText(document)) && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 3 && /2010 · your score 10/.test(currentText(document)) && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/drama1.jpg", "your #1 drama, its ranked list, and its own backdrop: " + currentText(document));
+  key("ArrowRight");
+  ok(heading() === "Your #1 movie was Movie 1." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 5 && d.querySelector(".wrappedBackdrop img")?.getAttribute("src") === "https://image.tmdb.org/t/p/original/movie1.jpg", "your #1 movie, its ranked list, and its own backdrop");
   key("ArrowRight"); key("ArrowRight");
   ok(heading() === "The Perfectionist" && /34 of your 79 scores are a perfect 10/.test(currentText(document)) && /You're also The Movie Buff and The Binger\./.test(currentText(document)), "drama type from the rules: " + currentText(document));
   for (let i = 0; i < 9; i++) key("ArrowLeft");
   key("ArrowLeft");
   ok(/here's everything you've watched/.test(currentText(document)), "← goes back");
-  for (let i = 0; i < 8; i++) key("ArrowRight");
+  for (let i = 0; i < 9; i++) key("ArrowRight");
   ok(/Your recap, in one card\./.test(currentText(document)) && /Drama type: The Perfectionist/.test(currentText(document)) && /Top genre: Thriller/.test(currentText(document)) && /Most-watched actor: Moon Lee/.test(currentText(document)) && /@jaesan · all time/.test(currentText(document)), "the summary card, all time, without Drama as top genre");
   ok(d.querySelector(".wrappedHint").hidden, "no tap hint on the last slide");
   (d.querySelector('[data-wrapped-action="replay"]') as any).click();
@@ -98,13 +102,23 @@ await test("slides without data are left out, and ratings only state supported f
   const {document, click} = mount({user: "jaesan", stats: sample({actors: [], genres: [{genre: "Drama", count: 9}], hero: null})});
   click("stats"); await tick(60);
   (document.querySelector(".statsWrappedButton") as any).click(); await tick();
-  ok(slideKinds(document) === 7, "no actors or genres slide: " + slideKinds(document));
+  ok(slideKinds(document) === 8, "no actors or genres slide: " + slideKinds(document));
   const d = story(document);
   const key = (k: string) => d.dispatchEvent(Object.assign(new (d.ownerDocument.defaultView as any).Event("keydown", {bubbles: true}), {key: k}));
-  for (let i = 0; i < 4; i++) key("ArrowRight");
+  for (let i = 0; i < 5; i++) key("ArrowRight");
   await tick(1300);
   ok(story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent === "Your average score is 8.89.", "the average keeps two decimals: " + story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent);
-  ok(/Across the 79 titles you rated\./.test(currentText(document)) && /perfect 10 to 34 titles/.test(currentText(document)) && /Titles from Hong Kong were your favorite. Titles from China were not./.test(currentText(document)), "rating facts: " + currentText(document));
+  ok(/Across the 79 titles you rated\./.test(currentText(document)) && /perfect 10 to 34 titles/.test(currentText(document)) && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
+});
+
+await test("someone with only movies (or only dramas) gets just their one #1 slide", async () => {
+  const m = mount({user: "jaesan", stats: sample({topDramas: []})});
+  m.click("stats"); await tick(60);
+  (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
+  ok(slideKinds(m.document) === 9, "no #1 drama slide: " + slideKinds(m.document));
+  const d = story(m.document);
+  for (let i = 0; i < 5; i++) d.dispatchEvent(Object.assign(new m.window.Event("keydown", {bubbles: true}), {key: "ArrowRight"}));
+  ok(/Your #1 movie was Movie 1\./.test(currentText(m.document)) && !/#1 drama/.test(d.textContent), "only the movie slide");
 });
 
 await test("the ready card: once a year, ask first, never when not ready or not connected", async () => {
@@ -122,7 +136,7 @@ await test("the ready card: once a year, ask first, never when not ready or not 
   ok(card(guest).hidden, "not without a connected username");
   const view = [...card(fresh).querySelectorAll("button")].find((b: any) => b.textContent === "View") as any;
   view.click(); await tick();
-  ok(card(fresh).hidden && story(fresh.document).open && slideKinds(fresh.document) === 9, "View opens Wrapped");
+  ok(card(fresh).hidden && story(fresh.document).open && slideKinds(fresh.document) === 10, "View opens Wrapped");
   const later = [...card(old).querySelectorAll("button")].find((b: any) => b.textContent === "Later") as any;
   later.click();
   ok(card(old).hidden && !story(old.document).open, "Later just closes the card");

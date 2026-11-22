@@ -18,11 +18,12 @@ export type Entry = {slug: string; title: string; country: string; year: number 
 export type ListTotals = {dramas: number; tvShows: number; movies: number; episodes: number; days: number};
 export type Watchlist = {username: string; fetchedAt: string; lists: Record<Status, {items: Entry[]; totals: ListTotals | null}>};
 export type TitleMeta = {v: number; slug: string; matched: boolean; tmdb?: {kind: "tv" | "movie"; id: number}; genres: string[];
-  cast: {id: number; name: string; profile: string | null}[]; backdrop: string | null; poster: string | null; at: number};
+  cast: {id: number; name: string; profile: string | null}[]; backdrop: string | null; backdropHd: string | null; poster: string | null; at: number};
 export type Snapshot = {v: 1; lastSync: string; completed: Record<string, string | null>};
 
 const COUNTRY_CODES: Record<string, string> = {"South Korea": "KR", "China": "CN", "Japan": "JP", "Taiwan": "TW", "Thailand": "TH", "Hong Kong": "HK", "Philippines": "PH"};
-const META_VERSION = 1, DAY = 86400000;
+// Version 2 added backdropHd (sharp pictures for Wrapped), so every older saved answer is looked up again.
+const META_VERSION = 2, DAY = 86400000;
 const IMG = "https://image.tmdb.org/t/p/";
 const num = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const round = (value: number, places = 1) => Math.round(value * 10 ** places) / 10 ** places;
@@ -129,21 +130,34 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
       actorCount.set(person.id, row);
     }
   }
-  // Backdrops for the Wrapped slides: one fitting, best-rated title per slide, never the same picture twice.
+  // Your highest scored dramas and movies, each with its own #1 (ties by title A to Z; no dates exist, so no recency).
+  const byScoreThenTitle = (a: Entry, b: Entry) => b.score - a.score || a.title.localeCompare(b.title);
+  const rankList = (items: Entry[]) => items.slice(0, 5).map((item, i) => ({rank: i + 1, slug: item.slug, title: item.title, year: item.year, country: item.country, type: item.type, score: item.score, poster: meta[item.slug]?.poster || null}));
+  const dramasScored = scored.filter(i => kind(i) !== "movie").sort(byScoreThenTitle), moviesScored = scored.filter(i => kind(i) === "movie").sort(byScoreThenTitle);
+  const topDramas = rankList(dramasScored), topMovies = rankList(moviesScored);
+
+  // Backdrops for the Wrapped slides: sharp pictures only, one fitting title per slide, never the same picture twice
+  // (except a #1 that is also the hero). A category's #1 always gets its own slide's backdrop (its next-ranked title if it has none).
   const genreList = [...genreCount].map(([genre, count]) => ({genre, count})).sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre));
   const actorList = [...actorCount.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  const withArt = completed.filter(item => meta[item.slug]?.backdrop).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+  const hd = (slug: string) => meta[slug]?.backdropHd || null;
+  const withArt = completed.filter(item => hd(item.slug)).sort(byScoreThenTitle);
   const used = new Set<string>();
+  const take = (item: Entry) => { used.add(hd(item.slug)!); return {title: item.title, backdrop: hd(item.slug)!}; };
   const pick = (test: (item: Entry) => boolean) => {
-    const item = withArt.find(i => !used.has(meta[i.slug].backdrop!) && test(i)) || withArt.find(i => !used.has(meta[i.slug].backdrop!));
-    if (!item) return null;
-    used.add(meta[item.slug].backdrop!);
-    return {title: item.title, backdrop: meta[item.slug].backdrop!};
+    const item = withArt.find(i => !used.has(hd(i.slug)!) && test(i)) || withArt.find(i => !used.has(hd(i.slug)!));
+    return item ? take(item) : null;
   };
-  if (hero && meta[hero.slug]?.backdrop) used.add(meta[hero.slug].backdrop!);
+  const firstWithArt = (items: Entry[]) => items.find(i => hd(i.slug));
+  const topDramaArt = firstWithArt(dramasScored), topMovieArt = firstWithArt(moviesScored);
+  const artTopDrama = topDramaArt ? take(topDramaArt) : null, artTopMovie = topMovieArt ? take(topMovieArt) : null;
+  // The opening: a title just completed keeps its own picture; otherwise (the top-rated fallback) a fresh one.
+  const heroItem = hero ? completed.find(i => i.slug === hero.slug) : null;
+  const opening = hero?.reason === "newly-completed" && heroItem && hd(heroItem.slug) ? take(heroItem) : pick(() => true);
   const topGenre = genreList.find(g => g.genre !== "Drama")?.genre;
   const art = {
-    top: pick(i => i.slug === [...scored].sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))[0]?.slug),
+    opening,
+    topDrama: artTopDrama, topMovie: artTopMovie,
     genres: pick(i => !!topGenre && meta[i.slug].genres.includes(topGenre)),
     countries: pick(i => countryOf(i) === countries[0]?.country),
     actors: pick(i => !!actorList[0] && meta[i.slug].cast.some(c => c.id === actorList[0].id)),
@@ -161,7 +175,7 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
     viewingTime,
     ratings: {rated: scored.length, unrated: completed.length - scored.length, average, distribution, byCountry, minCountrySample: MIN_COUNTRY_SAMPLE,
       highestCountry: comparable.length >= 2 ? comparable[0] : null, lowestCountry: comparable.length >= 2 ? comparable[comparable.length - 1] : null},
-    countries, decades, unknownYear: completed.filter(i => !i.year).length, topRated,
+    countries, decades, unknownYear: completed.filter(i => !i.year).length, topRated, topDramas, topMovies,
     genres: genreList.slice(0, 8),
     actors: actorList.slice(0, 10),
     art,
@@ -177,7 +191,7 @@ export async function lookupTitle(item: Entry, tmdb: (path: string, params?: Rec
   const code = COUNTRY_CODES[item.country] || "";
   let match = item.year ? pickTmdbResult((await tmdb("search/" + type, {query: item.title, include_adult: "false", [yearKey]: String(item.year)}))?.results || [], item.title, item.year, code) : null;
   if (!match) match = pickTmdbResult((await tmdb("search/" + type, {query: item.title, include_adult: "false"}))?.results || [], item.title, item.year, code);
-  if (!match) return {v: META_VERSION, slug: item.slug, matched: false, genres: [], cast: [], backdrop: null, poster: null, at: now};
+  if (!match) return {v: META_VERSION, slug: item.slug, matched: false, genres: [], cast: [], backdrop: null, backdropHd: null, poster: null, at: now};
   const details = await tmdb(type + "/" + match.id, {append_to_response: (type === "tv" ? "aggregate_credits" : "credits") + ",keywords,images", include_image_language: "en,null"});
   const keywords = (details?.keywords?.results || details?.keywords?.keywords || []).map((k: any) => String(k?.name || ""));
   const genres = factsGenresFor(type, (details?.genres || []).map((g: any) => Number(g?.id)), keywords);
@@ -189,8 +203,14 @@ export async function lookupTitle(item: Entry, tmdb: (path: string, params?: Rec
   const backdrops = (Array.isArray(details?.images?.backdrops) ? details.images.backdrops : []).filter((b: any) => b?.file_path && Number(b?.width) >= 1280);
   const pickBackdrop = (lang: string | null) => backdrops.filter((b: any) => (b.iso_639_1 ?? null) === lang).sort((a: any, b: any) => (Number(b.vote_average) || 0) - (Number(a.vote_average) || 0))[0];
   const backdropPath = (pickBackdrop(null) || pickBackdrop("en"))?.file_path || details?.backdrop_path || null;
+  // Wrapped shows a wide picture cropped to a tall phone screen, so it needs far more pixels than a card does: only
+  // pictures at least 1920 wide, loaded at TMDB's original size (never the default picture, whose size is unknown).
+  const sharp = backdrops.filter((b: any) => Number(b?.width) >= 1920 && Number(b?.height) >= 1000);
+  const pickSharp = (lang: string | null) => sharp.filter((b: any) => (b.iso_639_1 ?? null) === lang).sort((a: any, b: any) => (Number(b.vote_average) || 0) - (Number(a.vote_average) || 0))[0];
+  const sharpPath = (pickSharp(null) || pickSharp("en"))?.file_path || null;
   return {v: META_VERSION, slug: item.slug, matched: true, tmdb: {kind: type, id: Number(match.id)}, genres, cast,
-    backdrop: backdropPath ? IMG + "w1280" + backdropPath : null, poster: details?.poster_path ? IMG + "w500" + details.poster_path : null, at: now};
+    backdrop: backdropPath ? IMG + "w1280" + backdropPath : null, backdropHd: sharpPath ? IMG + "original" + sharpPath : null,
+    poster: details?.poster_path ? IMG + "w500" + details.poster_path : null, at: now};
 }
 
 type Store = {get: (key: string) => Promise<any>; set: (key: string, value: any) => Promise<any>};

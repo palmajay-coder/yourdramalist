@@ -51,13 +51,12 @@ export function installWrapped() {
     img.src = src;
     return img;
   }
-  // A slide's backdrop: the artwork of a title that fits it (chosen by the server), named in a small caption.
+  // A slide's backdrop: a sharp picture from a title that fits it (chosen by the server, 1920 pixels wide or more).
   function withArt(box, art) {
     if (!art?.backdrop) return box;
     const layer = el("div", "wrappedBackdrop");
     layer.append(image(art.backdrop));
     box.prepend(layer);
-    box.append(el("p", "wrappedArtCaption", art.title));
     return box;
   }
   function slide(theme, ...children) {
@@ -97,7 +96,7 @@ export function installWrapped() {
       box.append(el("p", "wrappedKicker", "MyDramaList Wrapped"), el("h2", "wrappedTitle", "@" + data.username + ", here's everything you've watched"),
         el("p", "wrappedLine", "Every drama and movie you've completed, all time."));
       if (data.hero) box.append(el("p", "wrappedSmall", (data.hero.reason === "newly-completed" ? "Recently completed: " : "Your top-rated: ") + data.hero.title));
-      out.push({ node: withArt(box, data.hero?.backdrop ? { backdrop: data.hero.backdrop, title: data.hero.title } : null) });
+      out.push({ node: withArt(box, data.art?.opening) });
     }
     // 2. Time: the answer in the sentence, then a friendly beat.
     if (data.viewingTime?.hours) {
@@ -151,20 +150,21 @@ export function installWrapped() {
       out.push({ node: withArt(slide("isFaces", portrait, el("h2", "wrappedTitle wrappedHeadline", "Your most-watched actor is " + first.name + "."),
         el("p", "wrappedLine", first.count + " of your completed titles feature " + first.name + "."), list), data.art?.actors) });
     }
-    // 6. Top rated: a ranked list of your five highest scores.
-    if ((data.topRated || []).length) {
-      const t1 = data.topRated[0];
-      const tens = (data.ratings?.distribution || []).find(d => d.score === 10)?.count || 0;
+    // 6. Your #1 drama and your #1 movie, each with its own ranked list and backdrop.
+    const rankedSlide = (items, label, theme, art) => {
+      if (!(items || []).length) return;
+      const first = items[0];
       const list = el("ol", "wrappedRanked isPosters");
-      data.topRated.slice(0, 5).forEach((t, i) => {
+      items.slice(0, 5).forEach((t, i) => {
         const li = el("li", "wrappedRise"); li.style.animationDelay = 0.3 + i * 0.12 + "s";
         const thumb = el("span", "wrappedThumb"); if (t.poster) thumb.append(image(t.poster));
         const text = el("span", "wrappedRankedText"); text.append(el("strong", "", t.title), el("small", "", [t.year, "your score " + t.score].filter(Boolean).join(" · ")));
         li.append(el("span", "wrappedRankedNumber", t.rank), thumb, text); list.append(li);
       });
-      const line = t1.score === 10 && tens > 1 ? "One of your " + tens + " perfect 10s." : "You gave it a " + t1.score + ".";
-      out.push({ node: withArt(slide("isStories", el("h2", "wrappedTitle wrappedHeadline", "Your #1 was " + t1.title + "."), el("p", "wrappedLine", line), list), data.art?.top) });
-    }
+      out.push({ node: withArt(slide(theme, el("h2", "wrappedTitle wrappedHeadline", "Your #1 " + label + " was " + first.title + "."), el("p", "wrappedLine", "You gave it a " + first.score + "."), list), art) });
+    };
+    rankedSlide(data.topDramas, "drama", "isStories", data.art?.topDrama);
+    rankedSlide(data.topMovies, "movie", "isMovies", data.art?.topMovie);
     // 7. Ratings: only facts the data supports.
     const r = data.ratings;
     if (r?.rated && r.average != null) {
@@ -176,9 +176,6 @@ export function installWrapped() {
       if (tens) facts.append(el("li", "", "You gave a perfect 10 to " + tens + (tens === 1 ? " title" : " titles") + "."));
       const most = [...(r.distribution || [])].sort((a, b) => b.count - a.count)[0];
       if (most && most.score !== 10) facts.append(el("li", "", "Your most common score is " + most.score + "."));
-      if (r.highestCountry && r.lowestCountry && r.highestCountry.country !== r.lowestCountry.country) {
-        facts.append(el("li", "", "Titles from " + r.highestCountry.country + " were your favorite. Titles from " + r.lowestCountry.country + " were not."));
-      }
       out.push({ node: withArt(slide("isRatings", head, el("p", "wrappedLine", "Across the " + r.rated + " titles you rated."), facts), data.art?.ratings),
         onShow: () => countUp(num, r.average, 2) });
     }
