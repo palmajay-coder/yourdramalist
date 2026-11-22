@@ -83,7 +83,7 @@ await test("Your Drama Wrapped on Stats opens twelve story slides: a story line,
   ok(storyLine() === "Your passport to drama." && big() === "Japan and South Korea" && /Japan and South Korea tied at 29 each, because choosing favorites isn't your thing\./.test(text()) && !/Hong Kong/.test(text()), "countries, a tie said as a tie: " + text());
   ok(d.querySelector(".wrappedStage svg.wrappedMap") && d.querySelectorAll(".wrappedStage .wrappedMapRing").length === 2 && (d.querySelector(".wrappedStage .wrappedMap .isHit")?.getAttribute("d") || "").split("M").length > 10 && !d.querySelector(".wrappedStage .wrappedBar"), "a map with both tied countries lit up and circled, instead of bars");
   key("ArrowRight");
-  ok(storyLine() === "Every era has its drama, yours was:" && big() === "The 2000s" && /Dramas from this decade dominated your watchlists\./.test(text()) && [...d.querySelectorAll(".wrappedStage .wrappedBarLabel")].map((x: any) => x.textContent).join() === "2000s,2010s", "eras by release decade, oldest first: " + text());
+  ok(storyLine() === "Every era has its drama, yours was:" && big() === "The 2000s" && /Dramas from this decade dominated your watchlists\./.test(text()) && [...d.querySelectorAll(".wrappedStage .wrappedBarLabel")].map((x: any) => x.textContent).join() === "2000s,2010s", "eras by release decade, most first: " + text());
   key("ArrowRight");
   ok(big() === "Your most-watched actor is Moon Lee." && d.querySelectorAll(".wrappedStage .wrappedRanked li").length === 2, "the actor slide is unchanged");
   key("ArrowRight");
@@ -112,7 +112,7 @@ await test("slides without data are left out, and ratings only state supported f
   for (let i = 0; i < 6; i++) key("ArrowRight");
   await tick(1300);
   ok(story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent === "Your average score is 8.89.", "the average keeps two decimals: " + story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent);
-  ok(/Out of everything you've watched, 34 titles earned a perfect 10\. Now that's a standing ovation\./.test(currentText(document)) && story(document).querySelectorAll(".wrappedStage .wrappedLine").length === 1 && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
+  ok(/Out of everything you watched, you gave 34 titles a perfect 10!/.test(currentText(document)) && story(document).querySelectorAll(".wrappedStage .wrappedLine").length === 1 && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
 });
 
 await test("a top country that isn't on the Asia map falls back to bars", async () => {

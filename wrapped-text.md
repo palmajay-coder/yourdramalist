@@ -93,7 +93,7 @@ top.noCast: Of everything you've finished, this one hit hardest.
 
 ## 9. Ratings
 ratings.headline: Your average score is {average}.
-ratings.tens: Out of everything you've watched, {count|title|titles} earned a perfect 10. Now that's a standing ovation.
+ratings.tens: Out of everything you watched, you gave {count|title|titles} a perfect 10!
 ratings.generous: You believe in giving credit where the drama is due.
 ratings.tough: No perfect 10s yet, because you don't hand out stars easily. Every point here was earned.
 ratings.balanced: No perfect 10s yet, just an honest score for every hit and every miss.

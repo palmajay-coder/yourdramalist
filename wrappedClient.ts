@@ -306,7 +306,7 @@ export function installWrapped() {
       const most = Math.max(...decades.map(d => d.count));
       const leaders = decades.filter(d => d.count === most).map(d => d.decade);
       const line = leaders.length > 1 ? b(most) + " titles each, by release year." : b(most) + " of your completed titles came out in the " + b(leaders[0]) + ".";
-      const rows = [...decades].sort((a, b) => a.decade.localeCompare(b.decade)).map(d => ({ label: d.decade, count: d.count }));
+      const rows = [...decades].sort((a, b) => b.count - a.count || b.decade.localeCompare(a.decade)).map(d => ({ label: d.decade, count: d.count })); // most first
       out.push({ node: withArt(storySlide("isEras", T("eras.story"), huge("The " + andList(leaders)), say.eras, line, bars(rows)), data.art?.eras) });
     }
     // 5. Actors: #1 big, then the top five as a ranked list.

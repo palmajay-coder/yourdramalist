@@ -30,7 +30,7 @@ await test("the owner's chosen lines, with the numbers folded in and no 'out of'
   ok(plain(s.actor) === "4 titles in, it's official: Moon Lee has a fan, and it's you.", "actor: " + s.actor);
   ok(plain(s.topDrama) === "Of everything you've finished, this one with Lee Min-ho and Kim Go-eun hit hardest.", "#1 drama: " + s.topDrama);
   ok(plain(s.topMovie) === "Of everything you've finished, this one hit hardest.", "#1 movie without cast");
-  ok(plain(s.ratings) === "Out of everything you've watched, 34 titles earned a perfect 10. Now that's a standing ovation.", "ratings: " + s.ratings);
+  ok(plain(s.ratings) === "Out of everything you watched, you gave 34 titles a perfect 10!", "ratings: " + s.ratings);
   ok(!Object.entries(s).some(([k, l]) => k !== "t" && / of your \d|out of \d/i.test(plain(l as string))), "no totals anywhere");
   ok(/\*\*23\*\*/.test(s.completed!) && /\*\*Moon Lee\*\*/.test(s.actor!), "numbers and names are bold");
 });
@@ -67,7 +67,7 @@ await test("small numbers, missing data, and ratings without perfect 10s read co
   ok(plain(say({statusCounts: {completed: 1}, types: {dramas: 1, movies: 0}}).completed) === "You didn't just start it. You finished it.", "one title");
   ok(plain(say({viewingTime: {hours: 5, days: 0.2}}).time) === "5 hours nonstop, fueled by snacks, tissues and zero regrets.", "under a day");
   ok(plain(say({actors: [{name: "A", count: 1}]}).actor) === "One title in, and A already has a fan: you.", "one title with an actor");
-  ok(plain(say({ratings: {rated: 5, average: 9, distribution: [{score: 10, count: 1}]}}).ratings).startsWith("Out of everything you've watched, 1 title earned a perfect 10."), "one perfect 10");
+  ok(plain(say({ratings: {rated: 5, average: 9, distribution: [{score: 10, count: 1}]}}).ratings).startsWith("Out of everything you watched, you gave 1 title a perfect 10!"), "one perfect 10");
   ok(say({ratings: {rated: 20, average: 8, distribution: [{score: 8, count: 20}]}}).ratings === "You believe in giving credit where the drama is due.", "no 10s but favorable: the approved line");
   ok(/don't hand out stars easily/.test(say({ratings: {rated: 20, average: 5.5, distribution: [{score: 5, count: 20}]}}).ratings!), "tough critic");
   ok(/honest score/.test(say({ratings: {rated: 20, average: 7, distribution: [{score: 7, count: 20}]}}).ratings!), "balanced");
