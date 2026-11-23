@@ -7,6 +7,14 @@ async function test(name: string, fn: () => unknown) { await fn(); passed++; con
 
 const entry = (title: string, extra: Record<string, unknown> = {}) => ({slug: "1-" + title.toLowerCase().replace(/\W+/g, "-"), title, year: 2020, type: "Drama", score: 0, episodesSeen: 0, ...extra});
 
+await test("a long list: each week's six candidate seeds are different from the week before, whatever the score order", () => {
+  const sections = {1: [entry("Watching One", {episodesSeen: 5})], 2: Array.from({length: 40}, (_, i) => entry("Title " + String(i).padStart(2, "0"), {score: 10}))};
+  const six = (week: number) => seedOrder(sections, week).slice(0, 6).map(s => s.title);
+  for (let week = 0; week < 12; week++) ok(six(week).every(t => !six(week + 1).includes(t)), "weeks " + week + " and " + (week + 1) + " share a seed");
+  const names = seedOrder(sections, 1).slice(0, 6).map(s => s.title);
+  ok(names.join() !== [...names].sort().join() || names.length < 2, "titles with equal scores are not simply alphabetical: " + names);
+});
+
 await test("seeds: watching first (most episodes), then completed scored 8+, rotating three further each Monday", () => {
   const sections = {
     1: [entry("Alpha", {episodesSeen: 2}), entry("Bravo", {episodesSeen: 9})],

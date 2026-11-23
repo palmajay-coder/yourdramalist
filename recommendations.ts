@@ -25,16 +25,22 @@ const asian = (r: any, kind: string) => kind === "tv"
 
 /** The watchlist titles this week's rows are built around, in order: what they're watching (most episodes
  * first), then completed titles they scored 8 or higher (highest first), or all completed titles if they
- * never score. Each week starts three further along, wrapping round, so the rows rotate on Mondays. */
+ * never score. Each week starts further along (six for a long list), wrapping round, so the rows rotate on Mondays. */
 export function seedOrder(sections: Sections, weekIndex: number) {
   const seen = new Set<string>(), pool: any[] = [];
   const add = (list: any[]) => { for (const item of list) if (item?.slug && item?.title && !seen.has(item.slug)) { seen.add(item.slug); pool.push(item); } };
   add([...(sections[1] || [])].sort((a, b) => (b.episodesSeen || 0) - (a.episodesSeen || 0)));
   const completed = sections[2] || [];
-  const scored = completed.filter(item => (item.score || 0) >= 8).sort((a, b) => b.score - a.score);
+  // Highest scored first; titles with the same score go in a fixed scrambled order (not MyDramaList's alphabetical one), so a list of
+  // mostly 10s does not start every week at "3-Iron, A Tale of Two Sisters...".
+  const scramble = (s: string) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const scored = completed.filter(item => (item.score || 0) >= 8).sort((a, b) => b.score - a.score || scramble(a.slug) - scramble(b.slug));
   add(scored.length ? scored : completed);
   if (pool.length <= ROWS) return pool;
-  const start = ((weekIndex * ROWS) % pool.length + pool.length) % pool.length;
+  // A week looks at its first six seeds (some may have no TMDB match), so a long list moves six along each Monday: two weeks in a row never
+  // share a seed. A short list moves three.
+  const stride = pool.length >= ROWS * 4 ? ROWS * 2 : ROWS;
+  const start = ((weekIndex * stride) % pool.length + pool.length) % pool.length;
   return [...pool.slice(start), ...pool.slice(0, start)];
 }
 
@@ -212,7 +218,7 @@ export async function recommendationsFor(username: string) {
     shared = createRecommendations({
       watchlist: G,
       tmdb: collections.tmdb,
-      storage: {load: () => blob.getJSON("recs:v2"), save: value => blob.setJSON("recs:v2", value)},
+      storage: {load: () => blob.getJSON("recs:v3"), save: value => blob.setJSON("recs:v3", value)},
     });
   }
   return shared.forUser(username);

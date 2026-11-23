@@ -35,10 +35,10 @@
 
 ## Personal and special catalogs
 - **Because you watched** (`recommendations.ts`, `/api/recommendations`): up to three rows of 30 for a connected MyDramaList username, under Weekly Picks and as Nuvio catalogs (`recs`, slots 0-2).
-  - **Picks:** seeds are what the user is watching, then completed titles scored 8+. They rotate three further every Monday.
+  - **Picks:** seeds are what the user is watching, then completed titles scored 8+. They rotate every Monday: six titles further for a long list (three for a short one), with equal scores in a fixed scrambled order, so consecutive weeks never share a seed (`seedOrder`). `recs:v3` replaced `recs:v2` on November 23 to rebuild rows saved with the old, slower rotation.
   - **Fill order:** TMDB recommendations, similar titles, shared keywords, then same genres and country.
   - **Left out:** anything on the watchlist.
-  - **Storage:** saved per user per week in `recs:v2`.
+  - **Storage:** saved per user per week in `recs:v3`.
 - **Spotlight** (`specialCatalog.ts`, `/api/catalogs/special`): "Watch this while they play GTA 6", 20 hand-picked titles.
   - **Placement:** the first list on Discover, with a countdown, and as Nuvio kind `special`.
   - **End:** it ends at midnight Pacific on January 1, 2027.
