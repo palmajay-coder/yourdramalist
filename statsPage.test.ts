@@ -82,7 +82,7 @@ await test("still being looked up, stale, empty and error states say so instead 
   let reply = () => Response.json(sample({stale: true, coverage: {completed: 79, matched: 40, unmatched: 0, pending: 39}}));
   const m = mount({user: "jaesan", stats: () => reply()});
   m.click("stats"); await tick(60);
-  ok(/Showing your last saved stats/.test(m.panel().textContent) && /39 titles left/.test(m.panel().textContent), "stale banner and pending note");
+  ok(!/last saved stats|titles left|couldn't be matched/.test(m.panel().textContent) && !m.panel().querySelector(".statsNote, .statsBanner"), "no notes or banners on the page");
   m.click("discover"); // leaving the tab stops the follow-up check
   const empty = mount({user: "newbie", stats: () => Response.json(sample({statusCounts: {watching: 1, completed: 0, planToWatch: 3, onHold: 0, dropped: 0}, topRated: [], ratings: {...sample().ratings, rated: 0, average: null}}))});
   empty.click("stats"); await tick(60);

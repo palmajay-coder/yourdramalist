@@ -115,7 +115,6 @@ export function installStats() {
 
   function render(data) {
     const parts = [];
-    if (data.stale) parts.push(el("p", "statsBanner", "Showing your last saved stats. MyDramaList couldn't be reached just now."));
     parts.push(hero(data));
     // The optional story version of these same numbers (wrappedClient.ts).
     if (data.statusCounts.completed && typeof wrapped !== "undefined") parts.push(button("Your Drama Wrapped", "primary statsWrappedButton", () => wrapped.open(data)));
@@ -176,10 +175,7 @@ export function installStats() {
         parts.push(scoring);
       }
       if (data.decades.length) parts.push(card("By release decade", bars(data.decades.map(d => ({ label: d.decade, count: d.count })), total)));
-      const c = data.coverage;
-      const notes = [];
-      if (c.pending) notes.push("Still adding genres, actors and posters (" + c.pending + (c.pending === 1 ? " title" : " titles") + " left).");
-      if (notes.length) parts.push(el("p", "statsNote", notes.join(" ")));
+      // No notes on this page: nothing about stale data, titles still loading, or titles TMDB could not match.
     }
     panel.replaceChildren(...parts.filter(Boolean));
   }
