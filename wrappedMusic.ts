@@ -1,23 +1,28 @@
-// The Wrapped soundtrack: one MP3 kept in blob storage (the R2 bucket on Cloudflare) and served with Range support,
+// The Wrapped soundtrack: MP3s kept in blob storage (the R2 bucket on Cloudflare) and served with Range support,
 // which Safari and some Android players need for audio. The path carries a version so a new track gets a new URL.
 import {blob} from "https://esm.town/v/std/blob/main.ts";
 
-export const WRAPPED_MUSIC_PATH = "/assets/wrapped-music-v1.mp3";
-const KEY = "assets/wrapped-music-v1.mp3";
-let cached: Uint8Array | null = null;
+// Four tracks; the page picks the next one each time it loads (see wrappedClient.ts).
+export const WRAPPED_MUSIC_TRACKS = [1, 2, 3, 4].map(n => `/assets/wrapped-music-v2-${n}.mp3`);
+export const isWrappedMusicPath = (path: string) => WRAPPED_MUSIC_TRACKS.includes(path);
+const cached = new Map<string, Uint8Array>();
 
-async function load(): Promise<Uint8Array | null> {
-  if (cached) return cached;
+async function load(path: string): Promise<Uint8Array | null> {
+  if (!isWrappedMusicPath(path)) return null;
+  const hit = cached.get(path);
+  if (hit) return hit;
   try {
-    const response = await blob.get(KEY);
+    const response = await blob.get(path.slice(1));
     if (!response.ok) return null;
-    cached = new Uint8Array(await response.arrayBuffer());
-    return cached.length ? cached : (cached = null);
+    const data = new Uint8Array(await response.arrayBuffer());
+    if (!data.length) return null;
+    cached.set(path, data);
+    return data;
   } catch { return null; }
 }
 
 export async function serveWrappedMusic(req: Request, bytes?: Uint8Array | null): Promise<Response> {
-  const data = bytes === undefined ? await load() : bytes;
+  const data = bytes === undefined ? await load(new URL(req.url).pathname) : bytes;
   if (!data) return new Response("Not found", {status: 404});
   const headers: Record<string, string> = {"content-type": "audio/mpeg", "accept-ranges": "bytes", "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff"};
   const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get("range") || "");

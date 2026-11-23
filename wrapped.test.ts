@@ -167,7 +167,7 @@ await test("the soundtrack starts from the tap that opens Wrapped, mutes and rem
     m.click("stats"); await tick(60);
     (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
     const d = story(m.document);
-    ok(played.join() === "new /assets/wrapped-music-v1.mp3,play", "starts the track on open: " + played);
+    ok(played.join() === "new /assets/wrapped-music-v2-1.mp3,play", "starts the track on open: " + played);
     const sound = d.querySelector(".wrappedSound") as any;
     ok(sound.getAttribute("aria-label") === "Turn the music off", "a mute button");
     sound.click();
@@ -176,6 +176,24 @@ await test("the soundtrack starts from the tap that opens Wrapped, mutes and rem
     ok(played.includes("pause"), "muting stops the track");
     (d.querySelector(".wrappedClose") as any).click(); await tick(700);
     ok(played.filter(x => x === "play").length === 1, "closing while muted plays nothing");
+  } finally { delete (globalThis as any).Audio; }
+});
+
+await test("four soundtrack tracks take turns: each page load plays the next one, round and round", async () => {
+  const played: string[] = [];
+  (globalThis as any).Audio = class { volume = 1; loop = false; constructor(src: string) { played.push(src); } addEventListener() {} play() { return Promise.resolve(); } pause() {} };
+  try {
+    const first = async (last: string | null) => {
+      played.length = 0;
+      const m = mount({user: "jaesan", saved: last === null ? [] : [["ydl-wrapped-track", last]]});
+      m.click("stats"); await tick(60);
+      (m.document.querySelector(".statsWrappedButton") as any).click(); await tick();
+      (story(m.document).querySelector(".wrappedClose") as any).click(); await tick(700);
+      return played[0].replace("/assets/wrapped-music-v2-", "").replace(".mp3", "");
+    };
+    ok(await first(null) === "1", "a new device starts on track 1");
+    ok(await first("0") === "2" && await first("1") === "3" && await first("2") === "4", "then the next one each time");
+    ok(await first("3") === "1", "after track 4, back to 1");
   } finally { delete (globalThis as any).Audio; }
 });
 
@@ -190,7 +208,7 @@ await test("the music file is served with Range support, and 404 when it isn't s
   ok(tail.status === 206 && tail.headers.get("content-range") === "bytes 90-99/100", "an open-ended range");
   ok((await serveWrappedMusic(new Request("https://t/x", {headers: {range: "bytes=500-"}}), bytes)).status === 416, "out of range");
   ok((await serveWrappedMusic(new Request("https://t/x"), null)).status === 404, "missing file");
-  ok((await handler(new Request("https://test/assets/wrapped-music-v1.mp3"))).status === 404, "the route exists and says 404 without a stored file");
+  ok((await handler(new Request("https://test/assets/wrapped-music-v2-1.mp3"))).status === 404, "the route exists and says 404 without a stored file");
 });
 
 await test("the Wrapped pop-up: shows once when a username is newly connected, Let's go opens Stats, and it never nags after that", async () => {

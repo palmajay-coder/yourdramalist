@@ -443,11 +443,24 @@ export function installWrapped() {
       if (t >= 1) { clearInterval(fading); then?.(); }
     }, 50);
   }
+  // Four tracks take turns: each page load plays the next one (remembered on the device; random if storage is unavailable).
+  let track = null;
+  function pickTrack() {
+    if (track) return track;
+    const list = Array.isArray(WRAPPED_MUSIC) ? WRAPPED_MUSIC : [WRAPPED_MUSIC];
+    let i;
+    try {
+      const last = Number(localStorage.getItem("ydl-wrapped-track"));
+      i = Number.isInteger(last) && localStorage.getItem("ydl-wrapped-track") !== null ? (last + 1) % list.length : 0;
+      localStorage.setItem("ydl-wrapped-track", String(i));
+    } catch { i = Math.floor(Math.random() * list.length); }
+    return track = list[i];
+  }
   function startMusic() {
     if (muted || typeof Audio !== "function" || typeof WRAPPED_MUSIC === "undefined") return;
     try {
       if (!music) {
-        music = new Audio(WRAPPED_MUSIC);
+        music = new Audio(pickTrack());
         music.loop = true;
         music.preload = "auto";
         music.addEventListener("error", () => { music = null; sound.hidden = true; }, { once: true });
