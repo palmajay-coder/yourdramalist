@@ -27,6 +27,22 @@ function dramalist(completed = [
   }};
 }
 
+await test("backdrops come from the whole list, not just the best few, so a new request brings new pictures", () => {
+  const items = Array.from({length: 60}, (_, i) => ({slug: i + "-t" + i, title: "Title " + i, country: "South Korea", year: 2010 + (i % 12), type: "Drama", score: 10, episodesSeen: 16, episodesTotal: 16}));
+  const list = parseDramalist({lists: {
+    watching: {name: "Watching", items: [], stats: null}, plan_to_watch: {name: "Plan", items: [], stats: null}, on_hold: {name: "Hold", items: [], stats: null}, dropped: {name: "Dropped", items: [], stats: null},
+    completed: {name: "Completed", items: items.map(i => ({...i, id: i.slug})), stats: {dramas: 60, tv_shows: 0, movies: 0, episodes: 960, days: 40}},
+  }}, "u", T0);
+  const meta: Record<string, TitleMeta> = {};
+  for (const item of list.lists.completed.items) meta[item.slug] = {v: 2, slug: item.slug, matched: true, genres: ["Romance"], cast: [], poster: null, at: T0, backdrop: "b-" + item.slug, backdropHd: "h-" + item.slug} as any;
+  const seen = new Set<string>();
+  for (let roll = 0; roll < 30; roll++) {
+    const art = computeStats(list, meta, null, {}, () => (roll + 0.5) / 30).art;
+    if (art.genres) seen.add(art.genres.backdrop);
+  }
+  ok(seen.size >= 20, "one slide shows " + seen.size + " different pictures over 30 requests");
+});
+
 await test("watchlist parsing: valid public records only, each title once, numbers checked", () => {
   const list = parseDramalist(dramalist(), "jaesan", T0);
   ok(list.lists.completed.items.length === 8 && list.lists.plan_to_watch.items.length === 1 && list.lists.dropped.items.length === 0, "the repeated Goblin and the bad slug are skipped");

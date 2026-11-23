@@ -148,10 +148,12 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
   const used = new Set<string>();
   const take = (item: Entry) => { used.add(hd(item.slug)!); return {title: item.title, backdrop: hd(item.slug)!}; };
   const pick = (test: (item: Entry) => boolean) => {
-    // Fitting titles first, best rated first; the picture is chosen among the best few so it is different on each request.
+    // Titles that fit the slide; with plenty of well-rated ones (8+) only those, so every picture is one they loved. The picture is
+    // chosen at random among all of them, so each request brings brand new pictures rather than the same few moved around.
     const fits = withArt.filter(i => !used.has(hd(i.slug)!) && test(i));
-    const options = fits.length ? fits : withArt.filter(i => !used.has(hd(i.slug)!));
-    const item = options[Math.min(options.length - 1, Math.floor(random() * Math.min(options.length, 8)))];
+    const loved = fits.filter(i => i.score >= 8);
+    const options = loved.length >= 12 ? loved : fits.length ? fits : withArt.filter(i => !used.has(hd(i.slug)!));
+    const item = options[Math.min(options.length - 1, Math.floor(random() * options.length))];
     return item ? take(item) : null;
   };
   const firstWithArt = (items: Entry[]) => items.find(i => hd(i.slug));
