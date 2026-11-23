@@ -88,7 +88,7 @@ export function heroFrom(list: Watchlist, snapshot: Snapshot) {
 }
 
 /** Every number on the Stats page, from the watchlist (exact) and TMDB details (where matched). */
-export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, hero: ReturnType<typeof heroFrom>, extra: {stale?: boolean; pending?: number} = {}) {
+export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, hero: ReturnType<typeof heroFrom>, extra: {stale?: boolean; pending?: number} = {}, random: () => number = () => 0) {
   const L = list.lists, completed = L.completed.items;
   const kind = (item: Entry) => /movie/i.test(item.type) ? "movie" : /tv show/i.test(item.type) ? "tvShow" : "drama";
   const countryOf = (item: Entry) => item.country || "Unknown";
@@ -148,7 +148,10 @@ export function computeStats(list: Watchlist, meta: Record<string, TitleMeta>, h
   const used = new Set<string>();
   const take = (item: Entry) => { used.add(hd(item.slug)!); return {title: item.title, backdrop: hd(item.slug)!}; };
   const pick = (test: (item: Entry) => boolean) => {
-    const item = withArt.find(i => !used.has(hd(i.slug)!) && test(i)) || withArt.find(i => !used.has(hd(i.slug)!));
+    // Fitting titles first, best rated first; the picture is chosen among the best few so it is different on each request.
+    const fits = withArt.filter(i => !used.has(hd(i.slug)!) && test(i));
+    const options = fits.length ? fits : withArt.filter(i => !used.has(hd(i.slug)!));
+    const item = options[Math.min(options.length - 1, Math.floor(random() * Math.min(options.length, 8)))];
     return item ? take(item) : null;
   };
   const firstWithArt = (items: Entry[]) => items.find(i => hd(i.slug));
@@ -228,7 +231,7 @@ type Store = {get: (key: string) => Promise<any>; set: (key: string, value: any)
  * (3 days for no match), at most ~20 seconds of TMDB lookups per request (the rest is reported as pending and
  * continues on the next request), and the last good watchlist kept for when Kuryana is down.
  */
-export function createStatsService(deps: {fetchList: (username: string) => Promise<any>; tmdb: (path: string, params?: Record<string, string>) => Promise<any>; store: Store; now?: () => number; budgetMs?: number}) {
+export function createStatsService(deps: {fetchList: (username: string) => Promise<any>; tmdb: (path: string, params?: Record<string, string>) => Promise<any>; store: Store; now?: () => number; random?: () => number; budgetMs?: number}) {
   // About 12 seconds of lookups per request, two at a time, so a first fill leaves room in the shared TMDB limit for Discover.
   const now = deps.now || Date.now, budget = deps.budgetMs ?? 12000;
   const key = (kind: string, username: string) => "stats-" + kind + ":v1:" + username.toLowerCase();
@@ -279,7 +282,7 @@ export function createStatsService(deps: {fetchList: (username: string) => Promi
     }
     const meta: Record<string, TitleMeta> = {};
     for (const item of wanted) if (usable(cache[item.slug])) meta[item.slug] = cache[item.slug];
-    return computeStats(list, meta, hero, {stale, pending: wanted.filter(item => !meta[item.slug]).length});
+    return computeStats(list, meta, hero, {stale, pending: wanted.filter(item => !meta[item.slug]).length}, deps.random ?? Math.random);
   }
   return {stats};
 }

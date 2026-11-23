@@ -137,6 +137,11 @@ await test("genres and actors count each title once; actors deduplicate by id; c
   const snapshot = nextSnapshot(null, list, T0); snapshot.completed["4-hidden-love"] = new Date(T0).toISOString();
   const fresh = computeStats(list, arty, heroFrom(list, snapshot)).art;
   ok(fresh.opening?.title === "Hidden Love", "a title just completed keeps its own picture for the opening: " + JSON.stringify(fresh.opening));
+  // Different on each request: a different roll picks other fitting titles, still one picture per slide, and each #1 keeps its own.
+  const varied = computeStats(list, arty, heroFrom(list, nextSnapshot(null, list, T0)), {}, () => 0.99).art;
+  const variedPictures = Object.values(varied).filter(Boolean).map(a => a!.backdrop);
+  ok(new Set(variedPictures).size === variedPictures.length && JSON.stringify(varied) !== JSON.stringify(art), "another roll gives other backdrops, never the same picture twice: " + JSON.stringify(varied));
+  ok(varied.topDrama?.title === "Reply 1988" && varied.topMovie?.title === "Cure", "the #1 drama and #1 movie keep their own backdrops");
 });
 
 function memoryStore() {
