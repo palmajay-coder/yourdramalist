@@ -179,7 +179,6 @@ export function installStats() {
       const c = data.coverage;
       const notes = [];
       if (c.pending) notes.push("Still adding genres, actors and posters (" + c.pending + (c.pending === 1 ? " title" : " titles") + " left).");
-      if (c.unmatched) notes.push(c.unmatched + (c.unmatched === 1 ? " title couldn't" : " titles couldn't") + " be matched on TMDB, so genres and actors leave " + (c.unmatched === 1 ? "it" : "them") + " out.");
       if (notes.length) parts.push(el("p", "statsNote", notes.join(" ")));
     }
     panel.replaceChildren(...parts.filter(Boolean));
