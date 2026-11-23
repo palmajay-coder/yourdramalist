@@ -109,12 +109,12 @@ await test("\"Because you watched\" shelves sit under Weekly Picks for a connect
  const catalog={id:"weekly-kr-1",name:"This Week: Romance",url:"ydl-weekly:3:0",type:"series",kind:"weekly",country:"3",slot:0};
  const realInterval=globalThis.setInterval,timers:number[]=[];
  (globalThis as any).setInterval=(fn:any,ms:number)=>{const id=realInterval(fn,ms);timers.push(id);return id};
- const mount=async(user:string|null)=>{
+ const mount=async(user:string|null,lapsed=false)=>{
   const {document,window}=parseHTML(pageHtml);const saved=new Map<string,string>();if(user)saved.set("ydl-v3-user",user);
   const asked:string[]=[];
   const fetcher=async(url:string)=>{const u=String(url);asked.push(u);
    if(u.startsWith("/api/catalogs/weekly"))return Response.json({collections:[{catalog,items:[{kind:"tv",id:1,name:"Love A",date:"2024-01-01",poster:"https://image.tmdb.org/t/p/w780/a.jpg"}]}],nextRefresh:new Date(Date.now()+864e5).toISOString()});
-   if(u.startsWith("/api/recommendations"))return Response.json({week:"2026-11-16",nextRefresh:new Date(Date.now()+864e5).toISOString(),rows:[
+   if(u.startsWith("/api/recommendations"))return Response.json({week:"2026-11-16",nextRefresh:new Date(Date.now()+(lapsed?-1:1)*864e5).toISOString(),rows:[
     {seed:{title:"The Glory",slug:"1-the-glory"},items:[{kind:"tv",id:7,name:"Mouse",date:"2021-03-03",poster:"https://image.tmdb.org/t/p/w780/m.jpg"}]},
     {seed:{title:"Move to Heaven",slug:"2-move"},items:[{kind:"tv",id:8,name:"Our Blues",date:"2022-04-09",poster:"https://image.tmdb.org/t/p/w780/o.jpg"}]}]});
    return Response.json({collections:[],items:[]});
@@ -140,6 +140,13 @@ await test("\"Because you watched\" shelves sit under Weekly Picks for a connect
   assert(add.textContent==="✓Added","the button turns green Added");
   const anonymous=await mount(null);
   assert(!anonymous.asked.some(u=>u.startsWith("/api/recommendations"))&&!anonymous.document.querySelector(".recsSection"),"without a username there are no recommendation rows");
+  // An app left open for days: the rows are kept until the server's next weekly change, then the next visit to Discover asks again.
+  const visit=async(m:any)=>{(m.document.querySelector('[data-destination="stats"]') as any).click();await new Promise(r=>setTimeout(r,40));(m.document.querySelector('[data-destination="discover"]') as any).click();await new Promise(r=>setTimeout(r,60));};
+  const asks=(m:any)=>m.asked.filter((u:string)=>u.startsWith("/api/recommendations")).length;
+  const current=await mount("Jaesan");await visit(current);
+  assert(asks(current)===1,"this week's rows are kept while they are current: "+asks(current)+" requests");
+  const lapsed=await mount("Jaesan",true);await visit(lapsed);
+  assert(asks(lapsed)===2,"after the weekly change the next visit asks again: "+asks(lapsed)+" requests");
  }finally{globalThis.setInterval=realInterval;for(const id of timers)clearInterval(id);}
 });
 await test("Spotlight is the first section on Discover: GTA 6 and the month's list under one heading, with one timer",async()=>{

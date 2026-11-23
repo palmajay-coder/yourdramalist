@@ -35,7 +35,7 @@ export function installExploreUI() {
   }
   sortLabel.className = "catalogSortLabel";
   let observer, renderId = 0, countdown, selectedCountry = select.value, activeCatalogType = "all";
-  let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "";
+  let weeklySection, weeklyCountry, catalogSection, recsSection, recsUser = "", recsNext = 0;
   let specialSection, specialClock, specialCountry, specialView;
   let top10Section, top10Country, top10View, weeklyView, recsView;
   // Sort by and Movies/Shows apply to every section (Top 10 keeps its ranking). A filtered shelf carries the
@@ -289,7 +289,9 @@ export function installExploreUI() {
       recsUser = "";
       return;
     }
-    if (recsSection && recsUser === connectedUser && recsView === viewKey()) {
+    // The rows are kept while Discover stays open, but only until the server's next weekly change (Monday midnight Pacific): after that the
+    // next visit to Discover asks again, so an app left open for days still gets the new week's rows.
+    if (recsSection && recsUser === connectedUser && recsView === viewKey() && (!recsNext || Date.now() < recsNext)) {
       if (recsSection.isConnected) arrange(parent2);
       return;
     }
@@ -309,6 +311,7 @@ export function installExploreUI() {
       .then(data => {
         // No rows: the section stays hidden. A failed request is tried again the next time Discover opens.
         if (recsSection !== section || isOutdated()) return;
+        recsNext = Date.parse(data?.nextRefresh) || 0;
         if (!Array.isArray(data?.rows) || !data.rows.length) {
           if (!data) recsUser = "";
           return;
