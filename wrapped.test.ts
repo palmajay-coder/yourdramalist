@@ -33,7 +33,7 @@ const sample = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
-function mount(options: {user?: string; stats?: Record<string, unknown>; saved?: [string, string][]} = {}) {
+function mount(options: {user?: string; stats?: Record<string, unknown>; saved?: [string, string][]; path?: string} = {}) {
   const {document, window} = parseHTML(html);
   for (const dialog of document.querySelectorAll("dialog")) { (dialog as any).showModal = () => { (dialog as any).open = true; }; (dialog as any).close = () => { (dialog as any).open = false; dialog.dispatchEvent(new window.Event("close")); }; }
   const saved = new Map<string, string>([["ydl-v3-started", "1"], ...(options.user ? [["ydl-v3-user", options.user]] as [string, string][] : []), ...(options.saved || [])]);
@@ -45,7 +45,7 @@ function mount(options: {user?: string; stats?: Record<string, unknown>; saved?:
   };
   new Function("window", "document", "localStorage", "location", "history", "fetch", "requestAnimationFrame", "matchMedia", "ResizeObserver", script)(window, document,
     {getItem: (k: string) => saved.get(k) ?? null, setItem: (k: string, v: string) => saved.set(k, v), removeItem: (k: string) => saved.delete(k)},
-    {href: "https://test/setup/lists", origin: "https://test", pathname: "/setup/lists", search: "", hostname: "test"},
+    {href: "https://test" + (options.path || "/setup/lists"), origin: "https://test", pathname: options.path || "/setup/lists", search: "", hostname: "test"},
     {state: null, pushState() {}, replaceState() {}, back() {}}, fetcher, () => 0, () => ({matches: false, addEventListener() {}}), class { observe() {} });
   // Patch dialogs created after start-up (Wrapped's own dialog) the same way.
   for (const dialog of document.querySelectorAll("dialog")) {
@@ -209,6 +209,14 @@ await test("the music file is served with Range support, and 404 when it isn't s
   ok((await serveWrappedMusic(new Request("https://t/x", {headers: {range: "bytes=500-"}}), bytes)).status === 416, "out of range");
   ok((await serveWrappedMusic(new Request("https://t/x"), null)).status === 404, "missing file");
   ok((await handler(new Request("https://test/assets/wrapped-music-v2-1.mp3"))).status === 404, "the route exists and says 404 without a stored file");
+});
+
+await test("every start opens on the Connect page, with a saved username filled in", async () => {
+  const returning = mount({user: "jaesan", path: "/"}); await tick(100);
+  ok(returning.document.body.dataset.page === "connect", "a returning user starts on Connect, not Discover: " + returning.document.body.dataset.page);
+  ok((returning.document.getElementById("source") as any).value === "jaesan", "their username is already typed in");
+  const fresh = mount({path: "/"}); await tick(100);
+  ok(fresh.document.body.dataset.page === "connect" && (fresh.document.getElementById("source") as any).value === "", "a new visitor starts on Connect with an empty box");
 });
 
 await test("the Wrapped pop-up: shows once when a username is newly connected, Let's go opens Stats, and it never nags after that", async () => {
