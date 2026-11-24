@@ -542,7 +542,7 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedHeadline.isLong{font-size:26px}
 /* Wrapped: one sentence per slide, ranked lists, drama type. */
 .wrappedHeadline{font-size:32px;line-height:1.15;max-width:22ch}
-.wrappedNumber{display:inline-block;min-width:2ch;color:#fff;font-size:1.35em;font-weight:900;letter-spacing:-.02em}
+.wrappedNumber{display:inline-block;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums;color:#fff;font-size:1.35em;font-weight:900;letter-spacing:-.02em}
 .wrappedSlide.isType{background:linear-gradient(160deg,#0f7a5a,#0d3b45 60%,#0d0f14)}
 .wrappedSlide.isType .wrappedHuge{font-size:48px}
 .wrappedRanked{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:10px;width:min(100%,420px)}

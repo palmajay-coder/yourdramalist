@@ -34,6 +34,10 @@ export function installWrapped() {
   function countUp(node, value, decimals = 0) {
     const format = decimals ? new Intl.NumberFormat("en-US", { maximumFractionDigits: decimals }) : null;
     const final = format ? format.format(value) : Math.round(value).toLocaleString("en-US");
+    // The box is as wide as the finished number from the first tick (digits are tabular and right-aligned), so the text around a
+    // centered number does not shift sideways while it counts.
+    const digits = (final.match(/\d/g) || []).length;
+    node.style.minWidth = (digits + (final.length - digits) * 0.5) + "ch";
     if (reduced() || !value) { node.textContent = final; return; }
     const started = Date.now(), duration = 1200;
     node.textContent = "0";

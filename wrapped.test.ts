@@ -111,6 +111,8 @@ await test("slides without data are left out, and ratings only state supported f
   const key = (k: string) => d.dispatchEvent(Object.assign(new (d.ownerDocument.defaultView as any).Event("keydown", {bubbles: true}), {key: k}));
   for (let i = 0; i < 6; i++) key("ArrowRight");
   await tick(1300);
+  const counter = story(document).querySelector(".wrappedStage .wrappedNumber") as any;
+  ok(counter?.style.minWidth === "3.5ch", "a counting number reserves its finished width from the first tick, so the sentence around it does not shift: " + counter?.style.minWidth);
   ok(story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent === "Your average score is 8.89.", "the average keeps two decimals: " + story(document).querySelector(".wrappedStage .wrappedHeadline")?.textContent);
   ok(/Out of everything you watched, you gave 34 titles a perfect 10!/.test(currentText(document)) && story(document).querySelectorAll(".wrappedStage .wrappedLine").length === 1 && !/Hong Kong|China|favorite/.test(currentText(document)), "rating facts, with no country line: " + currentText(document));
 });
