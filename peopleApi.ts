@@ -3,14 +3,15 @@ import {blob} from 'https://esm.town/v/std/blob/main.ts';
 import {personUrl,personFromKuryana,personSummary,peopleSearchFromKuryana,makeFilmography,type Mode} from './people.ts';
 import {kuryana,KuryanaError,mdlImage} from './kuryana.ts';
 import {dramaUrl} from './dramaDetails.ts';
-import {tmdbPersonCredits} from './tmdbPeople.ts';
+import {tmdbPersonCredits,tmdbPersonIdentity,sharedTitles} from './tmdbPeople.ts';
 type Entry={data:any;at:number;expires:number;error?:string};
 type Storage={load:()=>Promise<any>;save:(snapshot:any)=>Promise<unknown>};
 async function bounded<T>(promise:Promise<T>):Promise<T|undefined>{let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([promise,new Promise<undefined>(resolve=>{timer=setTimeout(()=>resolve(undefined),1000)})])}finally{clearTimeout(timer)}}
 // Acting and directing credits come from TMDB (Kuryana leaves many out). If TMDB is not
 // configured or has no matching person, keep Kuryana's credits rather than showing nothing.
 async function withTmdbCredits(person:ReturnType<typeof personFromKuryana>,fetcher:typeof fetch){
- const credits=await tmdbPersonCredits(person,{fetcher});
+ const known=[...person.filmographies.actor,...person.filmographies.director].map(c=>({names:[c.name],year:c.year}));
+ const credits=await tmdbPersonCredits({name:person.name,nativeName:person.nativeName,aliases:(person as any).aliases||[],known},{fetcher});
  if(!credits)return person;
  // Person-page facts. MyDramaList's own text and photo win; TMDB fills what it leaves out.
  const p=credits.profile;
@@ -58,11 +59,30 @@ export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,
   })().finally(()=>pending.delete(key));pending.set(key,p);return p;
  }
  return {
-  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:v4:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
+  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:v5:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
   async search(query:string,pageNumber:number){return page('discover-search:'+query.toLowerCase()+':'+pageNumber,'/v2/search?q='+encodeURIComponent(query)+'&page='+pageNumber,data=>discoverSearchResults(data,pageNumber),300000)}
  };
 }
 const service=createPeopleService({load:()=>blob.getJSON('people:v1'),save:snapshot=>blob.setJSON('people:v1',snapshot)});
+// A TMDB person (a cast member with no MyDramaList address) to their MyDramaList page: search MyDramaList by each of the other names TMDB knows
+// (including the Korean name), then open the few best results and take the one that shares at least two titles with the TMDB credits.
+export async function resolveMdlPerson(service:{search:(q:string,page:number)=>Promise<any>;person:(raw:string)=>Promise<any>},identity:{names:string[];credits:{names:string[];year:number|null}[]}){
+ const found=new Map<string,any>();
+ for(const query of identity.names.slice(0,5)){
+  const result=await service.search(query,1).catch(()=>null);
+  for(const candidate of (result?.data?.people||[]).slice(0,4))if(candidate?.url&&!found.has(candidate.url))found.set(candidate.url,candidate);
+  if(found.size>=8)break;
+ }
+ let best:any=null,bestCount=1;
+ for(const candidate of [...found.values()].slice(0,4)){
+  const page=await service.person(candidate.url).catch(()=>null);if(!page?.data)continue;
+  const works=[...page.data.filmographies.actor,...page.data.filmographies.director].map((c:any)=>({names:[c.name],year:c.year}));
+  const count=sharedTitles(identity.credits,works);
+  if(count>bestCount){best=candidate;bestCount=count}
+ }
+ return best;
+}
+const resolved=new Map<string,{at:number;person:any}>();
 export async function handlePeople(req:Request){
  if(req.method!=='GET')return new Response('Method not allowed',{status:405,headers:{Allow:'GET'}});
  const u=new URL(req.url);const mode=u.searchParams.get('mode')||'actor';
@@ -71,6 +91,16 @@ export async function handlePeople(req:Request){
  const search=u.pathname==='/api/mdl/people-search';
  const raw=u.searchParams.get('url')||'';const query=(u.searchParams.get('q')||'').trim();const page=u.searchParams.get('page')||'1';
  if(search&&(query.length<2||query.length>100||!/^([1-9]|[1-9]\d)$/.test(page)))return fail('Enter a title or name between 2 and 100 characters and a valid search page.');
+ if(u.pathname==='/api/mdl/person-resolve'){
+  const name=(u.searchParams.get('name')||'').trim();const tmdb=Number(u.searchParams.get('tmdb'))||null;
+  if(name.length<2||name.length>100)return fail('Enter a name between 2 and 100 characters.');
+  const memo=name.toLowerCase()+'|'+tmdb,hit=resolved.get(memo);
+  if(hit&&Date.now()-hit.at<6*3600000)return Response.json({person:hit.person},{headers:{'cache-control':'no-store'}});
+  const identity=await tmdbPersonIdentity({name,id:tmdb});
+  const person=identity?await resolveMdlPerson(service,identity):null;
+  if(identity){resolved.set(memo,{at:Date.now(),person});while(resolved.size>200)resolved.delete(resolved.keys().next().value!)}
+  return Response.json({person},{headers:{'cache-control':'no-store'}});
+ }
  if(!search&&!personUrl(raw))return fail('Enter a valid HTTPS MyDramaList person link.');
  try{
   if(search){const result=await service.search(query,Number(page));return Response.json({...rankSearchResults(result.data,query),query,page:Number(page),mode,status:result.status,warning:result.warning},{headers:{'cache-control':'no-store'}})}

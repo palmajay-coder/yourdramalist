@@ -130,7 +130,7 @@ async function fetchTmdbTitle(raw: string, fetcher: typeof fetch, key: string) {
       episodes: data.number_of_episodes,
       titleStatus: data.status,
       cast: data.credits?.cast?.slice(0, 10).map(person => ({
-        name: person.name, role: person.character, image: posterUrl(person.profile_path),
+        name: person.name, role: person.character, image: posterUrl(person.profile_path), tmdbId: Number.isSafeInteger(person.id) ? person.id : null,
       })),
     },
     year: Number(String(data.first_air_date || data.release_date || "").slice(0, 4)),

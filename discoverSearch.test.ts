@@ -558,6 +558,41 @@ await test("a cast member whose TMDB name differs from MyDramaList's stage name 
  assert(view.querySelector(".personNative").hidden,"no native name line when unknown");
  assert(view.querySelector(".personCredit .personArt").textContent==="Untitled"&&!view.querySelector(".personRating"),"a title without artwork or rating shows its name only");
 });
+await test("a cast member listed under a different name altogether (TMDB Yoona, MyDramaList Lim Yoon A) is found by the server through TMDB's other names",async()=>{
+ const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
+ const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");
+ const storage={getItem:()=>null,setItem(){},removeItem(){}};
+ const location={href:"https://test/setup",origin:"https://test",pathname:"/setup",search:"",hostname:"test"};
+ const proto=Object.getPrototypeOf(document.createElement("dialog"));
+ if(!proto.showModal){proto.showModal=function(){this.open=true};proto.close=function(){if(!this.open)return;this.open=false;this.dispatchEvent(new window.Event("close"))};}
+ const asked:string[]=[];
+ const fetcher=async(url:string)=>{const u=String(url);asked.push(u);
+  if(u.startsWith("/api/mdl/person-resolve"))return Response.json({person:{id:"99",name:"Ha Young",url:"https://mydramalist.com/people/99-ha-young"}});
+  if(u.startsWith("/api/mdl/people-search"))return Response.json({query:"x",people:[{id:"98",name:"Ahn Ha Na",url:"https://mydramalist.com/people/98-ahn-ha-na"},{id:"97",name:"Kim Do Hyun",url:"https://mydramalist.com/people/97-kim-do-hyun"}],titles:[{name:"Untitled",url:"https://mydramalist.com/5-untitled",type:"Drama",year:2020}],page:1,hasNextPage:false});
+  if(u.startsWith("/api/mdl/drama-details"))return Response.json({synopsis:"A story.",reviews:[],cast:[{name:"Yoona",role:"Lead",image:null,tmdbId:1}]});
+  if(u.startsWith("/api/mdl/person"))return Response.json({person:{id:"99",name:"Ha Young",actorCount:1,directorCount:0}});
+  if(u.startsWith("/api/mdl/filmography?mode=actor&url="+encodeURIComponent("https://mydramalist.com/people/99-ha-young")))return Response.json({person:{id:"99",name:"Ha Young",actorCount:1,directorCount:0,born:null,biography:null},items:[{id:"5",name:"Untitled",url:"https://mydramalist.com/5-untitled",year:null,type:"Drama",poster:null}],list:{}});
+  return Response.json({collections:[],items:[]});
+ };
+ new Function("window","document","localStorage","location","history","fetch","requestAnimationFrame","matchMedia","ResizeObserver",script)(window,document,storage,location,{state:null,pushState(){},replaceState(){},back(){}},fetcher,()=>0,()=>({matches:false,addEventListener(){}}),class{observe(){}});
+ const tick=(ms=30)=>new Promise(r=>setTimeout(r,ms));
+ // A TMDB-only title's preview: its cast has no MyDramaList link.
+ (document.querySelector(".androidNavAdd") as any).click();
+ (document.getElementById("quickSearchInput") as HTMLInputElement).value="Untitled";
+ (document.querySelector(".quickSearch form") as any).dispatchEvent(new window.Event("submit",{cancelable:true}));await tick();
+ (document.querySelector(".quickSearchResults .discoverTitleIdentity") as any).click();await tick();
+ const castCard=document.querySelector(".catalogTitleDialog .discoverPreviewPerson") as any;
+ assert(castCard,"the preview lists the cast as buttons");
+ castCard.click();await tick();
+ const view=[...document.querySelectorAll(".personProfile")].find((d:any)=>d.open) as any;
+ assert(asked.includes("/api/mdl/person-resolve?name=Yoona&tmdb=1"),"the server is asked to find them by TMDB's other names: "+asked.join(", "));
+ assert(asked.some(u=>u.startsWith("/api/mdl/people-search?mode=actor&q=Yoona")),"a cast member without a link is looked up by name");
+ assert(view&&view.querySelector("h2").textContent==="Ha Young"&&!view.querySelector(".personPhotoBlank").hidden,"the profile opens with a placeholder portrait");
+ assert(view.querySelector(".personFacts dd")?.textContent==="1 title","only the credit count is shown when birth facts are missing: "+view.querySelector(".personFacts")?.textContent);
+ assert(view.querySelector(".personBio").hidden&&view.querySelector(".personBackdrop").hidden,"no biography card and no backdrop when there is none");
+ assert(view.querySelector(".personNative").hidden,"no native name line when unknown");
+ assert(view.querySelector(".personCredit .personArt").textContent==="Untitled"&&!view.querySelector(".personRating"),"a title without artwork or rating shows its name only");
+});
 await test("a cast member with no safe match on MyDramaList opens without mixing them up with someone else",async()=>{
  const pageHtml=await(await handler(new Request("https://test/setup/lists"))).text(),{document,window}=parseHTML(pageHtml);
  const script=[...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).join("\n");

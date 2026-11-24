@@ -94,7 +94,8 @@ export function personFromKuryana(data:any,expected:string){
  }
  const nationality=clean(String(data?.nationality||''))||null;const born=clean(String(data?.born||''))||null;
  const biography=String(data?.about||'').trim()||null;
- return {id,name,nativeName,displayName:name,nationality,born,biography,poster:remoteImage(data?.image),url:expected,filmographies,sections};
+ const aliases=(Array.isArray(data?.also_known_as)?data.also_known_as:[]).map((x:unknown)=>clean(String(x||''))).filter(Boolean).slice(0,12);
+ return {id,name,nativeName,aliases,displayName:name,nationality,born,biography,poster:remoteImage(data?.image),url:expected,filmographies,sections};
 }
 export function peopleSearchFromKuryana(data:any,page:number){
  const people:{id:string;name:string;url:string;poster:string|null;nationality:string|null;biography:string|null}[]=[];const seen=new Set<string>();

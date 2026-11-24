@@ -380,7 +380,13 @@ export function installPeopleUI() {
       const theirs = words(match.name);
       return theirs.length >= 2 && mine.length >= 2 && (theirs.every(word => mine.includes(word)) || mine.every(word => theirs.includes(word)));
     });
-    return near.length === 1 ? near[0] : null;
+    if (near.length === 1) return near[0];
+    // Still nothing (a stage name such as TMDB's "Yoona" for MyDramaList's "Lim Yoon A"): the server finds them by TMDB's other names for them,
+    // and only accepts a MyDramaList page that shares titles with their TMDB credits.
+    try {
+      const resolved = await json("/api/mdl/person-resolve?name=" + encodeURIComponent(person.name.slice(0, 100)) + (person.tmdbId ? "&tmdb=" + Number(person.tmdbId) : ""));
+      return resolved?.person?.url ? resolved.person : null;
+    } catch { return null; }
   }
   async function openPersonTitles(person, opener) {
     const view = freeView();

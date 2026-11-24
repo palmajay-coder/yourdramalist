@@ -74,10 +74,73 @@ function backdropFor(list: any[]): string | null {
   return best ? TMDB_IMAGE + "w1280" + best.backdrop_path : null;
 }
 
+// Titles as a person's two sites list them: every spelling of the title, and the year (null when unknown).
+export type TitleRef = { names: string[]; year: number | null };
+const yearFrom = (c: any) => Number(String(c?.first_air_date || c?.release_date || "").slice(0, 4)) || null;
+const tmdbRefs = (credits: any): TitleRef[] => [...(Array.isArray(credits?.cast) ? credits.cast : []), ...(Array.isArray(credits?.crew) ? credits.crew : [])]
+  .map((c: any) => ({ names: [c?.name, c?.title, c?.original_name, c?.original_title].filter(Boolean).map(String), year: yearFrom(c) }));
+/** How many titles in `a` also appear in `b`: the same title name, and a year within one when both have one. */
+export function sharedTitles(a: TitleRef[], b: TitleRef[]): number {
+  const index = new Map<string, (number | null)[]>();
+  for (const ref of b) for (const name of ref.names) { const key = normalize(name); if (key) index.set(key, [...(index.get(key) || []), ref.year]); }
+  let count = 0;
+  for (const ref of a) {
+    if (ref.names.some(name => (index.get(normalize(name)) || []).some(year => !year || !ref.year || Math.abs(year - ref.year) <= 1))) count++;
+  }
+  return count;
+}
+// Two shared titles are enough to call two listings the same person (the names alone may differ: Lim Yoon A / Yoona).
+const MIN_SHARED = 2;
+
+/** Without a name match, look at TMDB's few best results for the person's names and aliases, and take the one whose credits share titles. */
+async function personByTitles(person: { name: string; nativeName: string | null; aliases?: string[]; known?: TitleRef[] }, fetcher: typeof fetch, key: string) {
+  const known = person.known || [];
+  if (known.length < MIN_SHARED) return null;
+  const found = new Map<number, any>();
+  for (const query of [...new Set([person.name, person.nativeName, ...(person.aliases || [])].filter(Boolean) as string[])].slice(0, 5)) {
+    const search = await tmdbJson("/search/person", { query, include_adult: "false" }, fetcher, key).catch(() => null);
+    for (const r of (Array.isArray(search?.results) ? search.results : []).slice(0, 5)) if (Number(r?.id) && !found.has(Number(r.id))) found.set(Number(r.id), r);
+    if (found.size >= 8) break;
+  }
+  const top = [...found.values()].sort((a, b) => (Number(b?.popularity) || 0) - (Number(a?.popularity) || 0)).slice(0, 3);
+  const details = await Promise.all(top.map(r => tmdbJson(`/person/${Number(r.id)}`, { language: "en-US", append_to_response: "combined_credits" }, fetcher, key).catch(() => null)));
+  let best: any = null, bestCount = MIN_SHARED - 1;
+  for (const data of details) {
+    const count = sharedTitles(known, tmdbRefs(data?.combined_credits));
+    if (count > bestCount) { best = data; bestCount = count; }
+  }
+  return best;
+}
+
+/** A TMDB person's other names and credits, to find them on MyDramaList (the reverse of the above). Null when TMDB has no such person. */
+export async function tmdbPersonIdentity(
+  who: { name: string; id?: number | null },
+  { fetcher = fetch, key = (typeof Deno < "u" && Deno.env.get("TMDB_API_KEY")) || "" } = {},
+): Promise<{ names: string[]; credits: TitleRef[] } | null> {
+  if (!key || !who.name) return null;
+  try {
+    let id = Number(who.id) || 0;
+    if (!id) {
+      const search = await tmdbJson("/search/person", { query: who.name, include_adult: "false" }, fetcher, key);
+      const best = (Array.isArray(search?.results) ? search.results : []).filter((r: any) => sameName(r?.name, who.name))
+        .sort((a: any, b: any) => (Number(b?.popularity) || 0) - (Number(a?.popularity) || 0))[0];
+      id = Number(best?.id) || 0;
+    }
+    if (!id) return null;
+    const data = await tmdbJson(`/person/${id}`, { language: "en-US", append_to_response: "combined_credits" }, fetcher, key);
+    const all = [...new Set([data?.name, ...(Array.isArray(data?.also_known_as) ? data.also_known_as : [])].map(x => String(x || "").trim()).filter(x => x.length >= 2 && x.length <= 100))];
+    // Names in their own script first (MyDramaList finds 임윤아 as readily as Lim Yoon A), then the rest as TMDB lists them.
+    const names = [...all.filter(x => /[^\u0000-\u024f]/.test(x)), ...all.filter(x => !/[^\u0000-\u024f]/.test(x))].slice(0, 6);
+    return { names, credits: tmdbRefs(data?.combined_credits) };
+  } catch {
+    return null;
+  }
+}
+
 // Returns TMDB acting and directing credits, newest first, or null when TMDB is not configured,
 // unreachable, or has no person matching this name.
 export async function tmdbPersonCredits(
-  person: { name: string; nativeName: string | null },
+  person: { name: string; nativeName: string | null; aliases?: string[]; known?: TitleRef[] },
   { fetcher = fetch, key = (typeof Deno < "u" && Deno.env.get("TMDB_API_KEY")) || "" } = {},
 ): Promise<TmdbCredits | null> {
   if (!key || !person.name) return null;
@@ -91,13 +154,19 @@ export async function tmdbPersonCredits(
         sameName(r?.name, person.name) || sameName(r?.original_name, person.nativeName) || sameName(r?.name, person.nativeName));
       if (candidates.length) break;
     }
-    if (!candidates.length) return null;
-    // Several people can share a name (there are two Park Chan Wooks). Prefer the one with the
-    // matching native name, then the most popular.
-    const nativeMatch = (r: any) => (person.nativeName && sameName(r?.original_name, person.nativeName) ? 1 : 0);
-    candidates.sort((a: any, b: any) => nativeMatch(b) - nativeMatch(a) || (Number(b?.popularity) || 0) - (Number(a?.popularity) || 0));
-    // One request for the person's facts and their credits together.
-    const data = await tmdbJson(`/person/${Number(candidates[0].id)}`, { language: "en-US", append_to_response: "combined_credits" }, fetcher, key);
+    let data: any = null;
+    if (candidates.length) {
+      // Several people can share a name (there are two Park Chan Wooks). Prefer the one with the
+      // matching native name, then the most popular.
+      const nativeMatch = (r: any) => (person.nativeName && sameName(r?.original_name, person.nativeName) ? 1 : 0);
+      candidates.sort((a: any, b: any) => nativeMatch(b) - nativeMatch(a) || (Number(b?.popularity) || 0) - (Number(a?.popularity) || 0));
+      // One request for the person's facts and their credits together.
+      data = await tmdbJson(`/person/${Number(candidates[0].id)}`, { language: "en-US", append_to_response: "combined_credits" }, fetcher, key);
+    } else {
+      // No name matched (MyDramaList "Lim Yoon A", TMDB "Yoona"): find them by the titles they share instead.
+      data = await personByTitles(person, fetcher, key);
+    }
+    if (!data) return null;
     const credits = data?.combined_credits && typeof data.combined_credits === "object" ? data.combined_credits : data;
     const actingUsed: any[] = [], directingUsed: any[] = [];
 

@@ -99,3 +99,35 @@ console.log('PASS filmography endpoint validates role and person URL before netw
   assert(linked[0].url==='https://mydramalist.com/people/1-kimura-takuya'&&!linked[1].url,'TMDB cast gets the MyDramaList link by name, in either name order');
   console.log('PASS preview cast members carry their MyDramaList profile link');
 }
+
+// Stage names: two listings of one person are matched by the titles they share, not by name.
+{
+  const {tmdbPersonCredits,tmdbPersonIdentity,sharedTitles}=await import('./tmdbPeople.ts');
+  const {resolveMdlPerson}=await import('./peopleApi.ts');
+  const ref=(name:string,year:number|null)=>({names:[name],year});
+  assert(sharedTitles([ref('Bon Appetit, Your Majesty',2025),ref('King the Land',2023),ref('Unrelated',2000)],[{names:['Bon Appétit, Your Majesty'],year:2024},{names:['King the Land'],year:2023},{names:['Unrelated'],year:2010}])===2,'accents and punctuation do not matter, a year within one counts, a different year does not');
+  // MyDramaList "Lim Yoon A" to TMDB "Yoona": no name matches, the shared titles decide.
+  const asked:string[]=[];
+  const tmdb=(async(input:any)=>{const u=new URL(String(input));asked.push(u.pathname);
+    if(u.pathname.endsWith('/search/person'))return Response.json({results:[{id:1,name:'Yoona',original_name:'윤아',popularity:30},{id:2,name:'Lim Yoon Taek',original_name:'임윤택',popularity:2}]});
+    if(u.pathname==='/3/person/1')return Response.json({name:'Yoona',birthday:'1990-05-30',combined_credits:{cast:[{id:11,media_type:'tv',name:'King the Land',first_air_date:'2023-06-17',vote_count:900,backdrop_path:'/k.jpg',character:'Cheon Sa-rang',genre_ids:[18]},{id:12,media_type:'tv',name:'Big Mouse',original_name:'빅마우스',first_air_date:'2022-08-29',vote_count:500,backdrop_path:'/b.jpg',character:'Ko Mi-ho',genre_ids:[18]}],crew:[]}});
+    return Response.json({name:'Lim Yoon Taek',combined_credits:{cast:[{id:21,media_type:'tv',name:'Other Show',first_air_date:'2010-01-01',character:'x',genre_ids:[18]}],crew:[]}})}) as typeof fetch;
+  const known=[ref('King the Land',2023),ref('Big Mouth',2022),ref('Unnatural',2027)];
+  const found=await tmdbPersonCredits({name:'Lim Yoon A',nativeName:'임윤아',aliases:['Lim Yoona'],known:[{names:['King the Land'],year:2023},{names:['Big Mouse'],year:2022}]},{fetcher:tmdb,key:'k'});
+  assert(found&&found.actor.length===2&&found.profile?.birthday==='1990-05-30','the person who shares two titles is taken even though no name matches: '+JSON.stringify(found?.actor.map(c=>c.name)));
+  assert((await tmdbPersonCredits({name:'Lim Yoon A',nativeName:null,known:[{names:['Nothing in common'],year:2001},{names:['Neither is this'],year:2002}]},{fetcher:tmdb,key:'k'}))===null,'no shared titles: nobody is taken');
+  asked.length=0;
+  assert((await tmdbPersonCredits({name:'Lim Yoon A',nativeName:null,known:[{names:['King the Land'],year:2023}]},{fetcher:tmdb,key:'k'}))===null&&asked.filter(x=>x.startsWith('/3/person/')).length===0,'one known title is not enough, and no person page is fetched');
+  // TMDB "Yoona" to MyDramaList: other names, Korean first, then a page that shares titles.
+  const identity=await tmdbPersonIdentity({name:'Yoona',id:1},{key:'k',fetcher:(async(input:any)=>Response.json({name:'Yoona',also_known_as:['Lim Yoon A','임윤아','윤아','Im Yoon-ah'],combined_credits:{cast:[{name:'King the Land',first_air_date:'2023-06-17'},{name:'Big Mouse',original_name:'빅마우스',first_air_date:'2022-08-29'}],crew:[]}})) as typeof fetch});
+  assert(identity!.names[0]==='임윤아'&&identity!.names.includes('Lim Yoon A')&&identity!.credits.length===2,'names in their own script come first: '+identity!.names);
+  const queries:string[]=[];
+  const service={
+    search:async(q:string)=>{queries.push(q);return {data:{people:q==='임윤아'?[{id:'5',name:'Kim Yoon Ah',url:'https://mydramalist.com/people/5-kim-yoon-ah'},{id:'972',name:'Lim Yoon A',url:'https://mydramalist.com/people/972-im-yoon-ah'}]:[]}}},
+    person:async(url:string)=>({data:{filmographies:{actor:url.includes('972')?[{name:'King the Land',year:2023},{name:'Big Mouth',year:2022},{name:'Unnatural',year:2027}]:[{name:'Another Show',year:2015}],director:[]}}}),
+  };
+  const resolved=await resolveMdlPerson(service,{names:identity!.names,credits:[{names:['King the Land'],year:2023},{names:['Big Mouth','빅마우스'],year:2022}]});
+  assert(resolved?.url==='https://mydramalist.com/people/972-im-yoon-ah'&&queries[0]==='임윤아','"Yoona" is found as "Lim Yoon A" by the titles they share, not by the name: '+JSON.stringify(resolved));
+  assert(await resolveMdlPerson(service,{names:['임윤아'],credits:[{names:['Nothing in common'],year:2001},{names:['Neither is this'],year:2002}]})===null,'a page that shares no titles is never taken');
+  console.log('PASS people with different names on the two sites are matched by shared titles');
+}

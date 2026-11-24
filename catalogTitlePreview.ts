@@ -170,7 +170,7 @@ export function installCatalogTitlePreview() {
             const card = element("button", "discoverPreviewPerson");
             card.type = "button";
             card.setAttribute("aria-label", person.name + (person.role ? ", " + person.role : "") + ". Open profile");
-            card.onclick = () => peopleUI.openPerson({name: person.name, url: person.url || "", poster: person.image || null}, card);
+            card.onclick = () => peopleUI.openPerson({name: person.name, url: person.url || "", poster: person.image || null, tmdbId: person.tmdbId || null}, card);
             if (person.image) {
               const photo = element("img");
               photo.src = person.image;
