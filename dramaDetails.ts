@@ -49,11 +49,21 @@ export function detailsFromKuryana(data: any, expectedUrl: string) {
       name: person.name.slice(0, 120),
       role: String(person.character || person.role || "").slice(0, 120),
       image: mdlImage(person.profile_image || person.image),
+      // The cast member's MyDramaList page, so the preview can open their profile.
+      url: castUrl(person.link || person.slug),
     }));
   return { sourceUrl: expectedUrl, synopsis, cast, name: value("title"), type: value("type"),
     year: String(value("year") || value("aired") || value("release_date") || "").match(/\b(?:19|20)\d{2}\b/)?.[0],
     country: value("country"), duration: value("duration"), episodes: positive(value("episodes")),
     titleStatus: value("status"), score: Number.isFinite(rating) && rating > 0 && rating <= 10 ? rating : null, rank: positive(data?.ranked), popularity: positive(data?.popularity) };
+}
+
+/** A MyDramaList person address ("https://mydramalist.com/people/440-gong-yoo" or "people/440-gong-yoo"), or undefined. */
+export function castUrl(raw: unknown) {
+  const text = String(raw || "").trim();
+  const path = text.replace(/^https:\/\/(?:www\.)?mydramalist\.com/i, "").replace(/^\/?/, "/").replace(/\/$/, "");
+  return /^\/people\/[1-9]\d{0,11}-[A-Za-z0-9-]{1,200}$/.test(path) && (/^https:\/\/(?:www\.)?mydramalist\.com\//i.test(text) || /^\/?people\//.test(text))
+    ? "https://mydramalist.com" + path : undefined;
 }
 
 export type Details = ReturnType<typeof extractDramaDetails>;

@@ -12,9 +12,13 @@ async function bounded<T>(promise:Promise<T>):Promise<T|undefined>{let timer:Ret
 async function withTmdbCredits(person:ReturnType<typeof personFromKuryana>,fetcher:typeof fetch){
  const credits=await tmdbPersonCredits(person,{fetcher});
  if(!credits)return person;
+ // Person-page facts. MyDramaList's own text and photo win; TMDB fills what it leaves out.
+ const p=credits.profile;
+ const facts=p?{birthday:p.birthday,deathday:p.deathday,birthplace:p.birthplace,gender:p.gender,backdrops:p.backdrops,
+  biography:person.biography||p.biography,poster:person.poster||p.image}:{};
  const filmographies={actor:credits.actor.length?credits.actor:person.filmographies.actor,director:credits.director.length?credits.director:person.filmographies.director};
  const sections={actor:Math.max(credits.actor.length?1:0,person.sections.actor),director:Math.max(credits.director.length?1:0,person.sections.director)};
- return {...person,filmographies,sections};
+ return {...person,...facts,filmographies,sections};
 }
 function discoverSearchResults(data: any, page: number) {
  const {people} = peopleSearchFromKuryana(data, page);
@@ -54,7 +58,7 @@ export function createPeopleService(storage?:Storage,fetcher:typeof fetch=fetch,
   })().finally(()=>pending.delete(key));pending.set(key,p);return p;
  }
  return {
-  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:v3:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
+  async person(raw:string){const url=personUrl(raw);if(!url)throw Error('Enter a valid HTTPS MyDramaList person link.');const id=url.match(/\/people\/(\d+)-/)![1];const slug=url.slice(url.indexOf('/people/')+8);return page('person:v4:'+id,'/v2/people/'+encodeURIComponent(slug),data=>withTmdbCredits(personFromKuryana(data,url),fetcher),6*3600000)},
   async search(query:string,pageNumber:number){return page('discover-search:'+query.toLowerCase()+':'+pageNumber,'/v2/search?q='+encodeURIComponent(query)+'&page='+pageNumber,data=>discoverSearchResults(data,pageNumber),300000)}
  };
 }

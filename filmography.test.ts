@@ -65,3 +65,37 @@ console.log('PASS filmography endpoint validates role and person URL before netw
   assert(byRating==='Crash Landing on You,The Classic,Little Known','Rating sort puts unrated titles last: '+byRating);
   console.log('PASS filmography credits carry TMDB ratings for the Rating sort');
 }
+
+// The person page's facts come from the same TMDB request as the credits, and nothing missing is invented.
+{
+  const {tmdbPersonCredits}=await import('./tmdbPeople.ts');
+  const asked:string[]=[];
+  const tmdbFetch=(async(input:any)=>{const u=new URL(String(input));asked.push(u.pathname+'?'+u.searchParams.get('append_to_response'));
+    if(u.pathname.endsWith('/search/person'))return Response.json({results:[{id:440,name:'Gong Yoo',original_name:'공유',popularity:9}]});
+    return Response.json({birthday:'1979-07-10',deathday:null,place_of_birth:'Busan, South Korea',biography:'Gong Yoo is an actor.',gender:2,profile_path:'/gy.jpg',
+      combined_credits:{cast:[
+        {id:1,media_type:'tv',name:'Goblin',first_air_date:'2016-12-02',vote_count:2000,vote_average:8.5,backdrop_path:'/goblin.jpg',character:'Kim Shin',genre_ids:[18]},
+        {id:1,media_type:'tv',name:'Goblin',first_air_date:'2016-12-02',vote_count:2000,vote_average:8.5,backdrop_path:'/goblin.jpg',character:'Narrator',genre_ids:[18]},
+        {id:2,media_type:'movie',title:'Train to Busan',release_date:'2016-07-20',vote_count:9000,vote_average:7.8,backdrop_path:'/train.jpg',character:'Seok-woo',genre_ids:[27]},
+        {id:3,media_type:'tv',name:'Talk Show',first_air_date:'2020-01-01',vote_count:99999,backdrop_path:'/talk.jpg',character:'Himself',genre_ids:[10767]}],crew:[]}})}) as typeof fetch;
+  const credits=await tmdbPersonCredits({name:'Gong Yoo',nativeName:'공유'},{fetcher:tmdbFetch,key:'k'});
+  assert(asked.filter(x=>x.startsWith('/3/person/')).length===1&&asked.some(x=>x==='/3/person/440?combined_credits'),'one TMDB request for facts and credits: '+asked.join(' '));
+  const p=credits!.profile!;
+  assert(p.birthday==='1979-07-10'&&p.deathday===null&&p.birthplace==='Busan, South Korea'&&p.gender==='male'&&p.image==='https://image.tmdb.org/t/p/w342/gy.jpg','facts are kept as TMDB gives them: '+JSON.stringify(p));
+  assert(p.backdrops.actor==='https://image.tmdb.org/t/p/w1280/train.jpg'&&p.backdrops.director===null,'the backdrop is the best-known acting title, never a talk show: '+p.backdrops.actor);
+  const goblin=credits!.actor.filter(c=>c.name==='Goblin');
+  assert(goblin.length===1&&goblin[0].role==='Kim Shin / Narrator'&&goblin[0].backdrop==='https://image.tmdb.org/t/p/w500/goblin.jpg','one card per title keeps both roles: '+JSON.stringify(goblin));
+  const bare=await tmdbPersonCredits({name:'Gong Yoo',nativeName:null},{fetcher:(async(input:any)=>String(input).includes('/search/')?Response.json({results:[{id:5,name:'Gong Yoo'}]}):Response.json({combined_credits:{cast:[],crew:[]}})) as typeof fetch,key:'k'});
+  assert(bare!.profile!.birthday===null&&bare!.profile!.birthplace===null&&bare!.profile!.biography===null&&bare!.profile!.backdrops.actor===null,'missing facts stay empty');
+  console.log('PASS person facts and backdrop come from the credits request, with roles merged');
+}
+// Preview cast members keep their MyDramaList page so they can open a profile.
+{
+  const {castUrl}=await import('./dramaDetails.ts');
+  const {withCastLinks}=await import('./dramaDetailsApi.ts');
+  assert(castUrl('https://mydramalist.com/people/440-gong-yoo')==='https://mydramalist.com/people/440-gong-yoo'&&castUrl('people/440-gong-yoo')==='https://mydramalist.com/people/440-gong-yoo','MyDramaList person links are kept');
+  assert(castUrl('https://evil.example/people/440-gong-yoo')===undefined&&castUrl('https://mydramalist.com/18452-goblin')===undefined&&castUrl('')===undefined,'anything else is dropped');
+  const linked=withCastLinks([{name:'Takuya Kimura'},{name:'Nobody'}],[{name:'Kimura Takuya',url:'https://mydramalist.com/people/1-kimura-takuya'}]);
+  assert(linked[0].url==='https://mydramalist.com/people/1-kimura-takuya'&&!linked[1].url,'TMDB cast gets the MyDramaList link by name, in either name order');
+  console.log('PASS preview cast members carry their MyDramaList profile link');
+}

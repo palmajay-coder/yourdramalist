@@ -139,6 +139,14 @@ export async function handleDramaDetails(req: Request) {
   return Response.json(await discoverDetails(source, {title: query.get("title"), year: query.get("year"), type: query.get("type")}), {headers});
 }
 
+// Names may be family-name-first on one site and given-name-first on the other ("Kimura Takuya").
+const castKey = (name: unknown) => String(name || "").toLowerCase().normalize("NFKD").split(/[^\p{L}\p{N}]+/u).filter(Boolean).sort().join(" ");
+export function withCastLinks(cast: any[], mdlCast: any[] | undefined) {
+  const links = new Map<string, string>();
+  for (const person of mdlCast || []) if (person?.url && castKey(person.name)) links.set(castKey(person.name), person.url);
+  return cast.map(person => person?.url || !links.has(castKey(person?.name)) ? person : {...person, url: links.get(castKey(person.name))});
+}
+
 /** The full preview for a MyDramaList title: details, first reviews, review count and TMDB artwork. */
 async function discoverDetails(source: string, hint: {title?: string | null; year?: string | null; type?: string | null}) {
   const slug = new URL(source).pathname.slice(1);
@@ -163,5 +171,7 @@ async function discoverDetails(source: string, hint: {title?: string | null; yea
   })).filter(review => review.body || review.headline) : [];
   const availableArtwork = Object.fromEntries(Object.entries(artwork || {}).filter(([, value]) =>
     value != null && value !== "" && (!Array.isArray(value) || value.length)));
+  // TMDB's cast replaces MyDramaList's when TMDB has one; keep each person's MyDramaList page by name.
+  if (Array.isArray(availableArtwork.cast)) availableArtwork.cast = withCastLinks(availableArtwork.cast, data.cast);
   return {...data, ...availableArtwork, reviews: reviewList, totalReviews, mdlUrl: source};
 }

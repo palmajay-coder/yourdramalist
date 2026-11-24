@@ -6,6 +6,9 @@ import type { Credit } from "./people.ts";
 import { posterUrl } from "./collections.ts";
 
 const TMDB = "https://api.themoviedb.org/3";
+const TMDB_IMAGE = "https://image.tmdb.org/t/p/";
+const imagePath = (path: unknown) => typeof path === "string" && /^\/[\w.-]+$/.test(path) ? path : null;
+const isoDate = (value: unknown) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 // Jobs that MyDramaList lists under "Screenwriter & Director".
 const DIRECTOR_JOBS = new Set(["Director", "Co-Director", "Screenplay", "Writer", "Teleplay"]);
 // TMDB genre ids that are not scripted dramas or films: Animation, Documentary, News, Reality, Talk.
@@ -49,13 +52,27 @@ const credit = (c: any, role: string | null): Credit | null => {
     type: c.media_type === "movie" ? "Movie" : "Drama",
     role,
     poster: posterUrl(c.poster_path),
+    // Landscape artwork for the wide person page; posters are used when a title has none.
+    ...(typeof c?.backdrop_path === "string" && /^\/[\w.-]+$/.test(c.backdrop_path) ? { backdrop: TMDB_IMAGE + "w500" + c.backdrop_path } : {}),
     // TMDB's rating, for the Rating sort; left out when too few people voted for it to mean much.
     ...(Number(c?.vote_count) >= 5 && Number(c?.vote_average) > 0 ? { score: Math.round(Number(c.vote_average) * 10) / 10 } : {}),
   };
 };
 const newestFirst = (list: Credit[]) => list.sort((a, b) => (b.year ?? -1) - (a.year ?? -1));
 
-export type TmdbCredits = { actor: Credit[]; director: Credit[] };
+// Facts for the person page. Anything TMDB does not have stays null; nothing is guessed.
+export type TmdbProfile = {
+  birthday: string | null; deathday: string | null; birthplace: string | null; biography: string | null;
+  gender: "female" | "male" | null; image: string | null; backdrops: { actor: string | null; director: string | null };
+};
+export type TmdbCredits = { actor: Credit[]; director: Credit[]; profile?: TmdbProfile };
+
+// The cinematic background: a wide still from the person's best-known title (most TMDB votes) that has one.
+function backdropFor(list: any[]): string | null {
+  let best: any = null;
+  for (const c of list) if (imagePath(c?.backdrop_path) && Number(c?.vote_count || 0) > Number(best?.vote_count ?? -1)) best = c;
+  return best ? TMDB_IMAGE + "w1280" + best.backdrop_path : null;
+}
 
 // Returns TMDB acting and directing credits, newest first, or null when TMDB is not configured,
 // unreachable, or has no person matching this name.
@@ -79,13 +96,16 @@ export async function tmdbPersonCredits(
     // matching native name, then the most popular.
     const nativeMatch = (r: any) => (person.nativeName && sameName(r?.original_name, person.nativeName) ? 1 : 0);
     candidates.sort((a: any, b: any) => nativeMatch(b) - nativeMatch(a) || (Number(b?.popularity) || 0) - (Number(a?.popularity) || 0));
-    const credits = await tmdbJson(`/person/${Number(candidates[0].id)}/combined_credits`, { language: "en-US" }, fetcher, key);
+    // One request for the person's facts and their credits together.
+    const data = await tmdbJson(`/person/${Number(candidates[0].id)}`, { language: "en-US", append_to_response: "combined_credits" }, fetcher, key);
+    const credits = data?.combined_credits && typeof data.combined_credits === "object" ? data.combined_credits : data;
+    const actingUsed: any[] = [], directingUsed: any[] = [];
 
     const director = new Map<string, Credit>();
     for (const c of Array.isArray(credits?.crew) ? credits.crew : []) {
       if (!DIRECTOR_JOBS.has(c?.job) || c?.adult) continue;
       const item = credit(c, "Screenwriter & Director");
-      if (item && !director.has(item.id)) director.set(item.id, item);
+      if (item && !director.has(item.id)) { director.set(item.id, item); directingUsed.push(c); }
     }
 
     const actor = new Map<string, Credit>();
@@ -93,9 +113,23 @@ export async function tmdbPersonCredits(
       if (c?.adult || SELF_ROLE.test(String(c?.character || ""))) continue;
       if ((Array.isArray(c?.genre_ids) ? c.genre_ids : []).some((g: number) => NON_DRAMA_GENRES.has(g))) continue;
       const item = credit(c, String(c?.character || "").trim() || null);
-      if (item && !actor.has(item.id)) actor.set(item.id, item);
+      if (!item) continue;
+      // One card per title; a second character in the same title is kept as part of the role.
+      const known = actor.get(item.id);
+      if (known) { if (item.role && !String(known.role || "").split(" / ").includes(item.role)) known.role = known.role ? known.role + " / " + item.role : item.role; continue; }
+      actor.set(item.id, item);
+      actingUsed.push(c);
     }
-    return { actor: newestFirst([...actor.values()]), director: newestFirst([...director.values()]) };
+    const text = (value: unknown) => String(value || "").replace(/\r\n/g, "\n").trim() || null;
+    const profile: TmdbProfile = {
+      birthday: isoDate(data?.birthday), deathday: isoDate(data?.deathday),
+      birthplace: text(data?.place_of_birth)?.slice(0, 160) || null,
+      biography: text(data?.biography)?.slice(0, 6000) || null,
+      gender: data?.gender === 1 ? "female" : data?.gender === 2 ? "male" : null,
+      image: imagePath(data?.profile_path) ? TMDB_IMAGE + "w342" + data.profile_path : null,
+      backdrops: { actor: backdropFor(actingUsed), director: backdropFor(directingUsed) },
+    };
+    return { actor: newestFirst([...actor.values()]), director: newestFirst([...director.values()]), profile };
   } catch {
     return null;
   }

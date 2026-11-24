@@ -595,7 +595,7 @@ const WRAPPED_MUSIC=${JSON.stringify(WRAPPED_MUSIC_TRACKS)};const WRAPPED_MAP=${
 const wrapped=(${installWrapped.toString()})();
 const showStats=(${installStats.toString()})();
 const openCollectionPicker=(${installCollectionPicker.toString()})();
-const showCatalogTitle=(${installCatalogTitlePreview.toString()})();
+const makeCatalogPreview=${installCatalogTitlePreview.toString()};/* Previews stack with person pages: a title opened from a person page opened from a preview gets its own preview, so Back returns to each page as it was left. */const catalogPreviews=[makeCatalogPreview()];function showCatalogTitle(item){let top=null;for(const d of androidDialogs.values())if(d.open)top=d;let show=catalogPreviews.find(p=>p.dialog===top)||catalogPreviews.find(p=>!p.dialog.open);if(!show){show=makeCatalogPreview();catalogPreviews.push(show)}return show(item)}
 const exploreUI=(${installExploreUI.toString()})();
 const peopleUI = (${installPeopleUI.toString()})();
 const FILTER_COUNTRIES=${JSON.stringify(FILTER_COUNTRIES)},FILTER_GENRES=${JSON.stringify(FILTER_GENRES)};

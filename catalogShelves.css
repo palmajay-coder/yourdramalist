@@ -126,7 +126,10 @@
 .layeredPostersIcon i:nth-child(2){left:5px;top:2px;transform:rotate(-8deg)}
 .layeredPostersIcon i:nth-child(3){left:8px;top:4px;transform:none}
 .discoverPreviewCast{display:flex;gap:12px;overflow:auto;padding-bottom:8px}
-.discoverPreviewCast>div{flex:0 0 100px}
+.discoverPreviewCast>*{flex:0 0 100px}
+.discoverPreviewPerson{display:block;margin:0;padding:0;border:0;border-radius:8px;background:none;color:inherit;text-align:left;font:inherit;cursor:pointer;box-shadow:none;min-width:0}
+.discoverPreviewPerson:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.discoverPreviewPerson strong{display:block;overflow-wrap:anywhere}
 .discoverTitlePreview .discoverPreviewCast img{display:block;float:none;width:100%;height:125px;object-fit:cover;margin:0 0 5px}
 .discoverPreviewCast small,.discoverPreviewReviews small,.discoverPreviewReviews strong{display:block}
 .discoverPreviewReviews article{padding:12px 0;border-top:1px solid var(--line)}
@@ -354,8 +357,8 @@ body.androidSetup .androidHeaderActions .androidFilterButton[hidden] {display:no
   @starting-style {.collectionPickerSuccess {opacity: 0; translate: 0 10px}}
 
   /* Posters and artwork fade in once loaded. */
-  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personTitlesDialog .androidWatchlistHeader) img {transition: opacity 260ms ease}
-  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personTitlesDialog .androidWatchlistHeader) img:not(.ydlLoaded) {opacity: 0}
+  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personProfile) img {transition: opacity 260ms ease}
+  :is(.catalogPoster,.androidWatchlistPoster,.discoverTitleIdentity,.catalogTitleHeader,.myCollectionPoster,.collectionPickerStrip,.collectionPickerTitle,.compactPersonIdentity,.discoverPreviewCast,.personProfile) img:not(.ydlLoaded) {opacity: 0}
 
   /* A quick check pop when a tapped Add turns Added. */
   .discoverAddPill.ydlPop .discoverAddIcon {animation: ydlPop 320ms cubic-bezier(.2,0,0,1)}
@@ -602,3 +605,98 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .wrappedSlide .wrappedFact{margin:2px 0 0;font-size:15px;color:#ffffffb3;max-width:34ch}
 .wrappedSlide .wrappedFact strong{color:#fff;font-weight:900}
 .wrappedSlide.isActive>.wrappedFact{animation:wrappedRise .6s .4s cubic-bezier(.2,.8,.2,1) both}
+
+/* Actor and director profile: one page, two layouts (portrait stacked; landscape side by side). */
+.personProfile{--person-bg:#0d0f14;--person-card:rgba(29,32,40,.78);--person-line:#ffffff14;position:fixed;inset:0;width:100%;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:var(--person-bg);color:#fff;overflow:hidden}
+.personProfile[open]{display:block}
+.personProfile::backdrop{background:var(--person-bg)}
+.personPage{position:relative;isolation:isolate;height:100%;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(28px + env(safe-area-inset-bottom,0px))}
+.personBackdrop{position:absolute;z-index:-1;top:0;left:0;right:0;height:clamp(250px,64vw,430px);overflow:hidden;pointer-events:none}
+.personBackdrop[hidden]{display:none}
+.personBackdrop img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 25%;opacity:.5}
+.personBackdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,15,20,.45) 0%,rgba(13,15,20,.7) 55%,var(--person-bg) 100%)}
+.personBack{display:grid;place-items:center;width:44px;height:44px;min-width:44px;margin:0 0 14px;padding:0;border:1px solid #ffffff1f;border-radius:50%;background:rgba(13,15,20,.55);color:#fff;box-shadow:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.personBack svg,.personFacts svg,.personMore svg,.personPhotoBlank svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.personBack svg{width:22px;height:22px}
+.personBack:focus-visible,.personMore:focus-visible,.personPill select:focus-visible{outline:2px solid #93c5fd;outline-offset:2px}
+.personLayout{min-width:0}
+.personSide,.personWorks{min-width:0}
+.personHead{display:flex;align-items:center;gap:16px;margin:0 0 18px}
+.personPhotoFrame{position:relative;flex:none;display:grid;place-items:center;width:clamp(108px,33vw,150px);aspect-ratio:4/5;overflow:hidden;border:1px solid var(--person-line);border-radius:20px;background:#1d2028}
+.personPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.personPhoto[hidden],.personPhotoBlank[hidden]{display:none}
+.personPhotoBlank{display:grid;place-items:center;width:100%;height:100%;color:#8a93a1}
+.personPhotoBlank svg{width:52%;height:52%;stroke-width:1.5}
+.personIdentity{flex:1;min-width:0}
+.personIdentity h2:focus{outline:none}
+.personIdentity h2{margin:0;font-size:clamp(24px,7.2vw,34px);font-weight:800;line-height:1.1;letter-spacing:-.4px;overflow-wrap:anywhere}
+.personNative{margin:6px 0 0;font-size:17px;color:#e6e8ec;overflow-wrap:anywhere}
+.personProfession{margin:4px 0 0;color:var(--muted)}
+:is(.personNative,.personProfession)[hidden]{display:none}
+.personIdentity .discoverAddPill{margin-top:12px;min-height:38px}
+.personIdentity .discoverAddPill[hidden]{display:none}
+.personCard{margin:0 0 14px;padding:14px 16px;border:1px solid var(--person-line);border-radius:18px;background:var(--person-card);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.personCard[hidden]{display:none}
+.personFacts dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 18px;align-items:center;margin:0}
+.personFacts dt{display:flex;align-items:center;gap:10px;color:#cfd4db}
+.personFacts dt svg{flex:none;width:18px;height:18px;color:#8a93a1}
+.personFacts dd{margin:0;color:#fff;overflow-wrap:anywhere}
+.personBio h3{margin:0 0 8px;font-size:20px}
+.personBioText{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;overflow:hidden;margin:0;line-height:1.55;color:#e3e6ea;white-space:pre-line;overflow-wrap:anywhere}
+.personBio.expanded .personBioText{display:block;-webkit-line-clamp:unset}
+.personMore{display:inline-flex;align-items:center;gap:8px;min-height:38px;margin-top:12px;padding:0 16px;border:1px solid #ffffff1f;border-radius:999px;background:#ffffff0f;color:#fff;font:inherit;font-size:14px;box-shadow:none}
+.personMore[hidden]{display:none}
+.personMore svg{width:16px;height:16px;transition:transform .2s}
+.personBio.expanded .personMore svg{transform:rotate(180deg)}
+.personWorksHead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 8px;margin:22px 0 4px}
+.personWorksHead h3{margin:0;font-size:21px}
+.personControls{display:flex;flex-wrap:nowrap;gap:6px;margin-left:auto;min-width:0}
+@media (max-width:359px){.personControls{flex-wrap:wrap}}
+.personPill{display:block;margin:0}
+.personPill select{-webkit-appearance:none;appearance:none;max-width:44vw;min-height:36px;margin:0;padding:0 28px 0 13px;border:1px solid #ffffff1f;border-radius:999px;background:#1d2028 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c9ced6' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center/12px;color:#fff;font:inherit;font-size:13px;text-overflow:ellipsis;cursor:pointer}
+.personPill select.on{border-color:var(--accent);background-color:#1d2a3d}
+.personPill option{background:#1d2028;color:#fff}
+.personCount{margin:0 0 12px;color:var(--muted);font-size:13px}
+.personCount:empty{display:none}
+.personWorks>.catalogShelfStatus:empty{display:none}
+.personGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 10px;align-items:start}
+.personCredit{display:block;width:100%;min-width:0;margin:0;padding:0;border:0;background:none;color:#fff;text-align:left;font:inherit;box-shadow:none;cursor:pointer}
+.personArt{position:relative;isolation:isolate;display:grid;place-content:center;aspect-ratio:2/3;overflow:hidden;padding:4px;border:1px solid #ffffff10;border-radius:12px;background:#1d2028;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
+.personArt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.personArt .personWide{display:none}
+.personCredit:focus-visible .personArt{outline:2px solid #93c5fd;outline-offset:2px}
+.personCreditText{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;margin-top:7px}
+.personCreditText strong{flex:1 0 100%;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:13.5px;line-height:1.25}
+.personCreditText small{white-space:nowrap;color:var(--muted);font-size:12px}
+.personRating{padding:1px 6px;border-radius:999px;background:#ffffff14;font-size:11.5px;white-space:nowrap}
+.personStar{color:#f5c518}
+.personRank{position:absolute;left:4px;bottom:0;z-index:2;font:900 64px/.8 Lato,system-ui,sans-serif;letter-spacing:-.08em;color:#0d0f14;-webkit-text-stroke:2px #e8ecf2;text-shadow:0 2px 10px #000c;pointer-events:none;user-select:none}
+.personRank.twoDigits{font-size:50px;letter-spacing:-.12em}
+@media (orientation:landscape) and (min-width:600px){
+  .personPage{padding:calc(env(safe-area-inset-top,0px) + 18px) clamp(20px,3vw,44px) calc(32px + env(safe-area-inset-bottom,0px))}
+  .personBackdrop{left:auto;right:0;width:min(74%,1280px);height:min(80vh,640px)}
+  .personBackdrop img{opacity:.62;object-position:center 30%}
+  .personBackdrop::after{background:linear-gradient(90deg,var(--person-bg) 0%,rgba(13,15,20,.72) 26%,rgba(13,15,20,.18) 62%,rgba(13,15,20,.3) 100%),linear-gradient(180deg,rgba(13,15,20,.2) 0%,rgba(13,15,20,.5) 55%,var(--person-bg) 100%)}
+  .personBack{margin-bottom:16px}
+  .personLayout{display:grid;grid-template-columns:minmax(250px,33%) minmax(0,1fr);gap:clamp(20px,2.6vw,36px);align-items:start}
+  .personHead{gap:clamp(12px,1.4vw,18px)}
+  .personPhotoFrame{width:clamp(88px,10vw,136px);border-radius:18px}
+  .personIdentity h2{font-size:clamp(21px,2.4vw,32px)}
+  .personNative{font-size:15px}
+  .personWorks{padding-top:clamp(36px,16vh,150px)}
+  .personWorksHead{margin-top:0}
+  .personFacts{font-size:14px}
+  .personFacts dl{gap:10px 12px}
+  .personFacts dt{gap:8px}
+  .personPill select{max-width:none}
+  .personGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 14px}
+  .personArt{aspect-ratio:4/3}
+  .personArt.hasWide .personPoster{display:none}
+  .personArt.hasWide .personWide{display:block}
+  .personArt:not(.hasWide) .personPoster{object-position:center 22%}
+  .personRank{font-size:56px}
+}
+@media (orientation:landscape) and (min-width:900px){.personGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (orientation:landscape) and (min-width:1500px){.personGrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (orientation:landscape) and (min-width:1900px){.personGrid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.personMore svg{transition:none}}

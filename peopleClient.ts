@@ -6,7 +6,7 @@ export function installPeopleUI() {
   let target = discoverTarget;
   function cleanup() {
     compactButtons.clear();
-    if (titlesView?.dialog.open && titlesView.person) watchButton(titlesView.person.id, titlesView.add, () => titlesView.filter);
+    for (const view of views) if (view.dialog.open && view.person) watchButton(view.person.id, view.add, () => view.filter);
   }
   // Blue "+ Add Filmography" / green "✓ Added" pill, like every other Add button.
   function paintFilmography(button, added) {
@@ -90,97 +90,157 @@ export function installPeopleUI() {
     const name = person && typeof filmographyName === "function" ? filmographyName(person, f) : rest.name;
     return f ? { ...rest, name, url: base + "?ydlf=" + shelfFilterKey(f), filter: f, filterLabel: "" } : { ...rest, name, url: base };
   }
-  // Tapping an actor or director opens their titles; tapping a title opens the full drama preview.
-  let titlesView;
+  // The person page (actor or director): one scrolling page with the photo, facts, biography and
+  // filmography. Portrait screens stack it; landscape screens put the profile beside the filmography.
+  // The switch is CSS only, so rotating keeps the page, its Movies/Shows choice and its sort.
+  // Pages stack: a cast member opened from a preview opened from a person page gets its own page,
+  // and Back returns to the previous one where it was left.
+  const views = [];
+  const svgIcon = paths => '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths + "</svg>";
+  const ICONS = {
+    back: svgIcon('<path d="M19 12H5M11 18l-6-6 6-6"/>'),
+    born: svgIcon('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/>'),
+    place: svgIcon('<path d="M12 21s-6.5-6.1-6.5-11a6.5 6.5 0 0 1 13 0c0 4.9-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'),
+    credits: svgIcon('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9.5h18M3 14.5h18M8 5v14M16 5v14"/>'),
+    chevron: svgIcon('<path d="M6 9l6 6 6-6"/>'),
+    person: svgIcon('<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/>'),
+  };
+  const node = (tag, className = "", text = "") => {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text) element.textContent = text;
+    return element;
+  };
+  function topDialog() {
+    let top = null;
+    if (typeof androidDialogs !== "undefined") for (const dialog of androidDialogs.values()) if (dialog.open) top = dialog;
+    return top;
+  }
+  function freeView() {
+    const top = topDialog();
+    return views.find(view => view.dialog === top) || views.find(view => !view.dialog.open) || buildTitlesView();
+  }
   function buildTitlesView() {
-    const dialog = document.createElement("dialog");
-    dialog.className = "androidWatchlistDialog personTitlesDialog";
-    const header = document.createElement("header");
-    header.className = "androidWatchlistHeader";
-    const back = document.createElement("button");
+    const suffix = views.length ? "-" + (views.length + 1) : "";
+    const dialog = node("dialog", "personProfile personTitlesDialog");
+    const page = node("div", "personPage");
+    const backdrop = node("div", "personBackdrop");
+    backdrop.hidden = true;
+    const backdropImage = node("img");
+    backdropImage.alt = "";
+    backdropImage.referrerPolicy = "no-referrer";
+    backdropImage.decoding = "async";
+    backdropImage.addEventListener("error", () => { backdrop.hidden = true; });
+    backdrop.append(backdropImage);
+    const back = node("button", "personBack");
     back.type = "button";
-    back.className = "secondary";
-    back.textContent = "\u2039";
-    back.setAttribute("aria-label", "Back to search results");
+    back.innerHTML = ICONS.back;
+    back.setAttribute("aria-label", "Back");
     back.onclick = () => dialog.close();
-    const photo = document.createElement("img");
-    photo.className = "personTitlesPhoto";
+    const layout = node("div", "personLayout");
+    const side = node("div", "personSide");
+    const head = node("div", "personHead");
+    const photoFrame = node("div", "personPhotoFrame");
+    const photo = node("img", "personPhoto personTitlesPhoto");
     photo.alt = "";
     photo.referrerPolicy = "no-referrer";
-    const heading = document.createElement("div");
-    const name = document.createElement("h2");
-    name.id = "personTitlesName";
-    const subtitle = document.createElement("p");
-    subtitle.className = "androidWatchlistOwner";
-    heading.append(name, subtitle);
-    const add = document.createElement("button");
+    const blank = node("span", "personPhotoBlank");
+    blank.innerHTML = ICONS.person;
+    photo.addEventListener("error", () => { photo.hidden = true; blank.hidden = false; });
+    photoFrame.append(photo, blank);
+    const identity = node("div", "personIdentity");
+    const name = node("h2");
+    name.id = "personTitlesName" + suffix;
+    // Focus starts on the name (not the Back button), so screen readers announce whose page opened.
+    name.tabIndex = -1;
+    name.autofocus = true;
+    const native = node("p", "personNative");
+    const profession = node("p", "personProfession");
+    const add = node("button", "catalogAdd discoverAddPill");
     add.type = "button";
-    add.className = "catalogAdd discoverAddPill";
-    // Filter icon right of Add: All / Movies / Shows and a sort, like Discover's filters.
-    const filterButton = document.createElement("button");
-    filterButton.type = "button";
-    filterButton.className = "personTitlesFilter";
-    filterButton.setAttribute("aria-label", "Sort and filter titles");
-    filterButton.setAttribute("aria-haspopup", "dialog");
-    filterButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg><span class="personTitlesFilterDot" hidden></span>';
-    header.append(back, photo, heading, add, filterButton);
-    const sheet = document.createElement("dialog");
-    sheet.className = "androidDiscoverFilters personFilters";
-    sheet.setAttribute("aria-label", "Sort and filter titles");
-    const media = document.createElement("fieldset");
-    media.setAttribute("aria-label", copy.catalogMediaType);
-    for (const [value, text] of [["", "All"], ["movie", copy.catalogMovies], ["drama", copy.catalogShows]]) {
-      const row = document.createElement("label");
-      const radio = document.createElement("input");
-      radio.type = "radio";
-      radio.name = "personMediaType";
-      radio.value = value;
-      const caption = document.createElement("span");
-      caption.textContent = text;
-      row.append(radio, caption);
-      radio.onchange = () => setFilter({ ...view.filter, type: value || undefined });
-      media.append(row);
-    }
-    const fields = document.createElement("div");
-    fields.className = "androidCatalogFilters";
-    const sortLabel = document.createElement("label");
-    sortLabel.textContent = copy.catalogSort;
-    sortLabel.htmlFor = "personSort";
-    const sortSelect = document.createElement("select");
-    sortSelect.id = "personSort";
-    // The same sorts as Discover. Rating uses TMDB's score; titles without one go last.
-    for (const [value, text] of [["", copy.catalogSortDefault], ["newest", copy.shelfSortNewest], ["oldest", copy.shelfSortOldest], ["rating", copy.shelfSortRating], ["az", copy.shelfSortAz]]) {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = text;
-      sortSelect.append(option);
-    }
-    sortSelect.onchange = () => setFilter({ ...view.filter, sort: sortSelect.value || undefined });
-    const sortField = document.createElement("div");
-    sortField.append(sortLabel, sortSelect);
-    fields.append(sortField);
-    sheet.append(media, fields);
-    document.body.append(sheet);
-    sheet.addEventListener("click", (event) => {
-      if (event.target !== sheet) return;
-      const bounds = sheet.getBoundingClientRect();
-      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) sheet.close();
-    });
-    filterButton.onclick = () => {
-      if (sheet.open) return;
-      const bounds = filterButton.getBoundingClientRect();
-      sheet.style.top = Math.max(8, bounds.bottom + 6) + "px";
-      showControls();
-      showAndroidDialog(sheet);
+    identity.append(name, native, profession, add);
+    head.append(photoFrame, identity);
+    const facts = node("section", "personCard personFacts");
+    facts.setAttribute("aria-label", "Personal information");
+    const factList = node("dl");
+    facts.append(factList);
+    const bio = node("section", "personCard personBio");
+    const bioText = node("p", "personBioText");
+    bioText.id = "personBio" + suffix;
+    const more = node("button", "personMore");
+    more.type = "button";
+    more.setAttribute("aria-controls", bioText.id);
+    const paintMore = () => {
+      const open = bio.classList.contains("expanded");
+      more.innerHTML = "<span>" + (open ? "Read Less" : "Read More") + "</span>" + ICONS.chevron;
+      more.setAttribute("aria-expanded", String(open));
     };
+    more.onclick = () => { bio.classList.toggle("expanded"); paintMore(); };
+    paintMore();
+    bio.append(node("h3", "", "Biography"), bioText, more);
+    side.append(head, facts, bio);
+    // Read More only when the biography is longer than its preview (checked again after rotation).
+    const measureBio = () => {
+      if (bio.hidden || bio.classList.contains("expanded")) return;
+      more.hidden = !(bioText.scrollHeight > bioText.clientHeight + 2);
+    };
+    if (typeof ResizeObserver === "function") new ResizeObserver(measureBio).observe(bioText);
+
+    const works = node("section", "personWorks");
+    works.setAttribute("aria-labelledby", "personWorksHeading" + suffix);
+    const worksHead = node("div", "personWorksHead");
+    const worksTitle = node("h3", "", "Filmography");
+    worksTitle.id = "personWorksHeading" + suffix;
+    const controls = node("div", "personControls");
+    // The existing filters: All / Movies / Shows and the same five sorts as Discover.
+    const pill = (select, label) => {
+      const wrap = node("label", "personPill");
+      select.setAttribute("aria-label", label);
+      wrap.append(select);
+      return wrap;
+    };
+    const optionList = (select, options) => {
+      for (const [value, text] of options) {
+        const option = node("option", "", text);
+        option.value = value;
+        select.append(option);
+      }
+    };
+    const typeSelect = node("select");
+    typeSelect.id = "personMediaType" + suffix;
+    optionList(typeSelect, [["", "All"], ["movie", copy.catalogMovies], ["drama", copy.catalogShows]]);
+    const sortSelect = node("select");
+    sortSelect.id = "personSort" + suffix;
+    // Rating uses TMDB's score; titles without one go last.
+    optionList(sortSelect, [["", copy.catalogSortDefault], ["newest", copy.shelfSortNewest], ["oldest", copy.shelfSortOldest], ["rating", copy.shelfSortRating], ["az", copy.shelfSortAz]]);
+    controls.append(pill(typeSelect, copy.catalogMediaType), pill(sortSelect, copy.catalogSort));
+    worksHead.append(worksTitle, controls);
+    const count = node("p", "personCount");
+    count.setAttribute("aria-live", "polite");
+    const status = node("div", "catalogShelfStatus");
+    status.setAttribute("aria-live", "polite");
+    const grid = node("div", "personGrid");
+    works.append(worksHead, count, status, grid);
+    layout.append(side, works);
+    page.append(backdrop, back, layout);
+    dialog.append(page);
+    dialog.setAttribute("aria-labelledby", name.id);
+    document.body.append(dialog);
+
+    const view = {dialog, page, backdrop, backdropImage, photo, blank, name, native, profession, subtitle: count, add, facts, factList,
+      bio, bioText, more, paintMore, measureBio, status, grid, person: null, token: 0, filter: null, credits: [], showControls};
     function showControls() {
-      for (const radio of media.querySelectorAll("input")) radio.checked = radio.value === (view.filter?.type || "");
-      for (const option of sortSelect.querySelectorAll("option")) option.toggleAttribute("selected", option.value === (view.filter?.sort || ""));
-      try { sortSelect.value = view.filter?.sort || ""; } catch {}
-      const on = !!view.filter;
-      filterButton.querySelector(".personTitlesFilterDot").hidden = !on;
-      filterButton.setAttribute("aria-pressed", String(on));
+      const pick = (select, value) => {
+        for (const option of select.querySelectorAll("option")) option.toggleAttribute("selected", option.value === value);
+        try { select.value = value; } catch {}
+        select.classList.toggle("on", !!value);
+      };
+      pick(typeSelect, view.filter?.type || "");
+      pick(sortSelect, view.filter?.sort || "");
     }
+    const chosen = select => select.value ?? select.querySelector("option[selected]")?.value ?? "";
+    typeSelect.onchange = () => setFilter({ ...view.filter, type: chosen(typeSelect) || undefined });
+    sortSelect.onchange = () => setFilter({ ...view.filter, sort: chosen(sortSelect) || undefined });
     // Each choice is its own catalog: a new choice repaints the titles and shows whether that one is added.
     function setFilter(raw) {
       view.filter = normalizeShelfFilter(raw);
@@ -188,59 +248,110 @@ export function installPeopleUI() {
       paintTitles(view);
       if (view.person) paintFilmography(add, !!selectedFilmography(view.person.id, view.filter));
     }
-    const body = document.createElement("div");
-    body.className = "androidWatchlistBody";
-    const status = document.createElement("div");
-    status.className = "catalogShelfStatus";
-    status.setAttribute("aria-live", "polite");
-    const grid = document.createElement("div");
-    grid.className = "androidWatchlistGrid";
-    body.append(status, grid);
-    dialog.append(header, body);
-    dialog.setAttribute("aria-labelledby", name.id);
-    document.body.append(dialog);
-    const view = {dialog, photo, name, subtitle, add, body, status, grid, person: null, token: 0, filter: null, credits: [], showControls};
     dialog.addEventListener("close", () => {
       if (dialog.open) return;
       view.token++;
       if (view.person) compactButtons.get(view.person.id)?.delete(add);
       view.person = null;
       view.credits = [];
-      if (sheet.open) sheet.close();
       grid.replaceChildren();
       view.opener?.focus?.();
     });
+    views.push(view);
     return view;
   }
+  // "1988-02-16" from TMDB, or MyDramaList's "February 16, 1988". Invalid or partial dates give null.
+  function birthDate(text) {
+    const iso = String(text || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const date = iso ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3])) : /\b\d{4}\b/.test(text || "") && /[A-Za-z]{3}/.test(text || "") && /\b\d{1,2}\b/.test(text || "") ? new Date(Date.parse(text + " UTC")) : null;
+    return date && !isNaN(date) && date.getUTCFullYear() > 1850 ? date : null;
+  }
+  const formatDate = date => date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  function ageOn(born, on) {
+    let age = on.getUTCFullYear() - born.getUTCFullYear();
+    if (on.getUTCMonth() < born.getUTCMonth() || on.getUTCMonth() === born.getUTCMonth() && on.getUTCDate() < born.getUTCDate()) age--;
+    return age;
+  }
+  function paintProfile(view, details, credits, mode) {
+    view.native.textContent = details.nativeName && details.nativeName !== view.name.textContent ? details.nativeName : "";
+    view.native.hidden = !view.native.textContent;
+    const actor = details.gender === "female" ? "Actress" : "Actor";
+    const roles = mode === "director" ? ["Director", details.actorCount ? actor : ""] : [actor, details.directorCount ? "Director" : ""];
+    view.profession.textContent = roles.filter(Boolean).join(" \xB7 ");
+    view.profession.hidden = false;
+    // Facts only when known; nothing is estimated.
+    const rows = [];
+    const born = birthDate(details.birthday) || birthDate(details.born);
+    if (born) {
+      const died = birthDate(details.deathday);
+      rows.push(["born", "Born", died
+        ? formatDate(born) + " – " + formatDate(died) + " (aged " + ageOn(born, died) + ")"
+        : formatDate(born) + " (" + ageOn(born, new Date()) + " years)"]);
+    }
+    if (details.birthplace) rows.push(["place", "Birthplace", details.birthplace]);
+    if (credits.length) {
+      const years = credits.map(credit => credit.year).filter(year => Number.isInteger(year));
+      const first = years.length ? Math.min(...years) : null;
+      rows.push(["credits", "Credits", credits.length + (credits.length === 1 ? " title" : " titles") + (first ? " • since " + first : "")]);
+    }
+    view.factList.replaceChildren(...rows.flatMap(([icon, label, value]) => {
+      const term = node("dt");
+      term.innerHTML = ICONS[icon];
+      term.append(node("span", "", label));
+      return [term, node("dd", "", value)];
+    }));
+    view.facts.hidden = !rows.length;
+    view.bioText.textContent = String(details.biography || "").trim();
+    view.bio.hidden = !view.bioText.textContent;
+    view.bio.classList.remove("expanded");
+    view.paintMore();
+    view.more.hidden = true;
+    requestAnimationFrame(view.measureBio);
+    // A wide still from one of their best-known titles; never a stretched portrait.
+    const still = details.backdrops?.[mode] || details.backdrops?.actor || details.backdrops?.director;
+    view.backdrop.hidden = !still;
+    if (still) view.backdropImage.src = still;
+    else view.backdropImage.removeAttribute("src");
+  }
   function titleCard(credit, rank = 0) {
-    const button = document.createElement("button");
+    const button = node("button", "personCredit" + (rank ? " ranked" : ""));
     button.type = "button";
-    button.className = "androidWatchlistTitle" + (rank ? " ranked" : "");
-    const tile = document.createElement("span");
-    tile.className = "androidWatchlistPoster";
-    tile.textContent = credit.name;
-    if (credit.poster) {
-      const img = document.createElement("img");
+    const art = node("span", "personArt", credit.name);
+    const image = (src, className) => {
+      const img = node("img", className);
       img.alt = "";
       img.loading = "lazy";
+      img.decoding = "async";
       img.referrerPolicy = "no-referrer";
-      img.addEventListener("error", () => img.remove(), { once: true });
-      img.src = credit.poster;
-      tile.append(img);
+      img.addEventListener("error", () => { img.remove(); if (className === "personWide") art.classList.remove("hasWide"); }, { once: true });
+      img.src = src;
+      art.append(img);
+    };
+    // Posters on portrait screens; wide artwork on landscape ones (hidden images are not downloaded).
+    if (credit.poster) image(credit.poster, "personPoster");
+    if (credit.backdrop) {
+      art.classList.add("hasWide");
+      image(credit.backdrop, "personWide");
     }
     if (rank) {
-      const number = document.createElement("span");
-      number.className = "rankNumber" + (rank >= 10 ? " twoDigits" : "");
+      const number = node("span", "personRank" + (rank >= 10 ? " twoDigits" : ""), String(rank));
       number.setAttribute("aria-hidden", "true");
-      number.textContent = String(rank);
-      tile.append(number);
-      button.setAttribute("aria-label", "Number " + rank + ": " + credit.name);
+      art.append(number);
     }
-    const title = document.createElement("strong");
-    title.textContent = credit.name;
-    const facts = document.createElement("small");
-    facts.textContent = [credit.year, credit.type].filter(Boolean).join(" \xB7 ");
-    button.append(tile, title, facts);
+    const text = node("span", "personCreditText");
+    const facts = node("small", "", [credit.year, credit.type].filter(Boolean).join(" \xB7 "));
+    text.append(node("strong", "", credit.name), facts);
+    if (Number(credit.score) > 0) {
+      const score = node("span", "personRating");
+      const star = node("span", "personStar", "★");
+      star.setAttribute("aria-hidden", "true");
+      score.append(star, document.createTextNode(" " + Number(credit.score).toFixed(1)));
+      text.append(score);
+    }
+    button.append(art, text);
+    const role = credit.role && credit.role !== "Screenwriter & Director" ? ", as " + credit.role : "";
+    button.setAttribute("aria-label", (rank ? "Number " + rank + ": " : "") + credit.name + (credit.year ? ", " + credit.year : "") + (credit.type ? ", " + credit.type : "") +
+      (Number(credit.score) > 0 ? ", rated " + Number(credit.score).toFixed(1) : "") + role);
     button.onclick = () => showCatalogTitle({name: credit.name, url: credit.url, year: credit.year, type: credit.type, poster: credit.poster});
     return button;
   }
@@ -254,43 +365,73 @@ export function installPeopleUI() {
     view.subtitle.textContent = credits.length ? (ranked ? "Top " + shown.length + " of " + total : shown.length === credits.length ? total : shown.length + " of " + total) : "";
     if (credits.length) view.grid.replaceChildren(...shown.map((credit, index) => titleCard(credit, ranked ? index + 1 : 0)));
   }
+  const nameKey = text => String(text || "").toLowerCase().normalize("NFKD").split(/[^\p{L}\p{N}]+/u).filter(Boolean).sort().join(" ");
+  // A cast member without a MyDramaList address (TMDB-only titles): find them by name.
+  async function findPerson(person) {
+    const data2 = await json("/api/mdl/people-search?mode=actor&q=" + encodeURIComponent(person.name.slice(0, 100)) + "&page=1");
+    return (data2.people || []).find(match => nameKey(match.name) === nameKey(person.name)) || null;
+  }
   async function openPersonTitles(person, opener) {
-    titlesView ??= buildTitlesView();
-    const view = titlesView;
+    const view = freeView();
     const token = ++view.token;
-    view.person = person;
     view.opener = opener;
+    view.person = null;
     view.name.textContent = person.displayName || person.name;
     view.photo.hidden = !person.poster;
+    view.blank.hidden = !!person.poster;
     if (person.poster) view.photo.src = person.poster;
+    else view.photo.removeAttribute("src");
+    view.native.hidden = view.profession.hidden = view.facts.hidden = view.bio.hidden = view.backdrop.hidden = true;
     view.subtitle.textContent = "";
-    view.add.setAttribute("aria-label", "Add or remove filmography for " + (person.displayName || person.name));
     // The page opens on the plain filmography; each sort or Movies/Shows choice can be added as its own catalog.
     view.filter = null;
     view.credits = [];
     view.showControls();
-    view.add.onclick = () => toggleFilmography(person, view.add, message => { view.status.textContent = message; },
-      () => token !== view.token, view.filter);
-    watchButton(person.id, view.add, () => view.filter);
-    paintFilmography(view.add, !!selectedFilmography(person.id, view.filter));
+    view.add.hidden = true;
     view.grid.replaceChildren(createLoadingBear("Loading filmography..."));
     view.status.textContent = "";
     showAndroidDialog(view.dialog);
-    view.body.scrollTop = 0;
+    view.page.scrollTop = 0;
     try {
-      const {result} = await loadFilmography(person);
+      if (!person.url) {
+        const found = await findPerson(person);
+        if (token !== view.token) return;
+        if (!found) {
+          view.grid.replaceChildren();
+          view.status.textContent = "This profile isn't available on MyDramaList.";
+          return;
+        }
+        person = {...found, poster: person.poster || found.poster};
+      }
+      person.id ??= String(person.url).match(/\/people\/(\d+)-/)?.[1];
+      view.person = person;
+      view.add.hidden = false;
+      view.add.setAttribute("aria-label", "Add or remove filmography for " + (person.displayName || person.name));
+      view.add.onclick = () => toggleFilmography(person, view.add, message => { view.status.textContent = message; },
+        () => token !== view.token, view.filter);
+      watchButton(person.id, view.add, () => view.filter);
+      paintFilmography(view.add, !!selectedFilmography(person.id, view.filter));
+      const {mode, result} = await loadFilmography(person);
       if (token !== view.token) return;
       const credits = result.items || [];
+      const details = result.person || person;
+      if (details.name) view.name.textContent = details.displayName || details.name;
+      if (!person.poster && details.poster) {
+        view.photo.src = details.poster;
+        view.photo.hidden = false;
+        view.blank.hidden = true;
+      }
+      paintProfile(view, details, credits, mode);
       view.status.textContent = credits.length ? "" : "No filmography credits found.";
       view.credits = credits;
+      if (!credits.length) view.grid.replaceChildren();
       paintTitles(view);
     } catch {
       if (token !== view.token) return;
+      view.grid.replaceChildren();
       view.status.textContent = copy.popularUnavailable + " ";
-      const retry = document.createElement("button");
+      const retry = node("button", "secondary catalogRetry", copy.catalogRetry);
       retry.type = "button";
-      retry.className = "secondary catalogRetry";
-      retry.textContent = copy.catalogRetry;
       retry.onclick = () => openPersonTitles(person, opener);
       view.status.append(retry);
     }
@@ -460,5 +601,5 @@ export function installPeopleUI() {
       target.status().textContent = "Unable to load person: " + (["TimeoutError", "AbortError"].includes(e.name) ? "This request took too long. Please try again." : e.message);
     }
   }
-  return { search, fromUrl, cleanup, sync, reset: cleanup };
+  return { search, fromUrl, cleanup, sync, reset: cleanup, openPerson: openPersonTitles };
 }

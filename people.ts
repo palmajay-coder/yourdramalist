@@ -7,7 +7,7 @@ export function personUrl(raw:string):string|null{
  try{const u=new URL(raw);return u.protocol==='https:'&&['mydramalist.com','www.mydramalist.com'].includes(u.hostname)&&!u.username&&!u.password&&!u.port&&/^\/people\/[1-9]\d{0,11}-[A-Za-z0-9-]{1,200}\/?$/.test(u.pathname)?origin+u.pathname.replace(/\/$/,''):null}catch{return null}
 }
 export function remoteImage(raw:string|undefined):string|null{try{const u=new URL(raw||'');return u.protocol==='https:'&&u.hostname==='i.mydramalist.com'&&!u.username&&!u.password&&!u.port?u.href:null}catch{return null}}
-export interface Credit{id:string;name:string;url:string;year:number|null;type:string;role:string|null;poster:string|null;score?:number;}
+export interface Credit{id:string;name:string;url:string;year:number|null;type:string;role:string|null;poster:string|null;score?:number;backdrop?:string;}
 export function extractPerson(html:string,expected:string){
  const $=load(html);const canonical=personUrl($('link[rel=canonical]').attr('href')||'');
  const id=expected.match(/\/people\/(\d+)-/)?.[1];

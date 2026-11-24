@@ -25,7 +25,7 @@ export function installCatalogTitlePreview() {
 
   // One preview everywhere a drama or movie can be tapped: Discover, the + search, Community lists,
   // Weekly Picks, country shelves and actor or director titles.
-  return async (item) => {
+  const show = async (item) => {
     const discover = true;
     dialog.classList.add("discoverTitlePreview");
     close.textContent = "Back";
@@ -166,7 +166,11 @@ export function installCatalogTitlePreview() {
         if (details.cast?.length) {
           const cast = element("div", "discoverPreviewCast");
           for (const person of details.cast) {
-            const card = element("div");
+            // Each cast member opens their profile page; Back returns to this preview.
+            const card = element("button", "discoverPreviewPerson");
+            card.type = "button";
+            card.setAttribute("aria-label", person.name + (person.role ? ", " + person.role : "") + ". Open profile");
+            card.onclick = () => peopleUI.openPerson({name: person.name, url: person.url || "", poster: person.image || null}, card);
             if (person.image) {
               const photo = element("img");
               photo.src = person.image;
@@ -236,4 +240,6 @@ export function installCatalogTitlePreview() {
       loadingDetails.remove();
     }
   };
+  show.dialog = dialog;
+  return show;
 }
