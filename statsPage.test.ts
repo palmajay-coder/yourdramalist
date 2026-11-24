@@ -66,7 +66,7 @@ await test("with a username, Stats shows the hero and every section from the API
   const p = panel(), text = p.textContent;
   ok(asked.includes("/api/stats?username=jaesan"), "asks for this user's stats");
   ok(p.querySelector(".statsHeroArt img")?.getAttribute("src") === "https://image.tmdb.org/t/p/w1280/b.jpg" && /Your top-rated/.test(text) && /3-Iron/.test(text), "hero backdrop and its title, labelled honestly");
-  ok(p.querySelector(".statsHeroHours strong").textContent === "388.8" && /79 completed · average score 8.89/.test(text) && /All time, from your MyDramaList list/.test(text), "hours, completed, average, all time");
+  ok(p.querySelector(".statsHeroHours strong").textContent === "388.8" && /79 completed · average score 8.89/.test(text) && !/All time, from your MyDramaList list/.test(text), "hours, completed and average, with no line under them");
   ok([...p.querySelectorAll(".statsChips")[0].querySelectorAll("li")].map((l: any) => l.textContent).join("|") === "Watching 6|Completed 79|Plan to Watch 63|On Hold 5|Dropped 8", "status chips");
   ok(/23 dramas · 56 movies/.test(text) && /Hong Kong/.test(text), "dramas vs movies and every country");
   const genres = [...p.querySelectorAll(".statsCard")].find((c: any) => /Your top genres/.test(c.textContent));

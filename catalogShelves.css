@@ -403,7 +403,6 @@ body.androidSetup .androidBottomNav.hasIndicator .androidNavItem.active:not(.and
 .statsHeroHours strong{font-size:56px;font-weight:900;letter-spacing:-.02em}
 .statsHeroHours span{font-size:16px;color:#c9d3e3}
 .statsHeroFacts{margin:8px 0 2px;font-size:15px;font-weight:700}
-.statsHeroSource{margin:0;color:#9aa3af;font-size:12px}
 .statsCard{margin:0 0 14px;padding:16px;border-radius:14px;background:#1d2028;border:1px solid #ffffff14}
 .statsCardTitle{margin:0 0 12px;font-size:22px;line-height:1.2}
 .statsChips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}

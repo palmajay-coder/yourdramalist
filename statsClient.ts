@@ -80,8 +80,7 @@ export function installStats() {
     const big = el("p", "statsHeroHours");
     big.append(el("strong", "", hours == null ? "–" : number.format(hours)), el("span", "", hours == null ? " hours watched isn't available" : " hours watched"));
     const facts = el("p", "statsHeroFacts", data.statusCounts.completed + " completed" + (data.ratings.average != null ? " · average score " + data.ratings.average : ""));
-    const source = el("p", "statsHeroSource", "All time, from your MyDramaList list");
-    text.append(big, facts, source);
+    text.append(big, facts);
     box.append(art, text);
     return box;
   }
