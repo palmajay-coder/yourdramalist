@@ -369,7 +369,18 @@ export function installPeopleUI() {
   // A cast member without a MyDramaList address (TMDB-only titles): find them by name.
   async function findPerson(person) {
     const data2 = await json("/api/mdl/people-search?mode=actor&q=" + encodeURIComponent(person.name.slice(0, 100)) + "&page=1");
-    return (data2.people || []).find(match => nameKey(match.name) === nameKey(person.name)) || null;
+    const people = data2.people || [];
+    const exact = people.find(match => nameKey(match.name) === nameKey(person.name));
+    if (exact) return exact;
+    // Stage names: MyDramaList lists "Ha Young" where TMDB has "Ahn Ha-young" (or the other way round). Without an exact match, a result whose
+    // words (two or more) are all in the other name counts, but only when exactly one result does, so two similar names never get mixed up.
+    const words = text => String(text || "").toLowerCase().normalize("NFKD").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    const mine = words(person.name);
+    const near = people.filter(match => {
+      const theirs = words(match.name);
+      return theirs.length >= 2 && mine.length >= 2 && (theirs.every(word => mine.includes(word)) || mine.every(word => theirs.includes(word)));
+    });
+    return near.length === 1 ? near[0] : null;
   }
   async function openPersonTitles(person, opener) {
     const view = freeView();
