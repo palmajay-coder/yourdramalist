@@ -1,5 +1,1 @@
-- Your Drama Wrapped: A personalized, Spotify-style recap of your drama and movie history.
-- Stats Tab: Explore your watch time, genres, countries, eras, actors, ratings, and more.
-- Lists: My Collections has moved into the Lists tab, next to MyDramaList.
-- Cast & Crew: Filter by movies or shows, with five sorting options.
-- Trope Search: Find titles using tropes like enemies to lovers or second lead syndrome.
+- Tapping on a person's photo in a drama page or search bar brings up a brand new page with their bio and list of films to add and explore. Optimized for mobile (Portrait & Landscape) and web versions.

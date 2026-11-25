@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.32
+
+### What's new
+
+- Tapping on a person's photo in a drama page or search bar brings up a brand new page with their bio and list of films to add and explore. Optimized for mobile (Portrait & Landscape) and web versions.
+
 ## 1.1.31
 
 ### What's new
