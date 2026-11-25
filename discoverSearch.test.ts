@@ -432,7 +432,7 @@ await test("tapping an actor opens their titles, and a title opens the full prev
  // One page: photo, name, native name, profession, facts and biography above the filmography.
  const facts=[...view.querySelectorAll(".personFacts dt, .personFacts dd")].map((x:any)=>x.textContent.trim());
  const age=new Date().getUTCFullYear()-1979-(new Date().getUTCMonth()<6||(new Date().getUTCMonth()===6&&new Date().getUTCDate()<10)?1:0);
- assert(facts.join("|")==="Born|Jul 10, 1979 ("+age+" years)|Birthplace|Busan, South Korea|Credits|2 titles • since 2007","facts: "+facts.join("|"));
+ assert(facts.join("|")==="Born|Jul 10, 1979 ("+age+" years)|Birthplace|Busan, South Korea|Credits|2 titles","facts: "+facts.join("|"));
  assert(view.querySelector(".personNative").textContent==="공유"&&view.querySelector(".personProfession").textContent==="Actor","native name and profession");
  assert(view.querySelector(".personBackdrop img").getAttribute("src")==="https://image.tmdb.org/t/p/w1280/goblin.jpg"&&!view.querySelector(".personBackdrop").hidden,"the backdrop is a still from a known title");
  const bio=view.querySelector(".personBio") as any,more=view.querySelector(".personMore") as any;

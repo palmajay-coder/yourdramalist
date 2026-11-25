@@ -290,9 +290,7 @@ export function installPeopleUI() {
     }
     if (details.birthplace) rows.push(["place", "Birthplace", details.birthplace]);
     if (credits.length) {
-      const years = credits.map(credit => credit.year).filter(year => Number.isInteger(year));
-      const first = years.length ? Math.min(...years) : null;
-      rows.push(["credits", "Credits", credits.length + (credits.length === 1 ? " title" : " titles") + (first ? " • since " + first : "")]);
+      rows.push(["credits", "Credits", credits.length + (credits.length === 1 ? " title" : " titles")]);
     }
     view.factList.replaceChildren(...rows.flatMap(([icon, label, value]) => {
       const term = node("dt");
